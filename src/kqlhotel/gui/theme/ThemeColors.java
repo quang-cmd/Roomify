@@ -5,7 +5,7 @@ import java.awt.Color;
 public final class ThemeColors {
     private ThemeColors() {
     }
-
+    public static final Color PRIMARY = new Color(49, 130 , 206); // #F8F9FA
     public static final Color BG_PRIMARY = new Color(248, 249, 250); // #F8F9FA
     public static final Color BG_SECONDARY = new Color(241, 245, 249);
     public static final Color SURFACE = new Color(255, 255, 255); // #FFFFFF
@@ -20,4 +20,6 @@ public final class ThemeColors {
     public static final Color SUCCESS = new Color(56, 161, 105);
     public static final Color BORDER = new Color(226, 232, 240); // #E2E8F0
     public static final Color BORDER_SOFT = new Color(237, 242, 247); // #EDF2F7
+
+
 }
