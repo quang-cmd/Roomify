@@ -1,0 +1,23 @@
+# IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Java / Eclipse output
+bin/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# md
+*.md        
+!README.md 

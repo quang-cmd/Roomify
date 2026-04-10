@@ -1,0 +1,11 @@
+* text=auto
+
+# Keep source files normalized to LF.
+*.java text eol=lf
+*.md text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+
+# Keep Windows-specific scripts as CRLF if added later.
+*.bat text eol=crlf
+*.cmd text eol=crlf
