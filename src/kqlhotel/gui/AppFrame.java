@@ -180,9 +180,13 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel sidebarItem(String iconChar, Color iconColor, String text, String route) {
-        JPanel item = new JPanel(new MigLayout("insets 6 8", "[][6][grow,fill]", "[]"));
+        JPanel item = new JPanel(new BorderLayout(8, 0));
         item.setOpaque(true);
         item.setBackground(new Color(31, 41, 57));
+        item.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        item.setPreferredSize(new Dimension(0, 36));
+        item.setMinimumSize(new Dimension(0, 36));
+        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         item.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
         // Small icon box
@@ -198,27 +202,30 @@ public class AppFrame extends JFrame {
             }
         };
         iconBox.setOpaque(false);
+        iconBox.setPreferredSize(new Dimension(24, 24));
         iconBox.setLayout(new BorderLayout());
-        
+
         // Thử load PNG icon, fallback về Unicode
         String iconFilename = getMenuIconFilename(route);
         ImageIcon pngIcon = loadMenuIcon(iconFilename, 18, 18);
         if (pngIcon != null) {
-            JLabel iconLbl = new JLabel(pngIcon);
+            JLabel iconLbl = new JLabel(pngIcon, SwingConstants.CENTER);
             iconBox.add(iconLbl, BorderLayout.CENTER);
         } else {
             JLabel iconLbl = new JLabel(iconChar, SwingConstants.CENTER);
             iconLbl.setForeground(iconColor);
             iconLbl.setFont(iconLbl.getFont().deriveFont(12f));
-            iconBox.add(iconLbl);
+            iconBox.add(iconLbl, BorderLayout.CENTER);
         }
 
         JLabel textLbl = new JLabel(text);
         textLbl.setForeground(new Color(200, 210, 225));
         textLbl.setFont(textLbl.getFont().deriveFont(13f));
+        textLbl.setHorizontalAlignment(SwingConstants.LEFT);
+        textLbl.setVerticalAlignment(SwingConstants.CENTER);
 
-        item.add(iconBox, "w 24!,h 24!");
-        item.add(textLbl, "skip 1");
+        item.add(iconBox, BorderLayout.WEST);
+        item.add(textLbl, BorderLayout.CENTER);
 
         item.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -594,5 +601,8 @@ public class AppFrame extends JFrame {
                 lbl.setFont(lbl.getFont().deriveFont(active ? Font.BOLD : Font.PLAIN, 13f));
             }
         }
+
+        revalidate();
+        repaint();
     }
 }
