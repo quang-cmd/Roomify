@@ -1,0 +1,34 @@
+package kqlhotel.entity;
+
+public class Staff {
+    private String staffId;
+    private String fullName;
+    private String phone;
+    private Boolean gender;
+    private Account account;
+
+    public Staff() {}
+
+    public Staff(String staffId, String fullName, String phone, Boolean gender, Account account) {
+        this.staffId = staffId;
+        this.fullName = fullName;
+        this.phone = phone;
+        this.gender = gender;
+        this.account = account;
+    }
+
+    public String getStaffId() { return staffId; }
+    public void setStaffId(String staffId) { this.staffId = staffId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public Boolean getGender() { return gender; }
+    public void setGender(Boolean gender) { this.gender = gender; }
+
+    public Account getAccount() { return account; }
+    public void setAccount(Account account) { this.account = account; }
+}
