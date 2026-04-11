@@ -15,6 +15,8 @@ public class RoundedPanel extends JPanel {
     private final float borderWidth;
     private final Color shadowColor;
     private final int shadowSize;
+    private boolean hoverEffectEnabled = false;
+    private boolean hovered = false;
 
     public RoundedPanel(int arc, Color backgroundColor, Color borderColor, float borderWidth) {
         this(arc, backgroundColor, borderColor, borderWidth, null, 0);
@@ -37,6 +39,25 @@ public class RoundedPanel extends JPanel {
         setOpaque(false);
     }
 
+    public void setHoverEffectEnabled(boolean enabled) {
+        this.hoverEffectEnabled = enabled;
+        if (enabled) {
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    hovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    hovered = false;
+                    repaint();
+                }
+            });
+        }
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -44,14 +65,21 @@ public class RoundedPanel extends JPanel {
 
         int width = getWidth() - 1;
         int height = getHeight() - 1;
+        int currentShadowSize = shadowSize;
+        Color currentShadowColor = shadowColor;
 
-        if (shadowColor != null && shadowSize > 0) {
-            g2.setColor(shadowColor);
-            g2.fillRoundRect(0, shadowSize, width - shadowSize, height - shadowSize, arc, arc);
+        if (hoverEffectEnabled && hovered) {
+            currentShadowSize = Math.max(shadowSize, 4);
+            currentShadowColor = (shadowColor != null) ? shadowColor : new Color(0, 0, 0, 40);
         }
 
-        int drawWidth = shadowSize > 0 ? width - shadowSize : width;
-        int drawHeight = shadowSize > 0 ? height - shadowSize : height;
+        if (currentShadowColor != null && currentShadowSize > 0) {
+            g2.setColor(currentShadowColor);
+            g2.fillRoundRect(0, currentShadowSize, width - currentShadowSize, height - currentShadowSize, arc, arc);
+        }
+
+        int drawWidth = currentShadowSize > 0 ? width - currentShadowSize : width;
+        int drawHeight = currentShadowSize > 0 ? height - currentShadowSize : height;
         g2.setColor(backgroundColor);
         g2.fillRoundRect(0, 0, drawWidth, drawHeight, arc, arc);
 

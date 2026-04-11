@@ -16,16 +16,22 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import kqlhotel.bus.CheckoutBUS;
+import kqlhotel.entity.Invoice;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.utils.CurrencyUtils;
+import kqlhotel.utils.PDFInvoiceGenerator;
 import net.miginfocom.swing.MigLayout;
 
 public class CheckoutPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     
+    private final CheckoutBUS checkoutBUS = new CheckoutBUS();
     private final CardLayout mainCards = new CardLayout();
     private final JPanel contentPanel = new JPanel(mainCards);
 
@@ -48,8 +54,17 @@ public class CheckoutPanel extends JPanel {
     private final JLabel detailTotalServiceLabel = new JLabel();
     private final JLabel detailTotalFinalLabel = new JLabel();
 
+    private final JLabel kName = new JLabel();
+    private final JLabel kRoom = new JLabel();
+    private final JLabel kDateIn = new JLabel();
+    private final JLabel kDateOut = new JLabel();
+    private final JLabel kCID = new JLabel();
+
     // Context Data
     private CheckoutData selectedData;
+    private String nextRoomStatus = "Trong";
+    private boolean isSaveInvoice = true;
+    private boolean isPrintInvoice = false;
 
     private final List<CheckoutData> mockDataList = Arrays.asList(
         new CheckoutData("DP001", "Phòng 101 · Deluxe", "Nguyễn Văn A", "0912345678", "07/04/2026", "10/04/2026", "900.000đ/đêm", "Trả hôm nay", new Color(240, 60, 60)),
@@ -68,11 +83,17 @@ public class CheckoutPanel extends JPanel {
         contentPanel.add(createStep1View(), "step1");
         contentPanel.add(createStep2View(), "step2");
 
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Cuộn mượt hơn
+
         add(header, BorderLayout.NORTH);
-        add(contentPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
 
         setStep(1);
-        renderRooms(mockDataList);
+        renderRooms(checkoutBUS.getRoomsDueToday());
     }
 
     private JPanel createHeader() {
@@ -131,7 +152,7 @@ public class CheckoutPanel extends JPanel {
         panel.setOpaque(false);
 
         // Sidebar Filter
-        RoundedPanel filterCard = new RoundedPanel(16, Color.WHITE, new Color(225, 231, 245), 1f);
+        RoundedPanel filterCard = new RoundedPanel(16, Color.WHITE, new Color(225, 231, 245), 1.5f);
         filterCard.setLayout(new MigLayout("wrap 1,insets 20,gap 12", "[grow,fill]", "[]"));
         
         JLabel title = new JLabel("Tìm phòng cần trả");
@@ -160,10 +181,31 @@ public class CheckoutPanel extends JPanel {
         searchBtn.setBackground(new Color(24, 34, 52));
         searchBtn.setForeground(Color.WHITE);
         searchBtn.addActionListener(e -> {
-            // Mock logic
-            renderRooms(mockDataList);
+            String rC = roomCodeField.getText().trim();
+            String cI = customerIdField.getText().trim();
+            String cN = customerNameField.getText().trim();
+            if (rC.isEmpty() && cI.isEmpty() && cN.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập ít nhất 1 thông tin để tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            List<CheckoutData> results = checkoutBUS.searchCheckoutData(rC, cI, cN);
+            renderRooms(results);
+            if (results.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy lưu trú nào phù hợp!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            }
         });
         filterCard.add(searchBtn, "h 44!, gapy 16 0");
+
+        PrimaryButton refreshBtn = new PrimaryButton("Làm mới");
+        refreshBtn.setBackground(new Color(24, 34, 52));
+        refreshBtn.setForeground(Color.WHITE);
+        refreshBtn.addActionListener(e -> {
+            roomCodeField.setText("");
+            customerIdField.setText("");
+            customerNameField.setText("");
+            renderRooms(checkoutBUS.getRoomsDueToday());
+        });
+        filterCard.add(refreshBtn, "h 44!, gapy 8 0");
 
         // Main List
         JPanel rightSide = new JPanel(new MigLayout("wrap 1,insets 0", "[grow,fill]", "[]"));
@@ -217,7 +259,7 @@ public class CheckoutPanel extends JPanel {
     }
 
     private JPanel createRoomCard(CheckoutData data) {
-        RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);
+        RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1.5f);
         card.setLayout(new MigLayout("wrap 1,insets 16,gap 8", "[grow,fill]", "[]"));
         
         JPanel header = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
@@ -380,14 +422,32 @@ public class CheckoutPanel extends JPanel {
         JPanel sBox = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
         sBox.setOpaque(false);
         PrimaryButton sEmpty = new PrimaryButton("Trống");
-        sEmpty.setBackground(new Color(235, 252, 245));
-        sEmpty.setForeground(new Color(20, 160, 100));
-        sEmpty.setBorder(BorderFactory.createLineBorder(new Color(20, 160, 100), 1));
-        
         PrimaryButton sMaint = new PrimaryButton("Bảo trì");
-        sMaint.setBackground(Color.WHITE);
-        sMaint.setForeground(new Color(110, 125, 145));
-        sMaint.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 235), 1));
+
+        sEmpty.addActionListener(e -> {
+            nextRoomStatus = "Trong";
+            sEmpty.setBackground(new Color(40, 167, 69)); // Xanh lá
+            sEmpty.setForeground(Color.WHITE);
+            sEmpty.setBorder(BorderFactory.createEmptyBorder());
+            
+            sMaint.setBackground(Color.WHITE);
+            sMaint.setForeground(new Color(110, 125, 145));
+            sMaint.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 235), 2));
+        });
+        
+        sMaint.addActionListener(e -> {
+            nextRoomStatus = "Bảo trì";
+            sMaint.setBackground(new Color(40, 167, 69)); // Xanh lá theo yêu cầu
+            sMaint.setForeground(Color.WHITE);
+            sMaint.setBorder(BorderFactory.createEmptyBorder());
+            
+            sEmpty.setBackground(Color.WHITE);
+            sEmpty.setForeground(new Color(110, 125, 145));
+            sEmpty.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 235), 2));
+        });
+
+        // Default
+        sEmpty.doClick();
         
         sBox.add(sEmpty, "h 40!");
         sBox.add(sMaint, "h 40!");
@@ -397,15 +457,45 @@ public class CheckoutPanel extends JPanel {
         JPanel actBox = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
         actBox.setOpaque(false);
         PrimaryButton saveBtn = new PrimaryButton("Lưu hóa đơn");
+        PrimaryButton printBtn = new PrimaryButton("In hóa đơn");
+
+        saveBtn.addActionListener(e -> {
+            isSaveInvoice = !isSaveInvoice;
+            if (isSaveInvoice) {
+                saveBtn.setBackground(new Color(40, 167, 69)); // Xanh lá
+                saveBtn.setForeground(Color.WHITE);
+                saveBtn.setBorder(BorderFactory.createEmptyBorder());
+            } else {
+                saveBtn.setBackground(new Color(245, 248, 252));
+                saveBtn.setForeground(new Color(50, 70, 90));
+                saveBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
+            }
+        });
+
+        printBtn.addActionListener(e -> {
+            isPrintInvoice = !isPrintInvoice;
+            if (isPrintInvoice) {
+                printBtn.setBackground(new Color(40, 167, 69)); // Xanh lá
+                printBtn.setForeground(Color.WHITE);
+                printBtn.setBorder(BorderFactory.createEmptyBorder());
+            } else {
+                printBtn.setBackground(new Color(245, 248, 252));
+                printBtn.setForeground(new Color(50, 70, 90));
+                printBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
+            }
+        });
+
+        // Default state
         saveBtn.setBackground(new Color(245, 248, 252));
         saveBtn.setForeground(new Color(50, 70, 90));
-        saveBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 1));
+        saveBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
+        isSaveInvoice = false; // Reset về ban đầu là chưa chọn
         
-        PrimaryButton printBtn = new PrimaryButton("In hóa đơn");
         printBtn.setBackground(new Color(245, 248, 252));
         printBtn.setForeground(new Color(50, 70, 90));
-        printBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 1));
-        
+        printBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
+        isPrintInvoice = false;
+
         actBox.add(saveBtn, "h 44!");
         actBox.add(printBtn, "h 44!");
         
@@ -413,9 +503,25 @@ public class CheckoutPanel extends JPanel {
         submitBtn.setBackground(ThemeColors.SUCCESS);
         submitBtn.setForeground(Color.WHITE);
         submitBtn.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            setStep(1);
-            mainCards.show(contentPanel, "step1");
+            // Thực hiện nghiệp vụ
+            boolean success = checkoutBUS.completeCheckout(currentHoaDon, detailRoomLabel.getText(), nextRoomStatus);
+            if (success) {
+                if (isPrintInvoice) {
+                    PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
+                }
+                JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                
+                // Clear state and return
+                roomCodeField.setText("");
+                customerIdField.setText("");
+                customerNameField.setText("");
+                renderRooms(new java.util.ArrayList<>()); // Reset list
+                
+                setStep(1);
+                mainCards.show(contentPanel, "step1");
+            } else {
+                JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         leftPanel.add(actBox, "gapy 16 0");
@@ -430,22 +536,32 @@ public class CheckoutPanel extends JPanel {
         iTitle.setForeground(new Color(24, 40, 66));
         rightPanel.add(iTitle, "gapy 10 20");
         
-        RoundedPanel kvBox = new RoundedPanel(12, Color.WHITE, new Color(225, 231, 245), 1f);
-        kvBox.setLayout(new MigLayout("wrap 2,insets 20", "[grow,fill][grow,fill]", "[][]"));
+        RoundedPanel kvBox = new RoundedPanel(12, Color.WHITE, new Color(225, 231, 245), 1.5f);
+        kvBox.setLayout(new MigLayout("wrap 2,insets 20, gap 15", "[grow,fill][grow,fill]", "[]"));
         
         kvBox.add(makeSmallLabel("Khách hàng"));
         kvBox.add(makeSmallLabel("Phòng hiện tại"));
         
-        JLabel kName = new JLabel();
         kName.setFont(kName.getFont().deriveFont(Font.BOLD, 14f));
-        JLabel kRoom = new JLabel();
         kRoom.setFont(kRoom.getFont().deriveFont(Font.BOLD, 14f));
-        
-        // This is dynamic, so we just add placeholders or keep them accessible
-        // Let's create an anonymous bind function later, or just access them via variables.
-        // Actually, no need to update this unless selected, I'll update them in selectCheckoutRoom.
         kvBox.add(kName);
         kvBox.add(kRoom);
+
+        kvBox.add(makeSmallLabel("Ngày nhận"), "gapy 10 0");
+        kvBox.add(makeSmallLabel("Ngày hết hạn"), "gapy 10 0");
+        kDateIn.setFont(kDateIn.getFont().deriveFont(Font.BOLD, 14f));
+        kDateOut.setFont(kDateOut.getFont().deriveFont(Font.BOLD, 14f));
+        kvBox.add(kDateIn);
+        kvBox.add(kDateOut);
+
+        kvBox.add(makeSmallLabel("Mã khách hàng (CCCD/ID)"), "gapy 10 0");
+        kvBox.add(makeSmallLabel("Trạng thái"), "gapy 10 0");
+        kCID.setFont(kCID.getFont().deriveFont(Font.BOLD, 14f));
+        JLabel kStatusLabel = new JLabel("Đang lưu trú");
+        kStatusLabel.setFont(kStatusLabel.getFont().deriveFont(Font.BOLD, 14f));
+        kStatusLabel.setForeground(ThemeColors.SUCCESS);
+        kvBox.add(kCID);
+        kvBox.add(kStatusLabel);
         
         // Let's keep references instead
         rightPanel.add(kvBox);
@@ -462,12 +578,22 @@ public class CheckoutPanel extends JPanel {
         return l;
     }
 
+    private Invoice currentHoaDon;
     private void selectCheckoutRoom(CheckoutData data) {
         this.selectedData = data;
         
-        // Update Step 2 views
+        // Gọi BUS để lấy dữ liệu thực tế từ DB (Giả lập bằng room name/code)
+        String roomCode = data.roomName.split(" · ")[0].replace("Phòng ", "").trim();
+        this.currentHoaDon = checkoutBUS.getInvoiceForCheckout(roomCode);
+        
+        if (currentHoaDon == null) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn chưa thanh toán cho phòng này!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Update Step 2 views with REAL DATA
         detailNameLabel.setText(data.customerName);
-        detailRoomLabel.setText(data.roomName);
+        detailRoomLabel.setText(roomCode);
         detailRoomLabel.setFont(detailRoomLabel.getFont().deriveFont(Font.BOLD, 13f));
         detailRoomPriceLabel.setText(data.price);
         detailRoomPriceLabel.setFont(detailRoomPriceLabel.getFont().deriveFont(Font.BOLD, 13f));
@@ -476,10 +602,15 @@ public class CheckoutPanel extends JPanel {
         detailDateOutLabel.setText(data.dateOut);
         detailDateOutLabel.setFont(detailDateOutLabel.getFont().deriveFont(Font.BOLD, 13f));
         
-        // Mock calculate total
-        detailTotalRoomLabel.setText("2.700.000đ");
-        detailTotalServiceLabel.setText("0đ");
-        detailTotalFinalLabel.setText("2.700.000đ");
+        detailTotalRoomLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienPhong()));
+        detailTotalServiceLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienDichVu()));
+        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTongTienThanhToan()));
+        
+        kName.setText(data.customerName + " (" + data.phone + ")");
+        kRoom.setText(data.roomName);
+        kDateIn.setText(data.dateIn);
+        kDateOut.setText(data.dateOut);
+        kCID.setText(data.id);
         
         setStep(2);
         mainCards.show(contentPanel, "step2");
@@ -535,10 +666,10 @@ public class CheckoutPanel extends JPanel {
         return null;
     }
 
-    private static class CheckoutData {
-        String id, roomName, customerName, phone, dateIn, dateOut, price, statusText;
-        Color statusColor;
-        CheckoutData(String id, String roomName, String name, String phone, String dateIn, String dateOut, String price, String st, Color col) {
+    public static class CheckoutData {
+        public String id, roomName, customerName, phone, dateIn, dateOut, price, statusText;
+        public Color statusColor;
+        public CheckoutData(String id, String roomName, String name, String phone, String dateIn, String dateOut, String price, String st, Color col) {
             this.id = id; this.roomName = roomName; this.customerName = name; this.phone = phone;
             this.dateIn = dateIn; this.dateOut = dateOut; this.price = price; this.statusText = st; this.statusColor = col;
         }
