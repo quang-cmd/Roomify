@@ -25,7 +25,8 @@ import net.miginfocom.swing.MigLayout;
 
 public class RoomManagementPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
-    private final JPanel gridContainer = new JPanel(new MigLayout("wrap 5,insets 0,gap 16", "[grow,fill]", "[]"));
+    private final JPanel gridContainer = new JPanel(new java.awt.GridLayout(0, 5, 16, 16));
+    private final JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
 
     // Status colors
     private static final Color COLOR_TRONG = new Color(30, 180, 120);
@@ -91,7 +92,6 @@ public class RoomManagementPanel extends JPanel {
         statsRow.add(createStatCard("Đang dọn", "1", "7%", COLOR_DANGDON));
 
         // ===== 3. Filter Row =====
-        JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
         filterRow.setOpaque(false);
         filterRow.add(createFilterBtn("Tất cả", "15", true));
         filterRow.add(createFilterBtn("Trống", "8", false));
@@ -105,7 +105,11 @@ public class RoomManagementPanel extends JPanel {
             gridContainer.add(createRoomCard(data));
         }
 
-        JScrollPane scrollPane = new JScrollPane(gridContainer);
+        JPanel gridWrapper = new JPanel(new BorderLayout());
+        gridWrapper.setOpaque(false);
+        gridWrapper.add(gridContainer, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(gridWrapper);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
@@ -147,25 +151,76 @@ public class RoomManagementPanel extends JPanel {
     }
 
     private JButton createFilterBtn(String label, String badgeText, boolean active) {
+        JButton btn = new JButton();
+        btn.putClientProperty("filterLabel", label);
+        btn.putClientProperty("filterBadge", badgeText);
+        btn.setFont(btn.getFont().deriveFont(13f));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
         String text = "<html>" + label + " <span style='color:" 
                     + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
                     + badgeText + "&nbsp;</span></html>";
-        JButton btn = new JButton(text);
-        btn.setFont(btn.getFont().deriveFont(13f));
+        btn.setText(text);
         if (active) {
             btn.setBackground(new Color(18, 35, 67));
             btn.setForeground(Color.WHITE);
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+            ));
         } else {
             btn.setBackground(Color.WHITE);
             btn.setForeground(new Color(100, 120, 150));
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+            ));
         }
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(active ? new Color(18, 35, 67) : new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(6, 16, 6, 16)
-        ));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        btn.addActionListener(e -> applyFilter(label));
+        
         return btn;
+    }
+
+    private void applyFilter(String filter) {
+        for (int i = 0; i < filterRow.getComponentCount(); i++) {
+            if (filterRow.getComponent(i) instanceof JButton) {
+                JButton btn = (JButton) filterRow.getComponent(i);
+                String label = (String) btn.getClientProperty("filterLabel");
+                String badge = (String) btn.getClientProperty("filterBadge");
+                boolean active = label.equals(filter);
+                
+                String text = "<html>" + label + " <span style='color:" 
+                            + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
+                            + badge + "&nbsp;</span></html>";
+                btn.setText(text);
+                if (active) {
+                    btn.setBackground(new Color(18, 35, 67));
+                    btn.setForeground(Color.WHITE);
+                    btn.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
+                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                    ));
+                } else {
+                    btn.setBackground(Color.WHITE);
+                    btn.setForeground(new Color(100, 120, 150));
+                    btn.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                    ));
+                }
+            }
+        }
+
+        gridContainer.removeAll();
+        for (RoomData data : mockData) {
+            if (filter.equals("Tất cả") || data.status.equals(filter)) {
+                gridContainer.add(createRoomCard(data));
+            }
+        }
+        gridContainer.revalidate();
+        gridContainer.repaint();
     }
 
     private JPanel createRoomCard(RoomData data) {
