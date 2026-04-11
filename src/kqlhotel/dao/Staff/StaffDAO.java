@@ -1,5 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.Staff;
 
+import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Staff;
 import kqlhotel.entity.Account;
 import java.sql.*;

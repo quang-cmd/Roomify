@@ -1,5 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.Invoice;
 
+import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Invoice;
 import java.sql.*;
 import java.util.ArrayList;

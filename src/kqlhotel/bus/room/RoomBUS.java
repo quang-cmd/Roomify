@@ -1,6 +1,6 @@
-package kqlhotel.bus;
+package kqlhotel.bus.room;
 
-import kqlhotel.dao.RoomDAO;
+import kqlhotel.dao.room.RoomDAO;
 import kqlhotel.entity.Room;
 import java.util.List;
 

@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Window;
 import java.util.Arrays;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -16,6 +17,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
@@ -246,6 +248,11 @@ public class RoomManagementPanel extends JPanel {
             PrimaryButton btn = new PrimaryButton("👤 Khách & Hóa đơn");
             btn.setBackground(ThemeColors.PRIMARY);
             btn.setForeground(Color.WHITE);
+            btn.addActionListener(e -> {
+                Window owner = SwingUtilities.getWindowAncestor(this);
+                kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(owner, data.roomNo, data.roomType, data.floor, data.price);
+                dialog.setVisible(true);
+            });
             botRow.add(btn, "span 2,growx,h 36!,gapy 6 0");
         } else {
             JButton btn = new JButton("Chi tiết");

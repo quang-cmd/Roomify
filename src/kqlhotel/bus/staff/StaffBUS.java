@@ -1,6 +1,6 @@
-package kqlhotel.bus;
+package kqlhotel.bus.staff;
 
-import kqlhotel.dao.StaffDAO;
+import kqlhotel.dao.Staff.StaffDAO;
 import kqlhotel.entity.Staff;
 import kqlhotel.entity.Account;
 import java.util.ArrayList;

@@ -1,5 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.Account;
 
+import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Account;
 import java.sql.*;
 import java.util.ArrayList;

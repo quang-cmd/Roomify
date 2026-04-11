@@ -15,7 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import kqlhotel.bus.StaffBUS;
+import kqlhotel.bus.staff.StaffBUS;
 import kqlhotel.entity.Staff;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
