@@ -1,4 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.promotion;
+
+import kqlhotel.dao.connectDB.*;
 
 import kqlhotel.entity.Promotion;
 import java.sql.*;

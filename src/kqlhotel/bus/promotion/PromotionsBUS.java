@@ -1,7 +1,8 @@
-package kqlhotel.bus;
+package kqlhotel.bus.promotion;
 
-import kqlhotel.dao.PromotionDAO;
-import kqlhotel.entity.Promotion;
+import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.promotion.*;
+import kqlhotel.entity.*;
 import java.util.List;
 
 public class PromotionsBUS {

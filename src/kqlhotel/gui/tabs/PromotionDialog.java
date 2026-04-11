@@ -14,7 +14,7 @@ import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import kqlhotel.bus.PromotionsBUS;
+import kqlhotel.bus.promotion.PromotionsBUS;
 import kqlhotel.entity.Promotion;
 import kqlhotel.gui.components.DatePicker;
 import kqlhotel.gui.components.PrimaryButton;

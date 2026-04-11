@@ -1,4 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.room;
+
+import kqlhotel.dao.connectDB.*;
 
 import kqlhotel.entity.RoomType;
 import java.sql.*;

@@ -5,7 +5,7 @@ import java.util.Locale;
 
 public class CurrencyUtils {
     public static String formatVND(double amount) {
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"));
         return currencyFormat.format(amount);
     }
 }

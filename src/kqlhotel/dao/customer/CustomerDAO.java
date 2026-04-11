@@ -1,4 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.customer;
+
+import kqlhotel.dao.connectDB.*;
 
 import kqlhotel.entity.Customer;
 import java.sql.*;

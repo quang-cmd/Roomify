@@ -1,6 +1,8 @@
-package kqlhotel.bus;
+package kqlhotel.bus.checkout;
 
-import kqlhotel.dao.*;
+import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.invoice.*;
+import kqlhotel.dao.room.*;
 import kqlhotel.entity.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -72,7 +74,7 @@ public class CheckoutBUS {
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> searchCheckoutData(String roomCode, String cusId, String cusName) {
         java.util.List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new java.util.ArrayList<>();
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.connectDB.ConnectDB.getConnection();
             StringBuilder sql = new StringBuilder(
                 "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong " +
                 "FROM HoaDon hd " +
@@ -119,7 +121,7 @@ public class CheckoutBUS {
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> getRoomsDueToday() {
         java.util.List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new java.util.ArrayList<>();
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.connectDB.ConnectDB.getConnection();
             String sql = "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong " +
                          "FROM HoaDon hd " +
                          "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +

@@ -22,7 +22,7 @@ import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
-import kqlhotel.bus.PromotionsBUS;
+import kqlhotel.bus.promotion.PromotionsBUS;
 import kqlhotel.entity.Promotion;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.DateUtils;

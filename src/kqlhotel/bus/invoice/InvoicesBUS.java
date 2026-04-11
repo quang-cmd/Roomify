@@ -1,6 +1,8 @@
-package kqlhotel.bus;
+package kqlhotel.bus.invoice;
 
-import kqlhotel.dao.*;
+import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.invoice.*;
+import kqlhotel.dao.customer.*;
 import kqlhotel.entity.*;
 import java.time.LocalDateTime;
 import java.util.List;
