@@ -1,0 +1,51 @@
+package kqlhotel.bus.room;
+
+import kqlhotel.dao.room.PhongDAO;
+import kqlhotel.entity.Phong;
+
+import java.util.List;
+
+public class PhongBUS {
+    private PhongDAO phongDAO;
+
+    public PhongBUS() {
+        phongDAO = new PhongDAO();
+    }
+
+    public List<Phong> getAllRooms() {
+        return phongDAO.getAll();
+    }
+
+    public List<Phong> searchRooms(String maPhong, String tenLoaiPhong, String trangThaiGUI) {
+        // Map GUI status text to DB text
+        String trangThaiDB = mapGuiStatusToDbStatus(trangThaiGUI);
+        return phongDAO.search(maPhong, tenLoaiPhong, trangThaiDB);
+    }
+    
+    public String mapGuiStatusToDbStatus(String guiStatus) {
+        if (guiStatus == null) return null;
+        switch (guiStatus) {
+            case "Trống": return "Trong";
+            case "Đã đặt": return "DaDat";
+            case "Bảo trì": return "BaoTri";
+            case "Đang dọn": return "DangDon";
+            default: return guiStatus; // e.g. "Tất cả trạng thái"
+        }
+    }
+
+    public String mapDbStatusToGuiStatus(String dbStatus) {
+        if (dbStatus == null) return "Không xác định";
+        switch (dbStatus) {
+            case "Trong": return "Trống";
+            case "DaDat": return "Đã đặt";
+            case "BaoTri": return "Bảo trì";
+            case "DangDon": return "Đang dọn";
+            default: return dbStatus;
+        }
+    }
+
+    public long countByStatus(List<Phong> list, String dbStatus) {
+        if (list == null) return 0;
+        return list.stream().filter(p -> dbStatus.equals(p.getTrangThaiPhong())).count();
+    }
+}

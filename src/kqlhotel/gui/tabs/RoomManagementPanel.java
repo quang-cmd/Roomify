@@ -34,7 +34,7 @@ public class RoomManagementPanel extends JPanel {
     private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
     private static final Color COLOR_DANGDON = new Color(143, 97, 255);
 
-    private final List<RoomData> mockData = Arrays.asList(
+    public final List<RoomData> mockData = Arrays.asList(
         new RoomData("101", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", COLOR_TRONG),
         new RoomData("102", "Tầng 1", "Deluxe", "Đã đặt", "2 khách", "28m²", "1.200.000đ", COLOR_DADAT),
         new RoomData("103", "Tầng 1", "Deluxe", "Bảo trì", "2 khách", "28m²", "1.200.000đ", COLOR_BAOTRI),
@@ -74,6 +74,11 @@ public class RoomManagementPanel extends JPanel {
         PrimaryButton btnSearch = new PrimaryButton("🔍 Tra cứu phòng");
         btnSearch.setBackground(ThemeColors.PRIMARY);
         btnSearch.setForeground(Color.WHITE);
+        btnSearch.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            kqlhotel.gui.components.RoomSearchDialog dialog = new kqlhotel.gui.components.RoomSearchDialog(owner, this);
+            dialog.setVisible(true);
+        });
 
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm phòng");
         btnAdd.setBackground(new Color(17, 24, 39));
@@ -223,7 +228,7 @@ public class RoomManagementPanel extends JPanel {
         gridContainer.repaint();
     }
 
-    private JPanel createRoomCard(RoomData data) {
+    public JPanel createRoomCard(RoomData data) {
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);
         card.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
 
@@ -369,11 +374,11 @@ public class RoomManagementPanel extends JPanel {
         return badge;
     }
 
-    private static final class RoomData {
-        final String roomNo, floor, roomType, status, guests, area, price;
-        final Color statusColor;
+    public static final class RoomData {
+        public final String roomNo, floor, roomType, status, guests, area, price;
+        public final Color statusColor;
 
-        RoomData(String roomNo, String floor, String roomType, String status, String guests, String area, String price, Color color) {
+        public RoomData(String roomNo, String floor, String roomType, String status, String guests, String area, String price, Color color) {
             this.roomNo = roomNo; this.floor = floor; this.roomType = roomType;
             this.status = status; this.guests = guests; this.area = area;
             this.price = price; this.statusColor = color;
