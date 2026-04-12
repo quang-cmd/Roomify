@@ -1,6 +1,6 @@
 package kqlhotel.bus.invoice;
 
-import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.invoice.*;
 import kqlhotel.dao.customer.*;
 import kqlhotel.entity.*;

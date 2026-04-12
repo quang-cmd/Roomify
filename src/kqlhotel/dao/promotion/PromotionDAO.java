@@ -1,6 +1,7 @@
 package kqlhotel.dao.promotion;
 
-import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.ConnectDB;
+import kqlhotel.dao.DAO_Interface;
 
 import kqlhotel.entity.Promotion;
 import java.sql.*;
@@ -13,7 +14,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     public List<Promotion> getAll() {
         List<Promotion> dsPromotion = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM KhuyenMai ORDER BY ngayBatDau DESC";
             Statement stmt = con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -30,7 +31,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     public List<Promotion> searchByStatus(String status) {
         List<Promotion> dsPromotion = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM KhuyenMai WHERE trangThaiKM = ? ORDER BY ngayBatDau DESC";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, status);
@@ -48,7 +49,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     @Override
     public Promotion getById(String id) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM KhuyenMai WHERE maKM = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);
@@ -65,7 +66,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     @Override
     public boolean create(Promotion km) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "INSERT INTO KhuyenMai (maKM, tenKM, dieuKienApDung, loaiKM, giaTriToiDa, tienKhuyenMai, ngayBatDau, ngayKetThuc, trangThaiKM) " +
                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -88,7 +89,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     @Override
     public boolean update(Promotion km) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE KhuyenMai SET tenKM=?, dieuKienApDung=?, loaiKM=?, giaTriToiDa=?, tienKhuyenMai=?, ngayBatDau=?, ngayKetThuc=?, trangThaiKM=? " +
                          "WHERE maKM=?";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -111,7 +112,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
     @Override
     public boolean delete(String id) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "DELETE FROM KhuyenMai WHERE maKM = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);

@@ -1,4 +1,4 @@
-package kqlhotel.dao.connectDB;
+package kqlhotel.dao;
 
 import java.util.List;
 

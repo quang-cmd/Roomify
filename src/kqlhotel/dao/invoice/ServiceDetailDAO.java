@@ -1,6 +1,6 @@
 package kqlhotel.dao.invoice;
 
-import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.ConnectDB;
 
 import kqlhotel.entity.ServiceDetail;
 import java.sql.*;
@@ -11,7 +11,7 @@ public class ServiceDetailDAO {
     public List<ServiceDetail> getByInvoice(String maHD) {
         List<ServiceDetail> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM ChiTietDichVu WHERE maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maHD);

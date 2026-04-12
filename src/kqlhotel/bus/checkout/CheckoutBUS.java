@@ -1,6 +1,6 @@
 package kqlhotel.bus.checkout;
 
-import kqlhotel.dao.connectDB.*;
+import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.invoice.*;
 import kqlhotel.dao.room.*;
 import kqlhotel.entity.*;
@@ -29,7 +29,7 @@ public class CheckoutBUS {
                     // Update check-out date to now for calculations
                     ct.setNgayTraPhong(LocalDateTime.now());
                     long days = java.time.Duration.between(ct.getNgayNhanPhong(), ct.getNgayTraPhong()).toDays();
-                    if (days == 0) days = 1; // Min 1 night
+                    if (days <= 0) days = 1; // Min 1 night
                     ct.setSoDem((int) days);
                     double fee = days * lp.getGiaPhong();
                     ct.setThanhTien(fee);
@@ -53,8 +53,8 @@ public class CheckoutBUS {
         // Mock Tax (10%)
         hd.setTienThue(subTotal * 0.1);
         
-        // Final Total
-        hd.setTongTienThanhToan(subTotal + hd.getTienThue() - hd.getTienKhuyenMai());
+        double finalTotal = subTotal + hd.getTienThue() - hd.getTienKhuyenMai();
+        hd.setTongTienThanhToan(Math.max(0, finalTotal));
 
         return hd;
     }
@@ -74,14 +74,14 @@ public class CheckoutBUS {
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> searchCheckoutData(String roomCode, String cusId, String cusName) {
         java.util.List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new java.util.ArrayList<>();
         try {
-            java.sql.Connection con = kqlhotel.dao.connectDB.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
             StringBuilder sql = new StringBuilder(
                 "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong " +
                 "FROM HoaDon hd " +
                 "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                "JOIN Phong p ON cthd.phong = p.maPhong " +
-                "JOIN LoaiPhong lp ON p.loaiPhong = lp.maLoaiPhong " +
-                "JOIN KhachHang kh ON hd.khachHang = kh.maKH " +
+                "JOIN Phong p ON cthd.maPhong = p.maPhong " +
+                "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
+                "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
                 "WHERE hd.trangThai = N'ChuaThanhToan' "
             );
 
@@ -121,13 +121,13 @@ public class CheckoutBUS {
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> getRoomsDueToday() {
         java.util.List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new java.util.ArrayList<>();
         try {
-            java.sql.Connection con = kqlhotel.dao.connectDB.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
             String sql = "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong " +
                          "FROM HoaDon hd " +
                          "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                         "JOIN Phong p ON cthd.phong = p.maPhong " +
-                         "JOIN LoaiPhong lp ON p.loaiPhong = lp.maLoaiPhong " +
-                         "JOIN KhachHang kh ON hd.khachHang = kh.maKH " +
+                         "JOIN Phong p ON cthd.maPhong = p.maPhong " +
+                         "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
+                         "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
                          "WHERE hd.trangThai = N'ChuaThanhToan' " +
                          "AND CAST(cthd.ngayTraPhong AS DATE) = CAST(GETDATE() AS DATE)";
 

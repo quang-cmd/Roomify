@@ -1,4 +1,4 @@
-package kqlhotel.dao.Account;
+package kqlhotel.dao.account;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Account;
@@ -10,8 +10,8 @@ public class AccountDAO {
     public List<Account> getAll() {
         List<Account> list = new ArrayList<>();
         String sql = "SELECT * FROM TaiKhoan";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Account acc = new Account(
@@ -30,8 +30,8 @@ public class AccountDAO {
 
     public boolean insert(Account acc) {
         String sql = "INSERT INTO TaiKhoan(tenDangNhap, matKhau, vaiTro, TrangThaiTK) VALUES(?, ?, ?, ?)";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, acc.getUsername());
             pstmt.setString(2, acc.getPassword());
             pstmt.setString(3, acc.getRole());
@@ -45,8 +45,8 @@ public class AccountDAO {
 
     public boolean update(Account acc) {
         String sql = "UPDATE TaiKhoan SET matKhau = ?, vaiTro = ?, TrangThaiTK = ? WHERE tenDangNhap = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, acc.getPassword());
             pstmt.setString(2, acc.getRole());
             pstmt.setString(3, acc.getStatus());

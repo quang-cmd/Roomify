@@ -24,7 +24,7 @@ import net.miginfocom.swing.MigLayout;
 public class StaffPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     private final JPanel listContainer = new JPanel(new MigLayout("wrap 1,insets 0,gap 0", "[grow,fill]", "[]"));
-    
+
     private final StaffBUS staffBUS = new StaffBUS();
     private List<Staff> staffList;
     private JLabel subtitle;
@@ -45,17 +45,23 @@ public class StaffPanel extends JPanel {
         JLabel title = new JLabel("Nhân sự");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
         title.setForeground(new Color(24, 40, 66));
-        
+
         long activeCount = staffList.stream().filter(s -> s.getAccount() != null && "DangHoatDong".equals(s.getAccount().getStatus())).count();
         subtitle = new JLabel(staffList.size() + " nhân viên - " + activeCount + " đang làm việc");
         subtitle.setForeground(new Color(150, 165, 190));
-        
+
         titlePanel.add(title);
         titlePanel.add(subtitle);
 
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm nhân viên");
         btnAdd.setBackground(new Color(17, 24, 39));
         btnAdd.setForeground(Color.WHITE);
+        btnAdd.addActionListener(e -> {
+            java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(this);
+            kqlhotel.gui.components.AddStaffDialog dialog =
+                    new kqlhotel.gui.components.AddStaffDialog(owner, staffBUS, this::reloadData);
+            dialog.setVisible(true);
+        });
 
         header.add(titlePanel);
         header.add(btnAdd, "alignx right,h 44!");
@@ -67,8 +73,8 @@ public class StaffPanel extends JPanel {
         JTextField searchField = new JTextField();
         searchField.putClientProperty("JTextField.placeholderText", "🔍 Tìm nhân viên...");
         searchField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(225, 231, 245), 1),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+                BorderFactory.createLineBorder(new Color(225, 231, 245), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)
         ));
 
         filterBar.add(searchField, "growy,h 38!");
@@ -82,15 +88,16 @@ public class StaffPanel extends JPanel {
         listWrapper.setLayout(new BorderLayout());
 
         // Header of list
-        JPanel listHeader = new JPanel(new MigLayout("insets 16 20,gap 10", "[250][120][150][200][120][100][grow]", "[]"));
+        JPanel listHeader = new JPanel(new MigLayout("insets 16 20,gap 10", "[250][120][150][200][120][120][100][grow]", "[]"));
         listHeader.setOpaque(false);
         listHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 235, 245)));
-        
+
         listHeader.add(createColHeader("NHÂN VIÊN"));
         listHeader.add(createColHeader("BỘ PHẬN"));
         listHeader.add(createColHeader("CA LÀM VIỆC"));
         listHeader.add(createColHeader("LIÊN HỆ"));
         listHeader.add(createColHeader("NGÀY VÀO"));
+        listHeader.add(createColHeader("TÌNH TRẠNG"));
         listHeader.add(createColHeader("LƯƠNG"));
 
         listContainer.setOpaque(false);
@@ -129,8 +136,8 @@ public class StaffPanel extends JPanel {
         }
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(active ? new Color(17, 24, 39) : new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                BorderFactory.createLineBorder(active ? new Color(17, 24, 39) : new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
         ));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
@@ -169,21 +176,55 @@ public class StaffPanel extends JPanel {
     private JPanel createStaffRow(Staff staff) {
         String name = staff.getFullName() != null && !staff.getFullName().trim().isEmpty() ? staff.getFullName() : "Nhân viên vô danh";
         String initials = getInitials(name);
-        
+
         String roleCode = staff.getAccount() != null ? staff.getAccount().getRole() : "Chưa có";
         String roleDisplay = "QuanLy".equals(roleCode) ? "Quản lý" : ("NhanVien".equals(roleCode) ? "Nhân viên" : roleCode);
-        
+
         String phone = staff.getPhone() != null && !staff.getPhone().isEmpty() ? staff.getPhone() : "Chưa cập nhật";
         String email = "Chưa cập nhật"; // Not in DB schema
-        String department = "QuanLy".equals(roleCode) ? "Ban quản lý" : "Nội bộ";
+        String department = roleDisplay;
         String shift = "Hành chính"; // Not in DB schema
-        String dateJoined = "Chưa cập nhật"; // Not in DB schema
-        String salary = "Chưa cập nhật"; // Not in DB schema
+        String dateJoined;
+        if (staff.getNgayVao() != null) {
+            dateJoined = staff.getNgayVao()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        } else {
+            dateJoined = "Chưa cập nhật";
+        }
+        String salary;
+        if (staff.getLuong() != null) {
+            long l = staff.getLuong().longValue();
+            salary = String.format("%,d", l).replace(',', '.') + "đ";
+        } else {
+            salary = "Chưa cập nhật";
+        }
+
+        // Tình trạng (Account Status)
+        String accountStatus = staff.getAccount() != null ? staff.getAccount().getStatus() : null;
+        String statusLabel;
+        Color statusBg, statusFg;
+        if ("DangHoatDong".equals(accountStatus)) {
+            statusLabel = "● Đang làm";
+            statusBg = new Color(220, 252, 231);
+            statusFg = new Color(22, 163, 74);
+        } else if ("NghiPhep".equals(accountStatus)) {
+            statusLabel = "● Nghỉ phép";
+            statusBg = new Color(254, 243, 199);
+            statusFg = new Color(180, 120, 10);
+        } else if ("NghiViec".equals(accountStatus)) {
+            statusLabel = "● Nghỉ việc";
+            statusBg = new Color(254, 226, 226);
+            statusFg = new Color(185, 28, 28);
+        } else {
+            statusLabel = "Chưa rõ";
+            statusBg = new Color(240, 240, 240);
+            statusFg = new Color(130, 130, 130);
+        }
 
         Color bg = "QuanLy".equals(roleCode) ? new Color(223, 248, 239) : new Color(238, 232, 255);
         Color tone = "QuanLy".equals(roleCode) ? new Color(30, 180, 120) : new Color(143, 97, 255);
 
-        JPanel row = new JPanel(new MigLayout("insets 16 20,gap 10", "[250,fill][120,fill][150,fill][200,fill][120,fill][100,fill][grow,right]", "[]"));
+        JPanel row = new JPanel(new MigLayout("insets 16 20,gap 10", "[250,fill][120,fill][150,fill][200,fill][120,fill][120,fill][100,fill][grow,right]", "[]"));
         row.setOpaque(false);
         row.setBackground(Color.WHITE);
 
@@ -191,7 +232,7 @@ public class StaffPanel extends JPanel {
         JPanel infoCol = new JPanel(new MigLayout("insets 0,gap 12", "[][grow]", "[]"));
         infoCol.setOpaque(false);
         JPanel avatar = makeAvatar(bg, tone, initials);
-        
+
         JPanel textGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         textGroup.setOpaque(false);
         JLabel nameLbl = new JLabel(name);
@@ -202,7 +243,7 @@ public class StaffPanel extends JPanel {
         roleLbl.setForeground(new Color(130, 145, 170));
         textGroup.add(nameLbl);
         textGroup.add(roleLbl);
-        
+
         infoCol.add(avatar, "w 40!,h 40!");
         infoCol.add(textGroup);
 
@@ -228,12 +269,15 @@ public class StaffPanel extends JPanel {
         JLabel dateLbl = new JLabel(dateJoined);
         dateLbl.setForeground(new Color(80, 100, 130));
 
-        // Column 6: Salary
+        // Column 6: Status Badge
+        JPanel statusBadge = makeBadge(statusLabel, statusBg, statusFg);
+
+        // Column 7: Salary
         JLabel salaryLbl = new JLabel(salary);
         salaryLbl.setFont(salaryLbl.getFont().deriveFont(Font.BOLD, 13f));
         salaryLbl.setForeground(new Color(30, 50, 80));
 
-        // Column 7: Actions
+        // Column 8: Actions
         JPanel actionGroup = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
         actionGroup.setOpaque(false);
         JLabel editBtn = new JLabel("✎");
@@ -250,6 +294,7 @@ public class StaffPanel extends JPanel {
         row.add(shiftLbl, "aligny center");
         row.add(contactGroup, "aligny center");
         row.add(dateLbl, "aligny center");
+        row.add(statusBadge, "aligny center,left");
         row.add(salaryLbl, "aligny center");
         row.add(actionGroup, "aligny center,right");
 

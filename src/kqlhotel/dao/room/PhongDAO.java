@@ -25,12 +25,12 @@ public class PhongDAO {
             return list;
         }
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 LoaiPhong lp = new LoaiPhong(
-                    rs.getString("loaiPhong"), // maLoaiPhong
+                    rs.getString("maLoaiPhong"), // maLoaiPhong
                     rs.getString("tenLoaiPhong"),
                     rs.getInt("soLuongPhong"),
                     rs.getDouble("giaPhong"),
@@ -79,8 +79,8 @@ public class PhongDAO {
             return list;
         }
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
              
             int index = 1;
             if (maPhong != null && !maPhong.trim().isEmpty()) {
@@ -96,7 +96,7 @@ public class PhongDAO {
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     LoaiPhong lp = new LoaiPhong(
-                        rs.getString("loaiPhong"),
+                        rs.getString("maLoaiPhong"),
                         rs.getString("tenLoaiPhong"),
                         rs.getInt("soLuongPhong"),
                         rs.getDouble("giaPhong"),
