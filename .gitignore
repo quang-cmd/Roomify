@@ -24,4 +24,4 @@ Thumbs.db
 
 *.pdf
 db/
-/src/kqlhotel/dao/ConnectDB.java
+/src/kqlhotel/dao/connectDB/ConnectDB.java
