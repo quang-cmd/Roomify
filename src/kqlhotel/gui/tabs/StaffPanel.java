@@ -3,12 +3,10 @@ package kqlhotel.gui.tabs;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.util.Arrays;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -17,24 +15,23 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import kqlhotel.bus.staff.StaffBUS;
+import kqlhotel.entity.Staff;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
-import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
 public class StaffPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     private final JPanel listContainer = new JPanel(new MigLayout("wrap 1,insets 0,gap 0", "[grow,fill]", "[]"));
-
-    private final List<StaffData> mockData = Arrays.asList(
-        new StaffData("QH", "Bùi Quang Hải", "Kỹ thuật trưởng", "Kỹ thuật", "Hành chính", "0976 561 234", "hai.bq@kqlhotel.vn", "01/01/2022", "10.000.000đ", new Color(255, 246, 220), new Color(230, 154, 30)),
-        new StaffData("TH", "Đỗ Thị Thanh Hương", "Nhân viên buồng phòng", "Buồng phòng", "Ca chiều (14h - 22h)", "0987 890 123", "huong.dt@kqlhotel.vn", "15/04/2023", "7.500.000đ", new Color(255, 235, 235), new Color(220, 53, 69)),
-        new StaffData("HP", "Lê Hoàng Phúc", "Nhân viên lễ tân", "Lễ tân", "Ca chiều (14h - 22h)", "0901 234 567", "phuc.lh@kqlhotel.vn", "20/09/2022", "8.500.000đ", new Color(238, 232, 255), new Color(143, 97, 255)),
-        new StaffData("KL", "Nguyễn Khả Luân", "Quản lý khách sạn", "Ban quản lý", "Hành chính", "0901 234 567", "luan.nk@kqlhotel.vn", "15/01/2020", "25.000.000đ", new Color(223, 248, 239), new Color(30, 180, 120)),
-        new StaffData("VH", "Nguyễn Văn Hùng", "Bảo vệ trưởng", "An ninh", "Ca đêm (22h - 6h)", "0934 567 890", "hung.nv@kqlhotel.vn", "05/08/2021", "9.000.000đ", new Color(235, 248, 255), new Color(49, 130, 206))
-    );
+    
+    private final StaffBUS staffBUS = new StaffBUS();
+    private List<Staff> staffList;
+    private JLabel subtitle;
 
     public StaffPanel() {
+        staffList = staffBUS.getAll();
+
         setOpaque(false);
         setBackground(PAGE_BG);
         setLayout(new MigLayout("insets 24,gap 20,wrap 1", "[grow,fill]", "[][][grow,fill]"));
@@ -48,8 +45,11 @@ public class StaffPanel extends JPanel {
         JLabel title = new JLabel("Nhân sự");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
         title.setForeground(new Color(24, 40, 66));
-        JLabel subtitle = new JLabel(mockData.size() + " nhân viên - " + mockData.size() + " đang làm việc");
+        
+        long activeCount = staffList.stream().filter(s -> s.getAccount() != null && "DangHoatDong".equals(s.getAccount().getStatus())).count();
+        subtitle = new JLabel(staffList.size() + " nhân viên - " + activeCount + " đang làm việc");
         subtitle.setForeground(new Color(150, 165, 190));
+        
         titlePanel.add(title);
         titlePanel.add(subtitle);
 
@@ -136,12 +136,19 @@ public class StaffPanel extends JPanel {
         return btn;
     }
 
+    public void reloadData() {
+        staffList = staffBUS.getAll();
+        long activeCount = staffList.stream().filter(s -> s.getAccount() != null && "DangHoatDong".equals(s.getAccount().getStatus())).count();
+        subtitle.setText(staffList.size() + " nhân viên - " + activeCount + " đang làm việc");
+        renderStaffList();
+    }
+
     private void renderStaffList() {
         listContainer.removeAll();
-        for (int i = 0; i < mockData.size(); i++) {
-            StaffData staff = mockData.get(i);
+        for (int i = 0; i < staffList.size(); i++) {
+            Staff staff = staffList.get(i);
             JPanel row = createStaffRow(staff);
-            if (i < mockData.size() - 1) {
+            if (i < staffList.size() - 1) {
                 row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 244, 250)));
             }
             listContainer.add(row, "growx");
@@ -150,7 +157,32 @@ public class StaffPanel extends JPanel {
         listContainer.repaint();
     }
 
-    private JPanel createStaffRow(StaffData data) {
+    private String getInitials(String name) {
+        if (name == null || name.trim().isEmpty()) return "NA";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        }
+        return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    private JPanel createStaffRow(Staff staff) {
+        String name = staff.getFullName() != null && !staff.getFullName().trim().isEmpty() ? staff.getFullName() : "Nhân viên vô danh";
+        String initials = getInitials(name);
+        
+        String roleCode = staff.getAccount() != null ? staff.getAccount().getRole() : "Chưa có";
+        String roleDisplay = "QuanLy".equals(roleCode) ? "Quản lý" : ("NhanVien".equals(roleCode) ? "Nhân viên" : roleCode);
+        
+        String phone = staff.getPhone() != null && !staff.getPhone().isEmpty() ? staff.getPhone() : "Chưa cập nhật";
+        String email = "Chưa cập nhật"; // Not in DB schema
+        String department = "QuanLy".equals(roleCode) ? "Ban quản lý" : "Nội bộ";
+        String shift = "Hành chính"; // Not in DB schema
+        String dateJoined = "Chưa cập nhật"; // Not in DB schema
+        String salary = "Chưa cập nhật"; // Not in DB schema
+
+        Color bg = "QuanLy".equals(roleCode) ? new Color(223, 248, 239) : new Color(238, 232, 255);
+        Color tone = "QuanLy".equals(roleCode) ? new Color(30, 180, 120) : new Color(143, 97, 255);
+
         JPanel row = new JPanel(new MigLayout("insets 16 20,gap 10", "[250,fill][120,fill][150,fill][200,fill][120,fill][100,fill][grow,right]", "[]"));
         row.setOpaque(false);
         row.setBackground(Color.WHITE);
@@ -158,14 +190,14 @@ public class StaffPanel extends JPanel {
         // Column 1: Info (Avatar + Name + Role)
         JPanel infoCol = new JPanel(new MigLayout("insets 0,gap 12", "[][grow]", "[]"));
         infoCol.setOpaque(false);
-        JPanel avatar = makeAvatar(data.bg, data.tone, data.initials);
+        JPanel avatar = makeAvatar(bg, tone, initials);
         
         JPanel textGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         textGroup.setOpaque(false);
-        JLabel nameLbl = new JLabel(data.name);
+        JLabel nameLbl = new JLabel(name);
         nameLbl.setFont(nameLbl.getFont().deriveFont(Font.BOLD, 14f));
         nameLbl.setForeground(new Color(30, 50, 80));
-        JLabel roleLbl = new JLabel(data.role);
+        JLabel roleLbl = new JLabel(roleDisplay);
         roleLbl.setFont(roleLbl.getFont().deriveFont(12f));
         roleLbl.setForeground(new Color(130, 145, 170));
         textGroup.add(nameLbl);
@@ -175,29 +207,29 @@ public class StaffPanel extends JPanel {
         infoCol.add(textGroup);
 
         // Column 2: Department Badge
-        JPanel deptBadge = makeBadge(data.department, new Color(240, 244, 255), new Color(60, 100, 200));
+        JPanel deptBadge = makeBadge(department, new Color(240, 244, 255), new Color(60, 100, 200));
 
         // Column 3: Shift
-        JLabel shiftLbl = new JLabel("⏱ " + data.shift);
+        JLabel shiftLbl = new JLabel("⏱ " + shift);
         shiftLbl.setForeground(new Color(80, 100, 130));
 
         // Column 4: Contact
         JPanel contactGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         contactGroup.setOpaque(false);
-        JLabel phoneLbl = new JLabel("📞 " + data.phone);
+        JLabel phoneLbl = new JLabel("📞 " + phone);
         phoneLbl.setForeground(new Color(30, 50, 80));
-        JLabel emailLbl = new JLabel("✉ " + data.email);
+        JLabel emailLbl = new JLabel("✉ " + email);
         emailLbl.setFont(emailLbl.getFont().deriveFont(11f));
         emailLbl.setForeground(new Color(130, 145, 170));
         contactGroup.add(phoneLbl);
         contactGroup.add(emailLbl);
 
         // Column 5: Date
-        JLabel dateLbl = new JLabel(data.dateJoined);
+        JLabel dateLbl = new JLabel(dateJoined);
         dateLbl.setForeground(new Color(80, 100, 130));
 
         // Column 6: Salary
-        JLabel salaryLbl = new JLabel(data.salary);
+        JLabel salaryLbl = new JLabel(salary);
         salaryLbl.setFont(salaryLbl.getFont().deriveFont(Font.BOLD, 13f));
         salaryLbl.setForeground(new Color(30, 50, 80));
 
@@ -265,17 +297,5 @@ public class StaffPanel extends JPanel {
         lbl.setFont(lbl.getFont().deriveFont(12f));
         badge.add(lbl);
         return badge;
-    }
-
-    private static final class StaffData {
-        final String initials, name, role, department, shift, phone, email, dateJoined, salary;
-        final Color bg, tone;
-
-        StaffData(String initials, String name, String role, String department, String shift, String phone, String email, String dateJoined, String salary, Color bg, Color tone) {
-            this.initials = initials; this.name = name; this.role = role;
-            this.department = department; this.shift = shift; this.phone = phone;
-            this.email = email; this.dateJoined = dateJoined; this.salary = salary;
-            this.bg = bg; this.tone = tone;
-        }
     }
 }

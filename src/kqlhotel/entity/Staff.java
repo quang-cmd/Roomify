@@ -1,23 +1,34 @@
 package kqlhotel.entity;
 
 public class Staff {
-    private String maNV;
-    private String hoTenNV;
-    private String sdt;
-    private boolean gioiTinh;
-    private String taiKhoan;
+    private String staffId;
+    private String fullName;
+    private String phone;
+    private Boolean gender;
+    private Account account;
 
     public Staff() {}
 
-    // Getters and Setters
-    public String getMaNV() { return maNV; }
-    public void setMaNV(String maNV) { this.maNV = maNV; }
-    public String getHoTenNV() { return hoTenNV; }
-    public void setHoTenNV(String hoTenNV) { this.hoTenNV = hoTenNV; }
-    public String getSdt() { return sdt; }
-    public void setSdt(String sdt) { this.sdt = sdt; }
-    public boolean isGioiTinh() { return gioiTinh; }
-    public void setGioiTinh(boolean gioiTinh) { this.gioiTinh = gioiTinh; }
-    public String getTaiKhoan() { return taiKhoan; }
-    public void setTaiKhoan(String taiKhoan) { this.taiKhoan = taiKhoan; }
+    public Staff(String staffId, String fullName, String phone, Boolean gender, Account account) {
+        this.staffId = staffId;
+        this.fullName = fullName;
+        this.phone = phone;
+        this.gender = gender;
+        this.account = account;
+    }
+
+    public String getStaffId() { return staffId; }
+    public void setStaffId(String staffId) { this.staffId = staffId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public Boolean getGender() { return gender; }
+    public void setGender(Boolean gender) { this.gender = gender; }
+
+    public Account getAccount() { return account; }
+    public void setAccount(Account account) { this.account = account; }
 }

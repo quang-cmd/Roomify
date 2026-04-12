@@ -1,26 +1,34 @@
 package kqlhotel.entity;
 
 public class Room {
-    private String maPhong;
-    private double tienCoc;
-    private String loaiPhong; // Ma loại phòng
-    private int tang;
-    private String trangThaiPhong;
+    private String roomId;
+    private Double deposit;
+    private RoomType roomType;
+    private Integer floor;
+    private String status; // DaDat, Trong, BaoTri, DangDon
 
     public Room() {}
 
-    public Room(String maPhong) {
-        this.maPhong = maPhong;
+    public Room(String roomId, Double deposit, RoomType roomType, Integer floor, String status) {
+        this.roomId = roomId;
+        this.deposit = deposit;
+        this.roomType = roomType;
+        this.floor = floor;
+        this.status = status;
     }
 
-    public String getMaPhong() { return maPhong; }
-    public void setMaPhong(String maPhong) { this.maPhong = maPhong; }
-    public double getTienCoc() { return tienCoc; }
-    public void setTienCoc(double tienCoc) { this.tienCoc = tienCoc; }
-    public String getLoaiPhong() { return loaiPhong; }
-    public void setLoaiPhong(String loaiPhong) { this.loaiPhong = loaiPhong; }
-    public int getTang() { return tang; }
-    public void setTang(int tang) { this.tang = tang; }
-    public String getTrangThaiPhong() { return trangThaiPhong; }
-    public void setTrangThaiPhong(String trangThaiPhong) { this.trangThaiPhong = trangThaiPhong; }
+    public String getRoomId() { return roomId; }
+    public void setRoomId(String roomId) { this.roomId = roomId; }
+
+    public Double getDeposit() { return deposit; }
+    public void setDeposit(Double deposit) { this.deposit = deposit; }
+
+    public RoomType getRoomType() { return roomType; }
+    public void setRoomType(RoomType roomType) { this.roomType = roomType; }
+
+    public Integer getFloor() { return floor; }
+    public void setFloor(Integer floor) { this.floor = floor; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

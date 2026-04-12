@@ -19,19 +19,19 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import kqlhotel.bus.CheckoutBUS;
-import kqlhotel.entity.Invoice;
+// import kqlhotel.bus.CheckoutBUS; // Requires database connection
+// import kqlhotel.entity.Invoice; // Requires database
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
-import kqlhotel.utils.CurrencyUtils;
-import kqlhotel.utils.PDFInvoiceGenerator;
+// import kqlhotel.utils.CurrencyUtils; // Deleted
+// import kqlhotel.utils.PDFInvoiceGenerator; // Deleted
 import net.miginfocom.swing.MigLayout;
 
 public class CheckoutPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     
-    private final CheckoutBUS checkoutBUS = new CheckoutBUS();
+    // private final CheckoutBUS checkoutBUS = new CheckoutBUS(); // Requires database
     private final CardLayout mainCards = new CardLayout();
     private final JPanel contentPanel = new JPanel(mainCards);
 
@@ -93,7 +93,8 @@ public class CheckoutPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         setStep(1);
-        renderRooms(checkoutBUS.getRoomsDueToday());
+        // renderRooms(checkoutBUS.getRoomsDueToday()); // Requires database
+        renderRooms(mockDataList); // Use mock data instead
     }
 
     private JPanel createHeader() {
@@ -188,7 +189,8 @@ public class CheckoutPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Vui lòng nhập ít nhất 1 thông tin để tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            List<CheckoutData> results = checkoutBUS.searchCheckoutData(rC, cI, cN);
+            // List<CheckoutData> results = checkoutBUS.searchCheckoutData(rC, cI, cN); // Requires database
+            List<CheckoutData> results = mockDataList; // Use mock data instead
             renderRooms(results);
             if (results.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy lưu trú nào phù hợp!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
@@ -203,7 +205,8 @@ public class CheckoutPanel extends JPanel {
             roomCodeField.setText("");
             customerIdField.setText("");
             customerNameField.setText("");
-            renderRooms(checkoutBUS.getRoomsDueToday());
+            // renderRooms(checkoutBUS.getRoomsDueToday()); // Requires database
+            renderRooms(mockDataList); // Use mock data instead
         });
         filterCard.add(refreshBtn, "h 44!, gapy 8 0");
 
@@ -503,24 +506,25 @@ public class CheckoutPanel extends JPanel {
         submitBtn.setBackground(ThemeColors.SUCCESS);
         submitBtn.setForeground(Color.WHITE);
         submitBtn.addActionListener(e -> {
-            // Thực hiện nghiệp vụ
-            boolean success = checkoutBUS.completeCheckout(currentHoaDon, detailRoomLabel.getText(), nextRoomStatus);
+            // TODO: Integrate with CheckoutBUS when database is ready
+            // boolean success = checkoutBUS.completeCheckout(currentHoaDon, detailRoomLabel.getText(), nextRoomStatus);
+            boolean success = true; // Mock success
             if (success) {
-                if (isPrintInvoice) {
-                    PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
-                }
+                // if (isPrintInvoice) {
+                //     PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
+                // }
                 JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 
                 // Clear state and return
                 roomCodeField.setText("");
                 customerIdField.setText("");
                 customerNameField.setText("");
-                renderRooms(new java.util.ArrayList<>()); // Reset list
+                renderRooms(mockDataList); // Reset to mock list
                 
                 setStep(1);
                 mainCards.show(contentPanel, "step1");
             } else {
-                JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Có lỗi xảy ra!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
         
@@ -578,13 +582,16 @@ public class CheckoutPanel extends JPanel {
         return l;
     }
 
-    private Invoice currentHoaDon;
+    // private Invoice currentHoaDon; // Commented out
+    private java.util.Map<String, Object> currentHoaDon; // Mock data
     private void selectCheckoutRoom(CheckoutData data) {
         this.selectedData = data;
         
-        // Gọi BUS để lấy dữ liệu thực tế từ DB (Giả lập bằng room name/code)
-        String roomCode = data.roomName.split(" · ")[0].replace("Phòng ", "").trim();
-        this.currentHoaDon = checkoutBUS.getInvoiceForCheckout(roomCode);
+        // TODO: Get real data from CheckoutBUS when database is ready
+        currentHoaDon = new java.util.HashMap<>();
+        currentHoaDon.put("tienPhong", 1500000);
+        currentHoaDon.put("tienDichVu", 250000);
+        currentHoaDon.put("tongTien", 1750000);
         
         if (currentHoaDon == null) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn chưa thanh toán cho phòng này!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -593,6 +600,7 @@ public class CheckoutPanel extends JPanel {
 
         // Update Step 2 views with REAL DATA
         detailNameLabel.setText(data.customerName);
+        String roomCode = data.roomName.split(" · ")[0].replace("Phòng ", "").trim();
         detailRoomLabel.setText(roomCode);
         detailRoomLabel.setFont(detailRoomLabel.getFont().deriveFont(Font.BOLD, 13f));
         detailRoomPriceLabel.setText(data.price);
@@ -602,9 +610,12 @@ public class CheckoutPanel extends JPanel {
         detailDateOutLabel.setText(data.dateOut);
         detailDateOutLabel.setFont(detailDateOutLabel.getFont().deriveFont(Font.BOLD, 13f));
         
-        detailTotalRoomLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienPhong()));
-        detailTotalServiceLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienDichVu()));
-        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTongTienThanhToan()));
+        // detailTotalRoomLabel.setText(CurrencyUtils.formatVND((Integer)currentHoaDon.get("tienPhong")));
+        // detailTotalServiceLabel.setText(CurrencyUtils.formatVND((Integer)currentHoaDon.get("tienDichVu")));
+        // detailTotalFinalLabel.setText(CurrencyUtils.formatVND((Integer)currentHoaDon.get("tongTien")));
+        detailTotalRoomLabel.setText(formatCurrency(1500000)); // Mock formatting
+        detailTotalServiceLabel.setText(formatCurrency(250000));
+        detailTotalFinalLabel.setText(formatCurrency(1750000));
         
         kName.setText(data.customerName + " (" + data.phone + ")");
         kRoom.setText(data.roomName);
@@ -673,5 +684,10 @@ public class CheckoutPanel extends JPanel {
             this.id = id; this.roomName = roomName; this.customerName = name; this.phone = phone;
             this.dateIn = dateIn; this.dateOut = dateOut; this.price = price; this.statusText = st; this.statusColor = col;
         }
+    }
+
+    // Mock currency formatter (replaces CurrencyUtils.formatVND)
+    private String formatCurrency(long amount) {
+        return String.format("%,d\u0111", amount).replace(",", ".");
     }
 }
