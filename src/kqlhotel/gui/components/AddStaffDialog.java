@@ -51,8 +51,8 @@ public class AddStaffDialog extends JDialog {
         pack();
         setLocationRelativeTo(owner);
 
-        // Auto-generate staff ID
-        tfMaNV.setText("NV" + (System.currentTimeMillis() % 100000));
+        // Auto-generate staff ID with length 5 (NV + 3 digits)
+        tfMaNV.setText(String.format("NV%03d", (int)(Math.random() * 1000)));
     }
 
     // ===== Header =====

@@ -11,7 +11,7 @@ import java.util.List;
 public class StaffDAO {
     public List<Staff> getAll() {
         List<Staff> list = new ArrayList<>();
-        String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.taiKhoan = tk.tenDangNhap";
+        String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
@@ -55,7 +55,7 @@ public class StaffDAO {
     }
 
     public boolean insert(Staff staff) {
-        String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, taiKhoan, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, tenDangNhap, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
@@ -89,7 +89,7 @@ public class StaffDAO {
     }
 
     public boolean update(Staff staff) {
-        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, taiKhoan = ? WHERE maNV = ?";
+        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, tenDangNhap = ? WHERE maNV = ?";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
