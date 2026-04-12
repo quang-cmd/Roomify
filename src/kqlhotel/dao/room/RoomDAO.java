@@ -1,38 +1,29 @@
 package kqlhotel.dao.room;
 
-import kqlhotel.dao.ConnectDB;
-import kqlhotel.entity.RoomType;
+import kqlhotel.dao.connectDB.*;
+
 import kqlhotel.entity.Room;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RoomDAO {
+public class RoomDAO implements DAO_Interface<Room> {
+    @Override
     public List<Room> getAll() {
         List<Room> list = new ArrayList<>();
-        String sql = "SELECT * FROM Phong p JOIN LoaiPhong lp ON p.loaiPhong = lp.maLoaiPhong";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM Phong";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
             while (rs.next()) {
-                RoomType rt = new RoomType(
-                    rs.getString("maLoaiPhong"),
-                    rs.getString("tenLoaiPhong"),
-                    rs.getInt("soLuongPhong"),
-                    rs.getDouble("giaPhong"),
-                    rs.getInt("sucChuaToiDa"),
-                    rs.getDouble("dienTich"),
-                    rs.getString("moTa"),
-                    rs.getString("tienNghi")
-                );
-                Room r = new Room(
-                    rs.getString("maPhong"),
-                    rs.getDouble("tienCoc"),
-                    rt,
-                    rs.getInt("tang"),
-                    rs.getString("trangThaiPhong")
-                );
-                list.add(r);
+                Room p = new Room();
+                p.setMaPhong(rs.getString("maPhong"));
+                p.setTienCoc(rs.getDouble("tienCoc"));
+                p.setLoaiPhong(rs.getString("loaiPhong"));
+                p.setTang(rs.getInt("tang"));
+                p.setTrangThaiPhong(rs.getString("trangThaiPhong"));
+                list.add(p);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -40,16 +31,47 @@ public class RoomDAO {
         return list;
     }
 
-    public boolean updateStatus(String roomId, String status) {
-        String sql = "UPDATE Phong SET trangThaiPhong = ? WHERE maPhong = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-            pstmt.setString(1, status);
-            pstmt.setString(2, roomId);
-            return pstmt.executeUpdate() > 0;
+    @Override
+    public Room getById(String id) {
+        Room p = null;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM Phong WHERE maPhong = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                p = new Room();
+                p.setMaPhong(rs.getString("maPhong"));
+                p.setTienCoc(rs.getDouble("tienCoc"));
+                p.setLoaiPhong(rs.getString("loaiPhong"));
+                p.setTang(rs.getInt("tang"));
+                p.setTrangThaiPhong(rs.getString("trangThaiPhong"));
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return p;
     }
+
+    public boolean updateStatus(String maPhong, String status) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "UPDATE Phong SET trangThaiPhong = ? WHERE maPhong = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, status);
+            pstmt.setString(2, maPhong);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean create(Room p) { return false; } // Not needed for checkout
+    @Override
+    public boolean update(Room p) { return false; } // Handled by updateStatus
+    @Override
+    public boolean delete(String id) { return false; }
 }

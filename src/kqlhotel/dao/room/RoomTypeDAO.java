@@ -1,34 +1,29 @@
 package kqlhotel.dao.room;
 
-import kqlhotel.dao.ConnectDB;
+import kqlhotel.dao.connectDB.*;
+
 import kqlhotel.entity.RoomType;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class RoomTypeDAO {
-    public List<RoomType> getAll() {
-        List<RoomType> list = new ArrayList<>();
-        String sql = "SELECT * FROM LoaiPhong";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                RoomType rt = new RoomType(
-                    rs.getString("maLoaiPhong"),
-                    rs.getString("tenLoaiPhong"),
-                    rs.getInt("soLuongPhong"),
-                    rs.getDouble("giaPhong"),
-                    rs.getInt("sucChuaToiDa"),
-                    rs.getDouble("dienTich"),
-                    rs.getString("moTa"),
-                    rs.getString("tienNghi")
-                );
-                list.add(rt);
+    public RoomType getById(String id) {
+        RoomType roomType = null;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM LoaiPhong WHERE maLoaiPhong = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                roomType = new RoomType();
+                roomType.setMaLoaiPhong(rs.getString("maLoaiPhong"));
+                roomType.setTenLoaiPhong(rs.getString("tenLoaiPhong"));
+                roomType.setGiaPhong(rs.getDouble("giaPhong"));
+                // ... set others if needed
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return list;
+        return roomType;
     }
 }
