@@ -48,6 +48,7 @@ import net.miginfocom.swing.MigLayout;
 public class BookingPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int ROOMS_PER_SLIDE = 4;
 
     private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"T\u1ea5t c\u1ea3", "Deluxe", "Grand Premium", "Suite"});
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
@@ -77,11 +78,15 @@ public class BookingPanel extends JPanel {
     private final List<RoomCardData> displayedRooms = new ArrayList<>();
     private final JLabel selectionCountLabel = new JLabel("0 phòng đã chọn");
     private final JLabel selectionDetailLabel = new JLabel("Tổng: 0đ");
+    private final JLabel slideInfoLabel = new JLabel("Slide 1/1");
     private PrimaryButton continueToGuestButton;
     private PrimaryButton searchButton;
+    private JButton prevSlideButton;
+    private JButton nextSlideButton;
     private JButton guestMinusButton;
     private JButton guestPlusButton;
     private boolean filterLocked;
+    private int currentSlideIndex;
 
     public BookingPanel() {
         this.bookingService = BookingServiceProvider.get();
@@ -557,6 +562,7 @@ public class BookingPanel extends JPanel {
         roomList.setOpaque(false);
 
         panel.add(overview, "growx");
+        panel.add(createSlideControls(), "growx");
         panel.add(roomList, "grow");
 
         RoundedPanel selectionBar = new RoundedPanel(18, new Color(20, 31, 59), new Color(45, 66, 110), 1f);
@@ -583,6 +589,41 @@ public class BookingPanel extends JPanel {
 
         panel.add(selectionBar, "growx");
         return panel;
+    }
+
+    private JPanel createSlideControls() {
+        JPanel controls = new JPanel(new MigLayout("insets 4 0 0 0,gap 8", "[][grow,fill][]", "[]"));
+        controls.setOpaque(false);
+
+        prevSlideButton = new JButton("<");
+        prevSlideButton.setFocusable(false);
+        prevSlideButton.setPreferredSize(new Dimension(34, 30));
+        prevSlideButton.addActionListener(e -> {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                renderCurrentSlide();
+            }
+        });
+
+        nextSlideButton = new JButton(">");
+        nextSlideButton.setFocusable(false);
+        nextSlideButton.setPreferredSize(new Dimension(34, 30));
+        nextSlideButton.addActionListener(e -> {
+            int maxSlide = getMaxSlideIndex();
+            if (currentSlideIndex < maxSlide) {
+                currentSlideIndex++;
+                renderCurrentSlide();
+            }
+        });
+
+        slideInfoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        slideInfoLabel.setForeground(new Color(84, 104, 136));
+        slideInfoLabel.setFont(slideInfoLabel.getFont().deriveFont(Font.BOLD, 12f));
+
+        controls.add(prevSlideButton, "w 34!,h 30!");
+        controls.add(slideInfoLabel, "alignx center");
+        controls.add(nextSlideButton, "w 34!,h 30!");
+        return controls;
     }
 
     private JPanel createCustomerInfoView() {
@@ -924,6 +965,7 @@ public class BookingPanel extends JPanel {
 
         BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, guestCount);
         lastSearchRequest = request;
+        currentSlideIndex = 0;
 
         selectedRooms.clear();
         List<RoomOptionDto> filtered = bookingService.searchAvailableRooms(request);
@@ -1160,11 +1202,17 @@ public class BookingPanel extends JPanel {
     }
 
     private void renderRooms(List<RoomCardData> data) {
-        roomList.removeAll();
         displayedRooms.clear();
         displayedRooms.addAll(data);
+        currentSlideIndex = Math.min(currentSlideIndex, getMaxSlideIndex());
+        renderCurrentSlide();
+        updateSelectionSummary();
+    }
 
-        if (data.isEmpty()) {
+    private void renderCurrentSlide() {
+        roomList.removeAll();
+
+        if (displayedRooms.isEmpty()) {
             RoundedPanel empty = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
             empty.setLayout(new MigLayout("insets 20", "[grow,fill]", "[]"));
             JLabel msg = new JLabel("Kh\u00f4ng t\u00ecm th\u1ea5y lo\u1ea1i ph\u00f2ng ph\u00f9 h\u1ee3p.", SwingConstants.CENTER);
@@ -1172,14 +1220,17 @@ public class BookingPanel extends JPanel {
             empty.add(msg);
             roomList.add(empty, "span 2,growx");
         } else {
-            for (RoomCardData room : data) {
+            int start = currentSlideIndex * ROOMS_PER_SLIDE;
+            int end = Math.min(start + ROOMS_PER_SLIDE, displayedRooms.size());
+            List<RoomCardData> pageItems = displayedRooms.subList(start, end);
+            for (RoomCardData room : pageItems) {
                 roomList.add(roomCard(room));
             }
         }
 
         roomList.revalidate();
         roomList.repaint();
-        updateSelectionSummary();
+        updateSlideControls();
     }
 
     private void toggleRoomSelection(RoomCardData data) {
@@ -1189,7 +1240,33 @@ public class BookingPanel extends JPanel {
             selectedRooms.add(data);
         }
 
-        renderRooms(new ArrayList<>(displayedRooms));
+        renderCurrentSlide();
+        updateSelectionSummary();
+    }
+
+    private void updateSlideControls() {
+        int totalSlides = getTotalSlides();
+        int displaySlide = totalSlides == 0 ? 0 : currentSlideIndex + 1;
+        slideInfoLabel.setText("Slide " + displaySlide + "/" + totalSlides);
+
+        boolean hasMultipleSlides = totalSlides > 1;
+        if (prevSlideButton != null) {
+            prevSlideButton.setEnabled(hasMultipleSlides && currentSlideIndex > 0);
+        }
+        if (nextSlideButton != null) {
+            nextSlideButton.setEnabled(hasMultipleSlides && currentSlideIndex < getMaxSlideIndex());
+        }
+    }
+
+    private int getTotalSlides() {
+        if (displayedRooms.isEmpty()) {
+            return 1;
+        }
+        return (int) Math.ceil(displayedRooms.size() / (double) ROOMS_PER_SLIDE);
+    }
+
+    private int getMaxSlideIndex() {
+        return Math.max(0, getTotalSlides() - 1);
     }
 
     private void updateSelectionSummary() {
@@ -1276,25 +1353,11 @@ public class BookingPanel extends JPanel {
             formatMoney(room.getNightlyPrice()),
             room.getStatus(),
             calculateFreeRate(room.getStatus()),
-            resolveRoomCapacity(room.getRoomType()),
+            room.getMaxGuests(),
             room.getAmenities(),
             bg,
             tone
         );
-    }
-
-    private int resolveRoomCapacity(String roomType) {
-        if (roomType == null) {
-            return 1;
-        }
-
-        if (roomType.startsWith("Suite")) {
-            return 4;
-        }
-        if (roomType.startsWith("Grand Premium 2")) {
-            return 3;
-        }
-        return 2;
     }
 
     private Color resolveRoomTone(String roomType) {
