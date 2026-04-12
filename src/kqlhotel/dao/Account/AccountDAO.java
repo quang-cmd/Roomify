@@ -30,6 +30,12 @@ public class AccountDAO {
 
     public boolean insert(Account acc) {
         String sql = "INSERT INTO TaiKhoan(tenDangNhap, matKhau, vaiTro, TrangThaiTK) VALUES(?, ?, ?, ?)";
+        try {
+            ConnectDB.getInstance().connect();
+        } catch (Exception e) {
+            System.err.println("Lỗi kết nối database: " + e.getMessage());
+            return false;
+        }
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, acc.getUsername());
