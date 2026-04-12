@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import kqlhotel.gui.components.BackgroundPanel;
@@ -93,7 +94,14 @@ public class AppFrame extends JFrame {
 
         screenPanel.setOpaque(false);
         screenPanel.add(new BookingPanel(), "booking");
-        screenPanel.add(new StatisticsPanel(), "statistics");
+        StatisticsPanel statisticsPanel = new StatisticsPanel();
+        JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
+        statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
+        statisticsScroll.getVerticalScrollBar().setUnitIncrement(16);
+        statisticsScroll.getHorizontalScrollBar().setUnitIncrement(16);
+        statisticsScroll.getViewport().setOpaque(false);
+        statisticsScroll.setOpaque(false);
+        screenPanel.add(statisticsScroll, "statistics");
         screenPanel.add(new UnderDevelopmentPanel("Trả phòng"), "checkout");
         screenPanel.add(new SwapRoomPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");

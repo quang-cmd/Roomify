@@ -1,227 +1,267 @@
 package kqlhotel.gui.tabs;
 
 import java.awt.BasicStroke;
+import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.JOptionPane;
+import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
-import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
 public class StatisticsPanel extends JPanel {
-    private final JLabel revenueValue = new JLabel();
-    private final JLabel occupancyValue = new JLabel();
-    private final JLabel bookingValue = new JLabel();
-    private final JLabel guestValue = new JLabel();
-    private final TrendChartPanel trendChartPanel = new TrendChartPanel();
-    private final DefaultTableModel tableModel;
-    private final Map<String, StatsData> dataByRange = new LinkedHashMap<>();
+    private final MonthlyRevenueChartPanel monthlyRevenueChartPanel = new MonthlyRevenueChartPanel();
+    private final RoomDistributionPanel roomDistributionPanel = new RoomDistributionPanel();
+    private final OccupancyTrendPanel occupancyTrendPanel = new OccupancyTrendPanel();
+    private final Map<String, PrimaryButton> rangeButtons = new LinkedHashMap<>();
+    private final Map<String, PrimaryButton> viewButtons = new LinkedHashMap<>();
+    private final CardLayout analyticsCards = new CardLayout();
+    private final JPanel analyticsContent = new JPanel(analyticsCards);
+    private String activeRange = "30 ngày";
+    private String activeView = "Doanh thu";
 
     public StatisticsPanel() {
-        setOpaque(false);
-        setLayout(new MigLayout("insets 20,gap 14", "[grow]", "[]"));
+        setOpaque(true);
+        setBackground(new Color(236, 241, 247));
+        setLayout(new MigLayout("insets 14,gap 8,fill", "[grow,fill]", "[]8[]8[]8[grow,fill]"));
 
-        seedData();
-
-        RoundedPanel filterCard = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
-        filterCard.setLayout(new MigLayout("insets 14", "[][220!]push", "[]"));
-
-        JLabel filterLabel = new JLabel("Khoảng thời gian");
-        filterLabel.setForeground(new Color(199, 214, 242));
-
-        JComboBox<String> rangeCombo = new JComboBox<>(new String[]{"Hôm nay", "7 ngày", "30 ngày"});
-        rangeCombo.addActionListener(e -> applyData((String) rangeCombo.getSelectedItem()));
-
-        filterCard.add(filterLabel);
-        filterCard.add(rangeCombo);
-
-        JPanel summaryGrid = new JPanel(new MigLayout("insets 0,gap 12", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
-        summaryGrid.setOpaque(false);
-        summaryGrid.add(summaryCard("Doanh thu", revenueValue, new Color(62, 127, 255)));
-        summaryGrid.add(summaryCard("Công suất phòng", occupancyValue, new Color(30, 180, 120)));
-        summaryGrid.add(summaryCard("Lượt đặt phòng", bookingValue, new Color(143, 97, 255)));
-        summaryGrid.add(summaryCard("Khách đang lưu trú", guestValue, new Color(230, 154, 30)));
-
-        RoundedPanel tableCard = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
-        tableCard.setLayout(new MigLayout("wrap 1,insets 14,gap 10", "[grow,fill]", "[]"));
-
-        JLabel tableTitle = new JLabel("Hiệu suất loại phòng");
-        tableTitle.setForeground(new Color(239, 244, 255));
-        tableTitle.setFont(tableTitle.getFont().deriveFont(20f));
-
-        tableModel = new DefaultTableModel(new Object[]{"Loại phòng", "Doanh thu", "Tỉ lệ lấp đầy", "Số đêm bán"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        JTable table = new JTable(tableModel);
-        table.setRowHeight(30);
-        table.setForeground(new Color(18, 32, 58));
-        table.getTableHeader().setBackground(new Color(230, 238, 252));
-        table.getTableHeader().setForeground(new Color(30, 53, 86));
-
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        tableCard.add(tableTitle);
-        tableCard.add(scrollPane, "h 260!");
-
-        RoundedPanel chartCard = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
-        chartCard.setLayout(new MigLayout("wrap 1,insets 14,gap 10", "[grow,fill]", "[]"));
-        JLabel chartTitle = new JLabel("Xu hướng doanh thu & công suất phòng");
-        chartTitle.setForeground(new Color(239, 244, 255));
-        chartTitle.setFont(chartTitle.getFont().deriveFont(20f));
-        chartCard.add(chartTitle);
-        chartCard.add(trendChartPanel, "h 220!");
-
-        add(filterCard, "growx");
-        add(summaryGrid, "growx");
-        add(chartCard, "growx");
-        add(tableCard, "grow");
-
-        applyData("Hôm nay");
+        add(createTopHeader(), "growx,wrap");
+        add(createKpiRow(), "growx,wrap");
+        add(createViewToolbar(), "growx,wrap");
+        add(createAnalyticsContent(), "grow,pushy,growy");
     }
 
-    private RoundedPanel summaryCard(String title, JLabel valueLabel, Color accent) {
-        RoundedPanel card = new RoundedPanel(14, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
-        card.setLayout(new MigLayout("wrap 1,insets 12,gap 6", "[grow,fill]", "[]"));
+    private JPanel createTopHeader() {
+        JPanel top = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][][][][]", "[]"));
+        top.setOpaque(false);
 
+        JLabel leftHint = new JLabel("Bộ lọc báo cáo");
+        leftHint.setForeground(new Color(102, 124, 160));
+        leftHint.setFont(leftHint.getFont().deriveFont(Font.BOLD, 13f));
+
+        PrimaryButton exportBtn = new PrimaryButton("Xuất báo cáo");
+        exportBtn.setBackground(new Color(16, 185, 129));
+        exportBtn.setForeground(Color.WHITE);
+        exportBtn.addActionListener(e -> JOptionPane.showMessageDialog(
+            this,
+            "Đã tạo báo cáo cho phạm vi: " + activeRange,
+            "Xuất báo cáo",
+            JOptionPane.INFORMATION_MESSAGE
+        ));
+
+        top.add(leftHint, "growx,pushx,aligny center");
+        top.add(exportBtn, "h 38!");
+        top.add(createRangeButton("7 ngày"), "h 38!");
+        top.add(createRangeButton("30 ngày"), "h 38!");
+        top.add(createRangeButton("6 tháng"), "h 38!");
+
+        updateRangeButtons();
+
+        return top;
+    }
+
+    private PrimaryButton createRangeButton(String text) {
+        PrimaryButton btn = new PrimaryButton(text);
+        btn.addActionListener(e -> {
+            activeRange = text;
+            updateRangeButtons();
+        });
+        rangeButtons.put(text, btn);
+        return btn;
+    }
+
+    private void updateRangeButtons() {
+        for (Map.Entry<String, PrimaryButton> item : rangeButtons.entrySet()) {
+            boolean active = item.getKey().equals(activeRange);
+            item.getValue().setBackground(active ? new Color(16, 24, 48) : new Color(245, 247, 252));
+            item.getValue().setForeground(active ? Color.WHITE : new Color(74, 94, 128));
+        }
+    }
+
+    private JPanel createKpiRow() {
+        JPanel row = new JPanel(new MigLayout("insets 0,gap 10,fillx", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
+        row.setOpaque(false);
+
+        row.add(kpiCard("Doanh thu", "--", "Chờ dữ liệu", false));
+        row.add(kpiCard("Tổng phòng", "--", "Chờ dữ liệu", false));
+        row.add(kpiCard("Tỷ lệ lấp đầy", "--", "Chờ dữ liệu", false));
+        row.add(kpiCard("Khách mới", "--", "Chờ dữ liệu", false));
+
+        return row;
+    }
+
+    private JPanel createViewToolbar() {
+        JPanel row = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][][][][]", "[]"));
+        row.setOpaque(false);
+
+        JLabel title = new JLabel("Hiển thị nhanh");
+        title.setForeground(new Color(102, 124, 160));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 13f));
+
+        row.add(title, "pushx,growx");
+        row.add(createViewButton("Doanh thu"), "h 34!");
+        row.add(createViewButton("Phân bố phòng"), "h 34!");
+        row.add(createViewButton("Tỷ lệ lấp đầy"), "h 34!");
+        row.add(createViewButton("Đặt phòng gần đây"), "h 34!");
+
+        updateViewButtons();
+        return row;
+    }
+
+    private PrimaryButton createViewButton(String name) {
+        PrimaryButton btn = new PrimaryButton(name);
+        btn.addActionListener(e -> {
+            activeView = name;
+            analyticsCards.show(analyticsContent, name);
+            updateViewButtons();
+        });
+        viewButtons.put(name, btn);
+        return btn;
+    }
+
+    private void updateViewButtons() {
+        for (Map.Entry<String, PrimaryButton> item : viewButtons.entrySet()) {
+            boolean active = item.getKey().equals(activeView);
+            item.getValue().setBackground(active ? new Color(37, 99, 235) : new Color(245, 247, 252));
+            item.getValue().setForeground(active ? Color.WHITE : new Color(74, 94, 128));
+        }
+    }
+
+    private JPanel createAnalyticsContent() {
+        analyticsContent.setOpaque(false);
+
+        RoundedPanel revenueCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
+        revenueCard.setLayout(new MigLayout("wrap 1,insets 12,gap 6,fill", "[grow,fill]", "[]"));
+        revenueCard.add(sectionTitle("Doanh thu theo tháng", "6 tháng gần nhất"));
+        revenueCard.add(monthlyRevenueChartPanel, "grow, h 250!");
+
+        RoundedPanel roomDistCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
+        roomDistCard.setLayout(new MigLayout("wrap 1,insets 12,gap 6,fill", "[grow,fill]", "[]"));
+        roomDistCard.add(sectionTitle("Phân bố loại phòng", "Tổng 15 phòng"));
+        roomDistCard.add(roomDistributionPanel, "h 220!, growx, aligny top");
+
+        RoundedPanel occupancyCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
+        occupancyCard.setLayout(new MigLayout("wrap 1,insets 12,gap 6,fill", "[grow,fill]", "[]"));
+        occupancyCard.add(sectionTitle("Tỷ lệ lấp đầy", "Theo ngày trong tháng 3/2026"));
+        occupancyCard.add(occupancyTrendPanel, "grow, h 220!");
+
+        RoundedPanel recentCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
+        recentCard.setLayout(new MigLayout("wrap 1,insets 12,gap 6,fill", "[grow,fill]", "[]"));
+        recentCard.add(sectionTitle("Đặt phòng gần đây", ""));
+        recentCard.add(recentBookingList(), "grow");
+
+        analyticsContent.add(revenueCard, "Doanh thu");
+        analyticsContent.add(roomDistCard, "Phân bố phòng");
+        analyticsContent.add(occupancyCard, "Tỷ lệ lấp đầy");
+        analyticsContent.add(recentCard, "Đặt phòng gần đây");
+        analyticsCards.show(analyticsContent, activeView);
+
+        return analyticsContent;
+    }
+
+    private RoundedPanel kpiCard(String title, String value, String sub, boolean pill) {
+        RoundedPanel card = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
+        card.setLayout(new MigLayout("wrap 1,insets 14,gap 4", "[grow,fill]", "[]"));
+
+        JPanel head = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
+        head.setOpaque(false);
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setForeground(new Color(149, 167, 202));
+        titleLabel.setForeground(new Color(87, 109, 146));
+        titleLabel.setFont(titleLabel.getFont().deriveFont(14f));
+        head.add(titleLabel);
 
-        valueLabel.setForeground(new Color(239, 244, 255));
-        valueLabel.setFont(valueLabel.getFont().deriveFont(28f));
+        if (pill) {
+            RoundedPanel badge = new RoundedPanel(12, new Color(231, 245, 237), new Color(231, 245, 237), 1f);
+            badge.setLayout(new MigLayout("insets 4 10 4 10", "[]", "[]"));
+            JLabel s = new JLabel(sub);
+            s.setForeground(new Color(21, 128, 61));
+            s.setFont(s.getFont().deriveFont(Font.BOLD, 13f));
+            badge.add(s);
+            head.add(badge);
+        }
 
-        JLabel accentBar = new JLabel(" ");
-        accentBar.setOpaque(true);
-        accentBar.setBackground(accent);
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setForeground(new Color(14, 30, 62));
+        valueLabel.setFont(valueLabel.getFont().deriveFont(Font.BOLD, 30f));
 
-        card.add(titleLabel);
+        JLabel subLabel = new JLabel(pill ? "" : sub);
+        subLabel.setForeground(new Color(124, 142, 171));
+        subLabel.setFont(subLabel.getFont().deriveFont(13f));
+
+        card.add(head);
         card.add(valueLabel);
-        card.add(accentBar, "h 4!");
+        card.add(subLabel);
         return card;
     }
 
-    private void applyData(String key) {
-        StatsData data = dataByRange.getOrDefault(key, dataByRange.get("Hôm nay"));
-        revenueValue.setText(data.revenue);
-        occupancyValue.setText(data.occupancy);
-        bookingValue.setText(data.bookings);
-        guestValue.setText(data.guests);
-
-        tableModel.setRowCount(0);
-        for (Object[] row : data.rows) {
-            tableModel.addRow(row);
+    private JPanel sectionTitle(String title, String subtitle) {
+        JPanel p = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
+        p.setOpaque(false);
+        JLabel t = new JLabel(title);
+        t.setForeground(new Color(14, 30, 62));
+        t.setFont(t.getFont().deriveFont(Font.BOLD, 18f));
+        JLabel s = new JLabel(subtitle);
+        s.setForeground(new Color(124, 142, 171));
+        s.setFont(s.getFont().deriveFont(12f));
+        p.add(t);
+        if (!subtitle.isEmpty()) {
+            p.add(s);
         }
-
-        trendChartPanel.setData(data.chartLabels, data.revenueTrend, data.occupancyTrend);
+        return p;
     }
 
-    private void seedData() {
-        dataByRange.put("Hôm nay", new StatsData(
-            "28.400.000đ",
-            "62%",
-            "18",
-            "41",
-            new Object[][]{
-                {"Deluxe", "9.600.000đ", "60%", "8"},
-                {"Grand Premium 1", "6.600.000đ", "50%", "3"},
-                {"Grand Premium 2", "6.400.000đ", "67%", "2"},
-                {"Suite", "5.800.000đ", "67%", "1"}
-            },
-            new String[]{"T2", "T3", "T4", "T5", "T6", "T7", "CN"},
-            new int[]{3, 4, 5, 4, 3, 5, 4},
-            new int[]{55, 60, 66, 62, 58, 67, 61}
-        ));
-
-        dataByRange.put("7 ngày", new StatsData(
-            "178.900.000đ",
-            "71%",
-            "112",
-            "267",
-            new Object[][]{
-                {"Deluxe", "58.000.000đ", "73%", "49"},
-                {"Grand Premium 1", "45.200.000đ", "69%", "21"},
-                {"Grand Premium 2", "41.500.000đ", "72%", "13"},
-                {"Suite", "34.200.000đ", "68%", "7"}
-            },
-            new String[]{"Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4"},
-            new int[]{38, 41, 45, 55},
-            new int[]{64, 68, 72, 71}
-        ));
-
-        dataByRange.put("30 ngày", new StatsData(
-            "736.200.000đ",
-            "76%",
-            "487",
-            "1.128",
-            new Object[][]{
-                {"Deluxe", "228.000.000đ", "79%", "191"},
-                {"Grand Premium 1", "193.600.000đ", "76%", "88"},
-                {"Grand Premium 2", "179.100.000đ", "77%", "56"},
-                {"Suite", "135.500.000đ", "72%", "26"}
-            },
-            new String[]{"Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4"},
-            new int[]{160, 172, 188, 216},
-            new int[]{72, 74, 77, 81}
-        ));
+    private JPanel recentBookingList() {
+        JPanel list = new JPanel(new MigLayout("insets 0,wrap 1,gap 8", "[grow,fill]", "[]"));
+        list.setOpaque(false);
+        JLabel empty = new JLabel("Chưa có dữ liệu đặt phòng gần đây");
+        empty.setForeground(new Color(124, 142, 171));
+        empty.setFont(empty.getFont().deriveFont(14f));
+        list.add(empty, "alignx center, gapy 18 0");
+        return list;
     }
 
-    private static final class StatsData {
-        private final String revenue;
-        private final String occupancy;
-        private final String bookings;
-        private final String guests;
-        private final Object[][] rows;
-        private final String[] chartLabels;
-        private final int[] revenueTrend;
-        private final int[] occupancyTrend;
+    private RoundedPanel recentItem(String room, String guest, String type, String status, Color statusColor) {
+        RoundedPanel row = new RoundedPanel(14, new Color(248, 250, 254), new Color(225, 232, 244), 1f);
+        row.setLayout(new MigLayout("insets 10 12 10 12", "[50!][grow,fill][]", "[]"));
 
-        private StatsData(
-            String revenue,
-            String occupancy,
-            String bookings,
-            String guests,
-            Object[][] rows,
-            String[] chartLabels,
-            int[] revenueTrend,
-            int[] occupancyTrend
-        ) {
-            this.revenue = revenue;
-            this.occupancy = occupancy;
-            this.bookings = bookings;
-            this.guests = guests;
-            this.rows = rows;
-            this.chartLabels = chartLabels;
-            this.revenueTrend = revenueTrend;
-            this.occupancyTrend = occupancyTrend;
-        }
+        JLabel roomLbl = new JLabel(room, JLabel.CENTER);
+        roomLbl.setForeground(new Color(59, 130, 246));
+        roomLbl.setFont(roomLbl.getFont().deriveFont(Font.BOLD, 16f));
+
+        JPanel guestWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
+        guestWrap.setOpaque(false);
+        JLabel name = new JLabel(guest);
+        name.setForeground(new Color(14, 30, 62));
+        name.setFont(name.getFont().deriveFont(Font.BOLD, 15f));
+        JLabel roomType = new JLabel(type);
+        roomType.setForeground(new Color(124, 142, 171));
+        roomType.setFont(roomType.getFont().deriveFont(13f));
+        guestWrap.add(name);
+        guestWrap.add(roomType);
+
+        JLabel statusLbl = new JLabel(status);
+        statusLbl.setForeground(statusColor);
+        statusLbl.setFont(statusLbl.getFont().deriveFont(Font.BOLD, 13f));
+
+        row.add(roomLbl, "aligny center");
+        row.add(guestWrap, "growx");
+        row.add(statusLbl, "aligny center");
+        return row;
     }
 
-    private static final class TrendChartPanel extends JPanel {
-        private String[] labels = new String[0];
-        private int[] revenue = new int[0];
-        private int[] occupancy = new int[0];
+    private static final class MonthlyRevenueChartPanel extends JPanel {
+        private final String[] labels = new String[0];
+        private final int[] revenue = new int[0];
 
-        private TrendChartPanel() {
+        private MonthlyRevenueChartPanel() {
             setOpaque(false);
-        }
-
-        private void setData(String[] labels, int[] revenue, int[] occupancy) {
-            this.labels = labels;
-            this.revenue = revenue;
-            this.occupancy = occupancy;
-            repaint();
         }
 
         @Override
@@ -233,65 +273,192 @@ public class StatisticsPanel extends JPanel {
             int w = getWidth();
             int h = getHeight();
             int left = 42;
-            int right = 20;
-            int top = 12;
-            int bottom = 34;
+            int right = 16;
+            int top = 22;
+            int bottom = 38;
             int chartW = w - left - right;
             int chartH = h - top - bottom;
 
-            g2.setColor(new Color(84, 107, 149));
-            g2.drawLine(left, top + chartH, left + chartW, top + chartH);
-
-            if (labels.length == 0) {
+            if (labels.length == 0 || revenue.length == 0) {
+                g2.setColor(new Color(124, 142, 171));
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
+                g2.drawString("Chưa có dữ liệu doanh thu", left + 20, top + chartH / 2);
                 g2.dispose();
                 return;
             }
 
-            int maxRevenue = 1;
-            for (int value : revenue) {
-                if (value > maxRevenue) {
-                    maxRevenue = value;
-                }
+            g2.setColor(new Color(229, 236, 246));
+            for (int i = 0; i <= 4; i++) {
+                int y = top + (chartH * i / 4);
+                g2.drawLine(left, y, left + chartW, y);
             }
 
-            int points = labels.length;
-            int barWidth = Math.max(16, chartW / (points * 2));
-            int gap = chartW / points;
+            int max = 320;
+            int n = labels.length;
+            int gap = chartW / n;
+            int bw = Math.max(22, gap / 3);
 
-            int[] lineX = new int[points];
-            int[] lineY = new int[points];
+            g2.setColor(new Color(59, 130, 246, 230));
+            for (int i = 0; i < n; i++) {
+                int value = revenue[i];
+                int barH = (int) (chartH * (value / (double) max));
+                int x = left + i * gap + (gap - bw) / 2;
+                int y = top + chartH - barH;
+                g2.fillRoundRect(x, y, bw, barH, 10, 10);
 
-            for (int i = 0; i < points; i++) {
-                int xCenter = left + gap * i + gap / 2;
+                g2.setColor(new Color(129, 145, 176));
+                g2.drawString(labels[i], x - 2, top + chartH + 20);
+                g2.setColor(new Color(59, 130, 246, 230));
+            }
 
-                int rev = i < revenue.length ? revenue[i] : 0;
-                int revHeight = (int) (chartH * (rev / (double) maxRevenue));
-                int barX = xCenter - barWidth / 2;
-                int barY = top + chartH - revHeight;
-                g2.setColor(new Color(62, 127, 255, 220));
-                g2.fillRoundRect(barX, barY, barWidth, revHeight, 8, 8);
+            g2.setColor(new Color(129, 145, 176));
+            g2.drawString("0", 18, top + chartH + 3);
+            g2.drawString("80tr", 8, top + chartH - chartH / 4 + 3);
+            g2.drawString("160tr", 4, top + chartH - chartH / 2 + 3);
+            g2.drawString("240tr", 4, top + chartH - chartH * 3 / 4 + 3);
+            g2.drawString("320tr", 4, top + 3);
 
-                int occ = i < occupancy.length ? occupancy[i] : 0;
-                lineX[i] = xCenter;
-                lineY[i] = top + chartH - (int) (chartH * (occ / 100.0));
+            g2.dispose();
+        }
+    }
 
-                g2.setColor(new Color(149, 167, 202));
-                g2.drawString(labels[i], xCenter - 12, top + chartH + 20);
+    private static final class RoomDistributionPanel extends JPanel {
+        private final String[] labels = new String[0];
+        private final int[] values = new int[0];
+        private final Color[] colors = {
+            new Color(59, 130, 246),
+            new Color(16, 185, 129),
+            new Color(124, 87, 235),
+            new Color(245, 158, 11)
+        };
+
+        private RoomDistributionPanel() {
+            setOpaque(false);
+            setLayout(new MigLayout("insets 0", "[grow,fill]", "[180!][grow,fill]"));
+        }
+
+        @Override
+        public java.awt.Dimension getPreferredSize() {
+            return new java.awt.Dimension(640, 220);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int cx = getWidth() / 2;
+            int cy = 86;
+            int radius = 52;
+            int inner = 30;
+            int total = 0;
+            for (int v : values) {
+                total += v;
+            }
+
+            if (values.length == 0 || total == 0) {
+                g2.setColor(new Color(124, 142, 171));
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
+                g2.drawString("Chưa có dữ liệu phân bố phòng", 24, 110);
+                g2.dispose();
+                return;
+            }
+
+            double start = 0;
+            for (int i = 0; i < values.length; i++) {
+                double extent = values[i] * 360.0 / total;
+                g2.setColor(colors[i]);
+                g2.fillArc(cx - radius, cy - radius, radius * 2, radius * 2, (int) Math.round(start), (int) Math.round(extent));
+                start += extent;
+            }
+
+            g2.setColor(Color.WHITE);
+            g2.fillOval(cx - inner, cy - inner, inner * 2, inner * 2);
+
+            int legendY = 156;
+            int legendBoxWidth = 360;
+            int legendX = Math.max(24, (getWidth() - legendBoxWidth) / 2);
+            for (int i = 0; i < labels.length; i++) {
+                int y = legendY + i * 20;
+                g2.setColor(colors[i]);
+                g2.fillOval(legendX, y - 9, 10, 10);
+                g2.setColor(new Color(59, 79, 114));
+                g2.drawString(labels[i], legendX + 18, y);
+                g2.setColor(new Color(14, 30, 62));
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 13f));
+                g2.drawString(values[i] + " phòng", legendX + legendBoxWidth - 54, y);
+                g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 12f));
+            }
+
+            g2.dispose();
+        }
+    }
+
+    private static final class OccupancyTrendPanel extends JPanel {
+        private final String[] labels = new String[0];
+        private final int[] values = new int[0];
+
+        private OccupancyTrendPanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+            int left = 42;
+            int right = 16;
+            int top = 20;
+            int bottom = 36;
+            int chartW = w - left - right;
+            int chartH = h - top - bottom;
+
+            if (labels.length < 2 || values.length < 2) {
+                g2.setColor(new Color(124, 142, 171));
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
+                g2.drawString("Chưa có dữ liệu tỷ lệ lấp đầy", left + 20, top + chartH / 2);
+                g2.dispose();
+                return;
+            }
+
+            g2.setColor(new Color(229, 236, 246));
+            for (int i = 0; i <= 3; i++) {
+                int y = top + i * chartH / 3;
+                g2.drawLine(left, y, left + chartW, y);
+            }
+
+            int n = labels.length;
+            int gap = chartW / (n - 1);
+            int[] px = new int[n];
+            int[] py = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                px[i] = left + i * gap;
+                py[i] = top + chartH - (int) ((values[i] - 50) * chartH / 50.0);
             }
 
             g2.setStroke(new BasicStroke(3f));
-            g2.setColor(new Color(30, 180, 120));
-            for (int i = 1; i < points; i++) {
-                g2.drawLine(lineX[i - 1], lineY[i - 1], lineX[i], lineY[i]);
+            g2.setColor(new Color(124, 87, 235));
+            for (int i = 1; i < n; i++) {
+                g2.drawLine(px[i - 1], py[i - 1], px[i], py[i]);
             }
-            for (int i = 0; i < points; i++) {
-                g2.fillOval(lineX[i] - 4, lineY[i] - 4, 8, 8);
+            for (int i = 0; i < n; i++) {
+                g2.fillOval(px[i] - 4, py[i] - 4, 8, 8);
+                g2.setColor(new Color(129, 145, 176));
+                g2.drawString(labels[i], px[i] - 15, top + chartH + 20);
+                g2.setColor(new Color(124, 87, 235));
             }
 
-            g2.setColor(new Color(199, 214, 242));
-            g2.drawString("Doanh thu", left, top + 12);
-            g2.setColor(new Color(30, 180, 120));
-            g2.drawString("Công suất phòng", left + 90, top + 12);
+            g2.setColor(new Color(129, 145, 176));
+            g2.drawString("50%", 10, top + chartH + 4);
+            g2.drawString("65%", 10, top + chartH - chartH / 3 + 4);
+            g2.drawString("80%", 10, top + chartH - chartH * 2 / 3 + 4);
+            g2.drawString("100%", 6, top + 4);
 
             g2.dispose();
         }
