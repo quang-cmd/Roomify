@@ -10,19 +10,36 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import kqlhotel.bus.booking.BookingService;
+import kqlhotel.bus.booking.BookingServiceProvider;
+import kqlhotel.bus.booking.model.BookingConfirmationResult;
+import kqlhotel.bus.booking.model.BookingSearchRequest;
+import kqlhotel.bus.booking.model.BookingSelectionSummary;
+import kqlhotel.bus.booking.model.CreateBookingCommand;
+import kqlhotel.bus.booking.model.GuestInfoDto;
+import kqlhotel.bus.booking.model.RoomOptionDto;
+import kqlhotel.bus.customer.CustomerDirectoryServiceProvider;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
@@ -30,10 +47,13 @@ import net.miginfocom.swing.MigLayout;
 
 public class BookingPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"T\u1ea5t c\u1ea3", "Deluxe", "Grand Premium", "Suite"});
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
+    private LocalDate selectedCheckInDate;
+    private LocalDate selectedCheckOutDate;
     private int guestCount = 2;
     private JLabel guestCountLabel;
 
@@ -43,23 +63,26 @@ public class BookingPanel extends JPanel {
     private final JPanel bookingContent = new JPanel(bookingCards);
 
     private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 12", "[grow,fill][grow,fill]", "[]"));
-    private final JLabel selectedRoomLabel = new JLabel("Ch\u01b0a ch\u1ecdn lo\u1ea1i ph\u00f2ng");
+    private final JLabel selectedRoomsLabel = new JLabel("Ch\u01b0a ch\u1ecdn ph\u00f2ng");
     private final JLabel selectedDateLabel = new JLabel("Ng\u00e0y nh\u1eadn/tr\u1ea3: --");
     private final JLabel selectedGuestLabel = new JLabel("S\u1ed1 kh\u00e1ch: --");
-    private final JTextField customerNameField = new JTextField();
-    private final JTextField customerPhoneField = new JTextField();
-    private final JTextField customerIdField = new JTextField();
+    private final JLabel guestFormsTitleLabel = new JLabel("Danh sách khách");
+    private final JPanel guestFormsPanel = new JPanel(new MigLayout("wrap 1,insets 0,gap 8", "[grow,fill]", "[]"));
+    private final List<GuestFormRow> guestFormRows = new ArrayList<>();
 
-    private RoomTypeData selectedRoom;
+    private final BookingService bookingService;
+    private BookingSearchRequest lastSearchRequest;
 
-    private final List<RoomTypeData> roomData = Arrays.asList(
-        new RoomTypeData("Deluxe", "1.200.000\u0111", "2/5 tr\u1ed1ng", "40%", Arrays.asList("Wifi", "Minibar", "Ban c\u00f4ng"), new Color(235, 248, 255), new Color(49, 130, 206), 2),
-        new RoomTypeData("Grand Premium 1", "2.200.000\u0111", "2/4 tr\u1ed1ng", "50%", Arrays.asList("Wifi", "Minibar", "Ban c\u00f4ng"), new Color(223, 248, 239), new Color(30, 180, 120), 2),
-        new RoomTypeData("Grand Premium 2", "3.200.000\u0111", "2/3 tr\u1ed1ng", "67%", Arrays.asList("Wifi", "Minibar", "Ban c\u00f4ng"), new Color(238, 232, 255), new Color(143, 97, 255), 2),
-        new RoomTypeData("Suite", "5.500.000\u0111", "2/3 tr\u1ed1ng", "67%", Arrays.asList("Wifi", "Minibar", "Ph\u00f2ng kh\u00e1ch"), new Color(255, 246, 220), new Color(230, 154, 30), 2)
-    );
+    private final List<RoomCardData> selectedRooms = new ArrayList<>();
+    private final List<RoomCardData> displayedRooms = new ArrayList<>();
+    private final JLabel selectionCountLabel = new JLabel("0 phòng đã chọn");
+    private final JLabel selectionDetailLabel = new JLabel("Tổng: 0đ");
+    private PrimaryButton continueToGuestButton;
 
     public BookingPanel() {
+        this.bookingService = BookingServiceProvider.get();
+        initializeDefaultDates();
+
         setOpaque(false);
         setBackground(PAGE_BG);
         setLayout(new MigLayout("insets 24,gap 20", "[grow 34][grow 66]", "[]"));
@@ -70,8 +93,22 @@ public class BookingPanel extends JPanel {
         add(filterCard, "growy");
         add(rightSide, "grow");
 
-        renderRooms(roomData);
+        renderInitialRooms();
         setStep(1);
+    }
+
+    private void initializeDefaultDates() {
+        selectedCheckInDate = LocalDate.now();
+        selectedCheckOutDate = selectedCheckInDate.plusDays(1);
+        checkInField.setText(selectedCheckInDate.format(DATE_FORMAT));
+        checkOutField.setText(selectedCheckOutDate.format(DATE_FORMAT));
+    }
+
+    private void renderInitialRooms() {
+        BookingSearchRequest initialRequest = new BookingSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate, guestCount);
+        lastSearchRequest = initialRequest;
+        List<RoomOptionDto> rooms = bookingService.searchAvailableRooms(initialRequest);
+        renderRooms(mapToCardData(rooms));
     }
 
     private RoundedPanel createFilterCard() {
@@ -110,19 +147,12 @@ public class BookingPanel extends JPanel {
         filterCard.add(new JLabel("Lo\u1ea1i ph\u00f2ng"));
         filterCard.add(roomTypeCombo, "h 40");
 
-        // Side-by-side date fields
-        JPanel dateRow = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[][]"));
+        // Side-by-side date fields, each with label above the input
+        JPanel dateRow = new JPanel(new MigLayout("insets 0,gap 10,wrap 2", "[grow,fill][grow,fill]", "[]"));
         dateRow.setOpaque(false);
 
-        JLabel checkInLbl = new JLabel("Nh\u1eadn ph\u00f2ng *");
-        checkInLbl.setForeground(new Color(30, 50, 80));
-        JLabel checkOutLbl = new JLabel("Tr\u1ea3 ph\u00f2ng *");
-        checkOutLbl.setForeground(new Color(30, 50, 80));
-
-        dateRow.add(checkInLbl);
-        dateRow.add(checkOutLbl);
-        dateRow.add(makeCalendarField(checkInField), "h 40,grow");
-        dateRow.add(makeCalendarField(checkOutField), "h 40,grow");
+        dateRow.add(makeDateBlock("Nh\u1eadn ph\u00f2ng *", checkInField), "grow");
+        dateRow.add(makeDateBlock("Tr\u1ea3 ph\u00f2ng *", checkOutField), "grow");
 
         filterCard.add(dateRow);
         filterCard.add(new JLabel("S\u1ed1 kh\u00e1ch"));
@@ -184,11 +214,159 @@ public class BookingPanel extends JPanel {
 
         field.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 2));
         field.setOpaque(false);
+        field.setEditable(false);
+        field.setFocusable(false);
         field.setForeground(new Color(60, 80, 110));
+        field.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
         wrap.add(calIcon, BorderLayout.WEST);
         wrap.add(field, BorderLayout.CENTER);
+
+        MouseAdapter openPicker = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showDatePicker(wrap, field);
+            }
+        };
+        wrap.addMouseListener(openPicker);
+        calIcon.addMouseListener(openPicker);
+        field.addMouseListener(openPicker);
         return wrap;
+    }
+
+    private JPanel makeDateBlock(String labelText, JTextField field) {
+        JPanel block = new JPanel(new MigLayout("insets 0,wrap 1,gap 6", "[grow,fill]", "[]"));
+        block.setOpaque(false);
+
+        JLabel label = new JLabel(labelText);
+        label.setForeground(new Color(30, 50, 80));
+        label.setFont(label.getFont().deriveFont(13f));
+
+        block.add(label);
+        block.add(makeCalendarField(field), "h 40,growx");
+        return block;
+    }
+
+    private void showDatePicker(JPanel anchor, JTextField targetField) {
+        LocalDate today = LocalDate.now();
+        boolean isCheckOutPicker = targetField == checkOutField;
+        LocalDate initialDate;
+        if (targetField == checkInField && selectedCheckInDate != null) {
+            initialDate = selectedCheckInDate;
+        } else if (targetField == checkOutField && selectedCheckOutDate != null) {
+            initialDate = selectedCheckOutDate;
+        } else {
+            initialDate = LocalDate.now();
+        }
+
+        JPopupMenu popup = new JPopupMenu();
+        popup.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 230), 1));
+
+        JPanel calendar = new JPanel(new MigLayout("insets 12,gap 8,wrap 7", "[center][center][center][grow,fill][center][center][center]", "[]"));
+        calendar.setBackground(Color.WHITE);
+
+        JLabel monthYearLabel = new JLabel();
+        monthYearLabel.setForeground(new Color(24, 40, 66));
+        monthYearLabel.setFont(monthYearLabel.getFont().deriveFont(Font.BOLD, 13f));
+
+        JButton prevButton = new JButton("<");
+        JButton nextButton = new JButton(">");
+        prevButton.setFocusable(false);
+        nextButton.setFocusable(false);
+
+        LocalDate[] displayedMonth = new LocalDate[]{initialDate.withDayOfMonth(1)};
+        JPanel daysGrid = new JPanel(new MigLayout("insets 0,gap 4,wrap 7", "[24!][24!][24!][24!][24!][24!][24!]", "[]"));
+        daysGrid.setOpaque(false);
+        final Runnable[] refreshCalendar = new Runnable[1];
+
+        prevButton.addActionListener(ev -> {
+            displayedMonth[0] = displayedMonth[0].minusMonths(1).withDayOfMonth(1);
+            refreshCalendar[0].run();
+            popup.pack();
+        });
+        nextButton.addActionListener(ev -> {
+            displayedMonth[0] = displayedMonth[0].plusMonths(1).withDayOfMonth(1);
+            refreshCalendar[0].run();
+            popup.pack();
+        });
+
+        refreshCalendar[0] = () -> {
+            calendar.removeAll();
+            daysGrid.removeAll();
+
+            LocalDate monthBase = displayedMonth[0];
+            monthYearLabel.setText(monthBase.getMonth().name() + " " + monthBase.getYear());
+
+            calendar.add(prevButton, "span 1, w 28!, h 28!");
+            calendar.add(monthYearLabel, "span 5, alignx center");
+            calendar.add(nextButton, "span 1, w 28!, h 28!");
+
+            String[] weekdays = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};
+            for (String weekday : weekdays) {
+                JLabel weekdayLabel = new JLabel(weekday, SwingConstants.CENTER);
+                weekdayLabel.setForeground(new Color(120, 135, 160));
+                weekdayLabel.setFont(weekdayLabel.getFont().deriveFont(Font.BOLD, 11f));
+                daysGrid.add(weekdayLabel);
+            }
+
+            int firstDayIndex = monthBase.getDayOfWeek().getValue();
+            for (int i = 1; i < firstDayIndex; i++) {
+                daysGrid.add(new JLabel(""));
+            }
+
+            int maxDays = YearMonth.of(monthBase.getYear(), monthBase.getMonth()).lengthOfMonth();
+            for (int day = 1; day <= maxDays; day++) {
+                final int selectedDay = day;
+                LocalDate buttonDate = LocalDate.of(monthBase.getYear(), monthBase.getMonth(), selectedDay);
+                JButton dayButton = new JButton(String.valueOf(day));
+                dayButton.setFocusable(false);
+                dayButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
+                dayButton.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+                dayButton.setBackground(Color.WHITE);
+                dayButton.setForeground(new Color(40, 58, 91));
+                dayButton.setPreferredSize(new Dimension(24, 24));
+
+                LocalDate minCheckoutBase = selectedCheckInDate != null ? selectedCheckInDate : today;
+                boolean disabled = isCheckOutPicker
+                    ? !buttonDate.isAfter(minCheckoutBase)
+                    : buttonDate.isBefore(today);
+
+                if (disabled) {
+                    dayButton.setEnabled(false);
+                    dayButton.setBackground(new Color(45, 45, 45));
+                    dayButton.setForeground(new Color(220, 220, 220));
+                } else if (buttonDate.equals(today)) {
+                    dayButton.setBorder(BorderFactory.createLineBorder(new Color(58, 119, 246), 1));
+                    dayButton.setBackground(new Color(232, 242, 255));
+                }
+
+                dayButton.addActionListener(e -> {
+                    LocalDate pickedDate = LocalDate.of(monthBase.getYear(), monthBase.getMonth(), selectedDay);
+                    targetField.setText(pickedDate.format(DATE_FORMAT));
+
+                    if (targetField == checkInField) {
+                        selectedCheckInDate = pickedDate;
+                        if (selectedCheckOutDate == null || !selectedCheckOutDate.isAfter(selectedCheckInDate)) {
+                            selectedCheckOutDate = selectedCheckInDate.plusDays(1);
+                            checkOutField.setText(selectedCheckOutDate.format(DATE_FORMAT));
+                        }
+                    } else if (targetField == checkOutField) {
+                        selectedCheckOutDate = pickedDate;
+                    }
+
+                    popup.setVisible(false);
+                });
+                daysGrid.add(dayButton);
+            }
+
+            calendar.add(daysGrid, "span 7, growx");
+            calendar.revalidate();
+            calendar.repaint();
+        };
+
+        refreshCalendar[0].run();
+        popup.add(calendar);
+        popup.show(anchor, 0, anchor.getHeight());
     }
 
     private JPanel createGuestStepper() {
@@ -207,12 +385,14 @@ public class BookingPanel extends JPanel {
             if (guestCount > 1) {
                 guestCount--;
                 guestCountLabel.setText("\u2022 " + guestCount + " kh\u00e1ch");
+                syncGuestForms();
             }
         });
         plus.addActionListener(e -> {
             if (guestCount < 4) {
                 guestCount++;
                 guestCountLabel.setText("\u2022 " + guestCount + " kh\u00e1ch");
+                syncGuestForms();
             }
         });
 
@@ -310,6 +490,30 @@ public class BookingPanel extends JPanel {
 
         panel.add(overview, "growx");
         panel.add(roomList, "grow");
+
+        RoundedPanel selectionBar = new RoundedPanel(18, new Color(20, 31, 59), new Color(45, 66, 110), 1f);
+        selectionBar.setLayout(new MigLayout("insets 14 16,gap 12", "[][grow,fill][]", "[]"));
+
+        JPanel selectionIcon = makeBadgeIcon(new Color(35, 53, 92), new Color(81, 130, 255), "\u25A1");
+        selectionCountLabel.setForeground(Color.WHITE);
+        selectionCountLabel.setFont(selectionCountLabel.getFont().deriveFont(Font.BOLD, 15f));
+        selectionDetailLabel.setForeground(new Color(170, 188, 220));
+
+        JPanel selectionTextWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
+        selectionTextWrap.setOpaque(false);
+        selectionTextWrap.add(selectionCountLabel);
+        selectionTextWrap.add(selectionDetailLabel);
+
+        continueToGuestButton = new PrimaryButton("Nhập thông tin khách");
+        continueToGuestButton.setBackground(new Color(58, 119, 246));
+        continueToGuestButton.setForeground(Color.WHITE);
+        continueToGuestButton.addActionListener(e -> openCustomerInfo());
+
+        selectionBar.add(selectionIcon, "w 44!,h 44!");
+        selectionBar.add(selectionTextWrap, "growx");
+        selectionBar.add(continueToGuestButton, "h 44");
+
+        panel.add(selectionBar, "growx");
         return panel;
     }
 
@@ -323,16 +527,17 @@ public class BookingPanel extends JPanel {
 
         RoundedPanel selectedCard = new RoundedPanel(12, new Color(233, 240, 253), new Color(201, 216, 243), 1f);
         selectedCard.setLayout(new MigLayout("wrap 1,insets 10,gap 4", "[grow,fill]", "[]"));
-        selectedRoomLabel.setForeground(new Color(38, 71, 126));
+        selectedRoomsLabel.setForeground(new Color(38, 71, 126));
         selectedDateLabel.setForeground(new Color(68, 93, 135));
         selectedGuestLabel.setForeground(new Color(68, 93, 135));
-        selectedCard.add(selectedRoomLabel);
+        selectedCard.add(selectedRoomsLabel);
         selectedCard.add(selectedDateLabel);
         selectedCard.add(selectedGuestLabel);
 
-        customerNameField.putClientProperty("JTextField.placeholderText", "Nh\u1eadp h\u1ecd t\u00ean kh\u00e1ch");
-        customerPhoneField.putClientProperty("JTextField.placeholderText", "Nh\u1eadp s\u1ed1 \u0111i\u1ec7n tho\u1ea1i");
-        customerIdField.putClientProperty("JTextField.placeholderText", "CCCD/H\u1ed9 chi\u1ebfu");
+        guestFormsTitleLabel.setForeground(new Color(30, 50, 80));
+        guestFormsTitleLabel.setFont(guestFormsTitleLabel.getFont().deriveFont(Font.BOLD, 14f));
+        guestFormsPanel.setOpaque(false);
+        syncGuestForms();
 
         PrimaryButton backButton = new PrimaryButton("Quay l\u1ea1i ch\u1ecdn ph\u00f2ng");
         backButton.setBackground(new Color(226, 235, 250));
@@ -354,12 +559,8 @@ public class BookingPanel extends JPanel {
 
         panel.add(title);
         panel.add(selectedCard);
-        panel.add(new JLabel("H\u1ecd v\u00e0 t\u00ean"));
-        panel.add(customerNameField, "h 40");
-        panel.add(new JLabel("S\u1ed1 \u0111i\u1ec7n tho\u1ea1i"));
-        panel.add(customerPhoneField, "h 40");
-        panel.add(new JLabel("Gi\u1ea5y t\u1edd tu\u1ef3 th\u00e2n"));
-        panel.add(customerIdField, "h 40");
+        panel.add(guestFormsTitleLabel);
+        panel.add(guestFormsPanel, "growx");
         panel.add(actions, "gapy 8 0");
 
         JPanel wrapper = new JPanel(new MigLayout("insets 0", "[grow,fill]", "[grow]"));
@@ -368,9 +569,14 @@ public class BookingPanel extends JPanel {
         return wrapper;
     }
 
-    private JPanel roomCard(RoomTypeData data) {
-        RoundedPanel card = new RoundedPanel(16, data.bg, data.tone, 1f);
+    private JPanel roomCard(RoomCardData data) {
+        boolean selected = selectedRooms.contains(data);
+        Color cardBg = selected ? new Color(234, 243, 255) : data.bg;
+        Color cardTone = selected ? new Color(58, 119, 246) : data.tone;
+
+        RoundedPanel card = new RoundedPanel(16, cardBg, cardTone, 1f);
         card.setLayout(new MigLayout("wrap 1,insets 14,gap 6", "[grow,fill]", "[]"));
+        card.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
         // Top row: colored icon + room name + availability badge
         JPanel topRow = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill][]", "[]"));
@@ -382,7 +588,7 @@ public class BookingPanel extends JPanel {
         nameLbl.setForeground(new Color(30, 53, 86));
         nameLbl.setFont(nameLbl.getFont().deriveFont(Font.BOLD, 16f));
 
-        JPanel availBadge = makeAvailBadge(data.status, data.tone);
+        JPanel availBadge = makeAvailBadge(data.status, cardTone);
 
         topRow.add(roomIcon, "w 36!,h 36!,aligny center");
         topRow.add(nameLbl, "aligny center");
@@ -416,7 +622,7 @@ public class BookingPanel extends JPanel {
         labelRow.add(percentLbl);
 
         int pct = parsePercent(data.occupancyRate);
-        JPanel progressBar = makeProgressBar(data.tone, pct);
+        JPanel progressBar = makeProgressBar(cardTone, pct);
 
         // Amenities
         JPanel amenitiesRow = new JPanel(new MigLayout("insets 0,gap 10", "[]".repeat(data.amenities.size()), "[]"));
@@ -433,11 +639,18 @@ public class BookingPanel extends JPanel {
             amenitiesRow.add(aLbl);
         }
 
-        String pickText = "Nh\u1ea5n \u0111\u1ec3 ch\u1ecdn lo\u1ea1i ph\u00f2ng n\u00e0y";
+        String pickText = selected ? "\u2713 \u0110\u00e3 ch\u1ecdn" : "+ Th\u00eam ph\u00f2ng";
         PrimaryButton pickButton = new PrimaryButton(pickText);
-        pickButton.setBackground(new Color(255, 255, 255, 200));
-        pickButton.setForeground(new Color(36, 58, 91));
-        pickButton.addActionListener(e -> selectRoom(data));
+        pickButton.setBackground(selected ? new Color(58, 119, 246) : new Color(255, 255, 255, 200));
+        pickButton.setForeground(selected ? Color.WHITE : new Color(36, 58, 91));
+        pickButton.addActionListener(e -> toggleRoomSelection(data));
+
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                toggleRoomSelection(data);
+            }
+        });
 
         card.add(topRow, "growx");
         card.add(priceRow, "gapy 4 0");
@@ -586,14 +799,24 @@ public class BookingPanel extends JPanel {
 
     private void runSearch() {
         String selectedType = (String) roomTypeCombo.getSelectedItem();
-        String checkIn = checkInField.getText().trim();
-        String checkOut = checkOutField.getText().trim();
+        LocalDate checkInDate = selectedCheckInDate;
+        LocalDate checkOutDate = selectedCheckOutDate;
 
-        if (checkIn.isEmpty() || checkOut.isEmpty() || checkIn.equalsIgnoreCase("dd/mm/yyyy") || checkOut.equalsIgnoreCase("dd/mm/yyyy")) {
+        if (checkInDate == null || checkOutDate == null) {
             JOptionPane.showMessageDialog(
                 this,
-                "Vui l\u00f2ng nh\u1eadp ng\u00e0y nh\u1eadn v\u00e0 tr\u1ea3 ph\u00f2ng theo \u0111\u1ecbnh d\u1ea1ng dd/mm/yyyy.",
-                "Thi\u1ebfu th\u00f4ng tin",
+                "Vui lòng chọn ngày nhận và trả phòng từ lịch.",
+                "Thiếu thông tin",
+                JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (!checkOutDate.isAfter(checkInDate)) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Ngày trả phòng phải sau ngày nhận phòng.",
+                "Dữ liệu không hợp lệ",
                 JOptionPane.WARNING_MESSAGE
             );
             return;
@@ -602,65 +825,172 @@ public class BookingPanel extends JPanel {
         if (guestCount < 1 || guestCount > 4) {
             JOptionPane.showMessageDialog(
                 this,
-                "S\u1ed1 kh\u00e1ch ph\u1ea3i trong kho\u1ea3ng t\u1eeb 1 \u0111\u1ebfn 4.",
-                "D\u1eef li\u1ec7u kh\u00f4ng h\u1ee3p l\u1ec7",
+                "Số khách phải trong khoảng từ 1 đến 4.",
+                "Dữ liệu không hợp lệ",
                 JOptionPane.WARNING_MESSAGE
             );
             return;
         }
 
-        List<RoomTypeData> filtered = new ArrayList<>();
-        for (RoomTypeData room : roomData) {
-            boolean matchType = "T\u1ea5t c\u1ea3".equals(selectedType)
-                || room.roomType.equalsIgnoreCase(selectedType)
-                || room.roomType.startsWith(selectedType);
-            boolean hasCapacity = room.availableRooms > 0;
-            if (matchType && hasCapacity) {
-                filtered.add(room);
-            }
-        }
+        BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, guestCount);
+        lastSearchRequest = request;
 
-        renderRooms(filtered);
+        selectedRooms.clear();
+        List<RoomOptionDto> filtered = bookingService.searchAvailableRooms(request);
+        renderRooms(mapToCardData(filtered));
         bookingCards.show(bookingContent, "select-room");
         setStep(1);
     }
 
-    private void selectRoom(RoomTypeData data) {
-        selectedRoom = data;
-        selectedRoomLabel.setText("\u0110\u00e3 ch\u1ecdn: " + data.roomType + " - " + data.price + " /\u0111\u00eam");
-        selectedDateLabel.setText("Ng\u00e0y nh\u1eadn/tr\u1ea3: " + checkInField.getText().trim() + " -> " + checkOutField.getText().trim());
-        selectedGuestLabel.setText("S\u1ed1 kh\u00e1ch: " + guestCount);
-        bookingCards.show(bookingContent, "customer-info");
-        setStep(2);
-    }
-
     private void submitBooking() {
-        if (selectedRoom == null) {
-            JOptionPane.showMessageDialog(this, "Vui l\u00f2ng ch\u1ecdn lo\u1ea1i ph\u00f2ng tr\u01b0\u1edbc.", "Thi\u1ebfu th\u00f4ng tin", JOptionPane.WARNING_MESSAGE);
+        if (selectedRooms.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui l\u00f2ng ch\u1ecdn ít nh\u1ea5t 1 ph\u00f2ng tr\u01b0\u1edbc.", "Thi\u1ebfu th\u00f4ng tin", JOptionPane.WARNING_MESSAGE);
             setStep(1);
             bookingCards.show(bookingContent, "select-room");
             return;
         }
 
-        String name = customerNameField.getText().trim();
-        String phone = customerPhoneField.getText().trim();
-        String id = customerIdField.getText().trim();
-
-        if (name.isEmpty() || phone.isEmpty() || id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 th\u00f4ng tin kh\u00e1ch h\u00e0ng.", "Thi\u1ebfu th\u00f4ng tin", JOptionPane.WARNING_MESSAGE);
+        List<GuestInfoDto> guestInfos = collectGuestInfos();
+        if (guestInfos == null) {
             return;
         }
 
-        JOptionPane.showMessageDialog(
-            this,
-            "\u0110\u1eb7t ph\u00f2ng th\u00e0nh c\u00f4ng cho kh\u00e1ch " + name + " (" + selectedRoom.roomType + ")",
-            "Th\u00e0nh c\u00f4ng",
-            JOptionPane.INFORMATION_MESSAGE
+        LocalDate checkInDate = selectedCheckInDate;
+        LocalDate checkOutDate = selectedCheckOutDate;
+        if (checkInDate == null || checkOutDate == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lại ngày nhận/trả phòng hợp lệ.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        CreateBookingCommand command = new CreateBookingCommand(
+            checkInDate,
+            checkOutDate,
+            guestCount,
+            guestInfos,
+            toSelectedRoomOptions()
         );
+
+        BookingConfirmationResult result = bookingService.createBooking(command);
+        if (!result.isSuccess()) {
+            JOptionPane.showMessageDialog(this, result.getMessage(), "Không thể đặt phòng", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String leadGuestName = guestInfos.get(0).getFullName();
+        String successMessage = "Đặt phòng thành công cho khách " + leadGuestName + " (" + selectedRooms.size() + " phòng)";
+        if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
+            successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
+        }
+        JOptionPane.showMessageDialog(this, successMessage, "Thành công", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void renderRooms(List<RoomTypeData> data) {
+    private List<GuestInfoDto> collectGuestInfos() {
+        syncGuestForms();
+        List<GuestInfoDto> guestInfos = new ArrayList<>();
+        for (int i = 0; i < guestFormRows.size(); i++) {
+            GuestFormRow row = guestFormRows.get(i);
+            String fullName = row.nameField.getText().trim();
+            String phone = row.phoneField.getText().trim();
+            String idNo = row.idField.getText().trim();
+
+            if (fullName.isEmpty() || phone.isEmpty() || idNo.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng nhập đủ thông tin cho Khách " + (i + 1) + ".",
+                    "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return null;
+            }
+
+            guestInfos.add(new GuestInfoDto(fullName, phone, idNo));
+        }
+        return guestInfos;
+    }
+
+    private void syncGuestForms() {
+        guestFormsTitleLabel.setText("Danh sách khách (" + guestCount + " người) - Ưu tiên CCCD để định danh và auto-fill");
+
+        while (guestFormRows.size() < guestCount) {
+            guestFormRows.add(createGuestFormRow(guestFormRows.size() + 1));
+        }
+        while (guestFormRows.size() > guestCount) {
+            guestFormRows.remove(guestFormRows.size() - 1);
+        }
+
+        guestFormsPanel.removeAll();
+        for (GuestFormRow row : guestFormRows) {
+            guestFormsPanel.add(row.panel, "growx");
+        }
+        guestFormsPanel.revalidate();
+        guestFormsPanel.repaint();
+    }
+
+    private GuestFormRow createGuestFormRow(int index) {
+        JPanel rowPanel = new RoundedPanel(10, Color.WHITE, new Color(225, 231, 245), 1f);
+        rowPanel.setLayout(new MigLayout("wrap 4,insets 8,gap 8", "[80!][grow,fill][grow,fill][grow,fill]", "[]"));
+
+        JLabel label = new JLabel("Khách " + index);
+        label.setForeground(new Color(44, 71, 117));
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 12f));
+
+        JTextField idField = new JTextField();
+        idField.putClientProperty("JTextField.placeholderText", "CCCD/Hộ chiếu (ưu tiên)");
+
+        JTextField nameField = new JTextField();
+        nameField.putClientProperty("JTextField.placeholderText", "Họ tên");
+
+        JTextField phoneField = new JTextField();
+        phoneField.putClientProperty("JTextField.placeholderText", "Số điện thoại");
+
+        attachAutoFillById(idField, nameField, phoneField);
+
+        rowPanel.add(label);
+        rowPanel.add(new JLabel(""), "span 3");
+        rowPanel.add(idField, "span 2,growx,h 34");
+        rowPanel.add(nameField, "growx,h 34");
+        rowPanel.add(phoneField, "growx,h 34");
+
+        return new GuestFormRow(rowPanel, nameField, phoneField, idField);
+    }
+
+    private void attachAutoFillById(JTextField idField, JTextField nameField, JTextField phoneField) {
+        idField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                autoFillIfMatched();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                autoFillIfMatched();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                autoFillIfMatched();
+            }
+
+            private void autoFillIfMatched() {
+                String idNo = idField.getText().trim();
+                if (idNo.length() < 9) {
+                    return;
+                }
+
+                Optional<GuestInfoDto> found = CustomerDirectoryServiceProvider.get().findByIdNo(idNo);
+                if (found.isPresent()) {
+                    GuestInfoDto customer = found.get();
+                    nameField.setText(customer.getFullName());
+                    phoneField.setText(customer.getPhone());
+                }
+            }
+        });
+    }
+
+    private void renderRooms(List<RoomCardData> data) {
         roomList.removeAll();
+        displayedRooms.clear();
+        displayedRooms.addAll(data);
 
         if (data.isEmpty()) {
             RoundedPanel empty = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
@@ -670,13 +1000,176 @@ public class BookingPanel extends JPanel {
             empty.add(msg);
             roomList.add(empty, "span 2,growx");
         } else {
-            for (RoomTypeData room : data) {
+            for (RoomCardData room : data) {
                 roomList.add(roomCard(room));
             }
         }
 
         roomList.revalidate();
         roomList.repaint();
+        updateSelectionSummary();
+    }
+
+    private void toggleRoomSelection(RoomCardData data) {
+        if (selectedRooms.contains(data)) {
+            selectedRooms.remove(data);
+        } else {
+            selectedRooms.add(data);
+        }
+
+        renderRooms(new ArrayList<>(displayedRooms));
+    }
+
+    private void updateSelectionSummary() {
+        int selectedCount = selectedRooms.size();
+        BookingSelectionSummary summary = bookingService.summarizeSelection(toSelectedRoomOptions(), getSummaryRequest());
+
+        selectionCountLabel.setText(selectedCount == 0 ? "Chưa chọn phòng" : selectedCount + " phòng đã chọn");
+        selectionDetailLabel.setText(
+            selectedCount == 0
+                ? "Chọn phòng ở bên phải để tiếp tục"
+                : "Tổng: " + formatMoney(summary.getTotalAmount()) + " · " + summary.getNights() + " đêm"
+        );
+
+        if (continueToGuestButton != null) {
+            continueToGuestButton.setEnabled(selectedCount > 0);
+            continueToGuestButton.setBackground(selectedCount > 0 ? new Color(58, 119, 246) : new Color(120, 140, 180));
+        }
+
+        selectedRoomsLabel.setText(buildSelectedRoomsSummary());
+        String dateText = "--";
+        if (selectedCheckInDate != null && selectedCheckOutDate != null) {
+            dateText = selectedCheckInDate.format(DATE_FORMAT) + " -> " + selectedCheckOutDate.format(DATE_FORMAT);
+        }
+        selectedDateLabel.setText("Ngày nhận/trả: " + dateText);
+        selectedGuestLabel.setText("Số khách: " + guestCount);
+    }
+
+    private String buildSelectedRoomsSummary() {
+        if (selectedRooms.isEmpty()) {
+            return "Chưa chọn phòng";
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("<html><b>Đã chọn: ").append(selectedRooms.size()).append(" phòng</b><br>");
+        for (int i = 0; i < selectedRooms.size(); i++) {
+            builder.append(selectedRooms.get(i).roomType);
+            if (i < selectedRooms.size() - 1) {
+                builder.append(", ");
+            }
+        }
+        builder.append("</html>");
+        return builder.toString();
+    }
+
+    private BookingSearchRequest getSummaryRequest() {
+        if (lastSearchRequest != null) {
+            return lastSearchRequest;
+        }
+
+        LocalDate checkInDate = selectedCheckInDate;
+        LocalDate checkOutDate = selectedCheckOutDate;
+        if (checkInDate == null) {
+            checkInDate = LocalDate.now();
+        }
+        if (checkOutDate == null || !checkOutDate.isAfter(checkInDate)) {
+            checkOutDate = checkInDate.plusDays(1);
+        }
+
+        return new BookingSearchRequest((String) roomTypeCombo.getSelectedItem(), checkInDate, checkOutDate, guestCount);
+    }
+
+    private List<RoomOptionDto> toSelectedRoomOptions() {
+        List<RoomOptionDto> selected = new ArrayList<>();
+        for (RoomCardData room : selectedRooms) {
+            selected.add(room.optionDto);
+        }
+        return selected;
+    }
+
+    private List<RoomCardData> mapToCardData(List<RoomOptionDto> rooms) {
+        List<RoomCardData> cards = new ArrayList<>();
+        for (RoomOptionDto room : rooms) {
+            cards.add(toCardData(room));
+        }
+        return cards;
+    }
+
+    private RoomCardData toCardData(RoomOptionDto room) {
+        Color tone = resolveRoomTone(room.getRoomType());
+        Color bg = resolveRoomBackground(room.getRoomType());
+        return new RoomCardData(
+            room,
+            room.getRoomType(),
+            formatMoney(room.getNightlyPrice()),
+            room.getStatus(),
+            calculateFreeRate(room.getStatus()),
+            room.getAmenities(),
+            bg,
+            tone
+        );
+    }
+
+    private Color resolveRoomTone(String roomType) {
+        if (roomType.startsWith("Grand Premium 1")) {
+            return new Color(30, 180, 120);
+        }
+        if (roomType.startsWith("Grand Premium 2")) {
+            return new Color(143, 97, 255);
+        }
+        if (roomType.startsWith("Suite")) {
+            return new Color(230, 154, 30);
+        }
+        return new Color(49, 130, 206);
+    }
+
+    private Color resolveRoomBackground(String roomType) {
+        if (roomType.startsWith("Grand Premium 1")) {
+            return new Color(223, 248, 239);
+        }
+        if (roomType.startsWith("Grand Premium 2")) {
+            return new Color(238, 232, 255);
+        }
+        if (roomType.startsWith("Suite")) {
+            return new Color(255, 246, 220);
+        }
+        return new Color(235, 248, 255);
+    }
+
+    private String calculateFreeRate(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return "0%";
+        }
+
+        String[] splitBySlash = status.split("/");
+        if (splitBySlash.length < 2) {
+            return "0%";
+        }
+
+        try {
+            int free = Integer.parseInt(splitBySlash[0].replaceAll("[^0-9]", ""));
+            int total = Integer.parseInt(splitBySlash[1].replaceAll("[^0-9]", ""));
+            if (total <= 0) {
+                return "0%";
+            }
+            int percent = (int) Math.round((free * 100.0) / total);
+            return percent + "%";
+        } catch (NumberFormatException ex) {
+            return "0%";
+        }
+    }
+
+    private String formatMoney(long value) {
+        return String.format("%,d", value).replace(',', '.') + "đ";
+    }
+
+    private void openCustomerInfo() {
+        if (selectedRooms.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        bookingCards.show(bookingContent, "customer-info");
+        setStep(2);
     }
 
     private void setStep(int step) {
@@ -701,7 +1194,8 @@ public class BookingPanel extends JPanel {
         }
     }
 
-    private static final class RoomTypeData {
+    private static final class RoomCardData {
+        private final RoomOptionDto optionDto;
         private final String roomType;
         private final String price;
         private final String status;
@@ -709,9 +1203,9 @@ public class BookingPanel extends JPanel {
         private final List<String> amenities;
         private final Color bg;
         private final Color tone;
-        private final int availableRooms;
 
-        private RoomTypeData(String roomType, String price, String status, String occupancyRate, List<String> amenities, Color bg, Color tone, int availableRooms) {
+        private RoomCardData(RoomOptionDto optionDto, String roomType, String price, String status, String occupancyRate, List<String> amenities, Color bg, Color tone) {
+            this.optionDto = optionDto;
             this.roomType = roomType;
             this.price = price;
             this.status = status;
@@ -719,7 +1213,20 @@ public class BookingPanel extends JPanel {
             this.amenities = amenities;
             this.bg = bg;
             this.tone = tone;
-            this.availableRooms = availableRooms;
+        }
+    }
+
+    private static final class GuestFormRow {
+        private final JPanel panel;
+        private final JTextField nameField;
+        private final JTextField phoneField;
+        private final JTextField idField;
+
+        private GuestFormRow(JPanel panel, JTextField nameField, JTextField phoneField, JTextField idField) {
+            this.panel = panel;
+            this.nameField = nameField;
+            this.phoneField = phoneField;
+            this.idField = idField;
         }
     }
 }

@@ -9,6 +9,16 @@ public final class AppLauncher {
     }
 
     public static void main(String[] args) {
+        // Cần kết nối Database trước khi load dữ liệu
+        /*
+        try {
+            kqlhotel.dao.ConnectDB.getInstance().connect();
+            System.out.println("Kết nối Database thành công!");
+        } catch (Exception e) {
+            System.err.println("Lỗi kết nối Database: " + e.getMessage());
+        }
+        */
+
         SwingUtilities.invokeLater(() -> {
             UiTheme.setup();
             AppFrame frame = new AppFrame();
