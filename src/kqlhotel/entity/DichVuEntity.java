@@ -1,4 +1,4 @@
 package kqlhotel.entity;
 
-public class DichVuEntity {
+public class DichVuEntity extends Service {
 }

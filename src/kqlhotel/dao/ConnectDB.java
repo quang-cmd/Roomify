@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class ConnectDB {
-    private static ConnectDB instance = new ConnectDB();
+    private static final ConnectDB instance = new ConnectDB();
     private Connection connection;
 
     private ConnectDB() {}
@@ -28,13 +28,19 @@ public class ConnectDB {
         if (connection != null) {
             try {
                 connection.close();
+                connection = null;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public Connection getConnection() {
-        return connection;
+    public static Connection getConnection() throws SQLException {
+        try {
+            instance.connect();
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("SQL Server driver not found", e);
+        }
+        return instance.connection;
     }
 }
