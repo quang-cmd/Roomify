@@ -1,4 +1,4 @@
-package kqlhotel.dao.staff;
+package kqlhotel.dao.Staff;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Staff;
@@ -19,8 +19,8 @@ public class StaffDAO {
             return list;
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
-        try (Statement stmt = con.createStatement();
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Account acc = new Account(
@@ -89,7 +89,7 @@ public class StaffDAO {
     }
 
     public boolean update(Staff staff) {
-        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, tenDangNhap = ?, ngayVao = ?, luong = ? WHERE maNV = ?";
+        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, tenDangNhap = ? WHERE maNV = ?";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {

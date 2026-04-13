@@ -1,6 +1,6 @@
 package kqlhotel.bus.account;
 
-import kqlhotel.dao.account.AccountDAO;
+import kqlhotel.dao.Account.AccountDAO;
 import kqlhotel.entity.Account;
 import java.util.List;
 
