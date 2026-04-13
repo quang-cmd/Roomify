@@ -1,6 +1,6 @@
-package kqlhotel.bus.Invoice;
+package kqlhotel.bus.invoice;
 
-import kqlhotel.dao.Invoice.InvoiceDAO;
+import kqlhotel.dao.invoice.InvoiceDAO;
 import kqlhotel.entity.Invoice;
 import java.util.List;
 

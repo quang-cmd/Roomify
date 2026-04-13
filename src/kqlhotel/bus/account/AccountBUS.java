@@ -1,4 +1,4 @@
-package kqlhotel.bus.Account;
+package kqlhotel.bus.account;
 
 import kqlhotel.dao.Account.AccountDAO;
 import kqlhotel.entity.Account;

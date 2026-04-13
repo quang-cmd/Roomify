@@ -21,6 +21,7 @@ public class ConnectDB {
             String user = "sa";
             String password = "123456";
             connection = DriverManager.getConnection(url, user, password);
+            System.out.println("Ket noi Database thanh cong!!!!");
         }
     }
 
