@@ -63,8 +63,8 @@ public class StaffDAO {
             return false;
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
-        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getStaffId());
             pstmt.setString(2, staff.getFullName());
             pstmt.setString(3, staff.getPhone());
@@ -97,15 +97,13 @@ public class StaffDAO {
             return false;
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
-        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getFullName());
             pstmt.setString(2, staff.getPhone());
             pstmt.setBoolean(3, staff.getGender());
             pstmt.setString(4, staff.getAccount().getUsername());
-            pstmt.setDate(5, staff.getNgayVao() != null ? Date.valueOf(staff.getNgayVao()) : Date.valueOf(LocalDate.now()));
-            pstmt.setDouble(6, staff.getLuong() != null ? staff.getLuong() : 0.0);
-            pstmt.setString(7, staff.getStaffId());
+            pstmt.setString(5, staff.getStaffId());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi cập nhật nhân viên: " + e.getMessage());

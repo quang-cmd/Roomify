@@ -3,7 +3,8 @@ package kqlhotel.bus.staff;
 import kqlhotel.dao.Staff.StaffDAO;
 import kqlhotel.dao.Account.AccountDAO;
 import kqlhotel.entity.Staff;
-
+import kqlhotel.entity.Account;
+import java.util.ArrayList;
 import java.util.List;
 
 public class StaffBUS {
