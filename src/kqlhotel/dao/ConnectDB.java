@@ -19,8 +19,9 @@ public class ConnectDB {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             String url = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyKhachSan;encrypt=false";
             String user = "sa";
-            String password = "sapassword";
+            String password = "123456";
             connection = DriverManager.getConnection(url, user, password);
+            System.out.println("Ket noi Database thanh cong!!!!");
         }
     }
 
@@ -35,6 +36,13 @@ public class ConnectDB {
     }
 
     public Connection getConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                connect();
+            }
+        } catch (Exception e) {
+            System.err.println("ConnectDB.getConnection() – tự kết nối lại thất bại: " + e.getMessage());
+        }
         return connection;
     }
 }
