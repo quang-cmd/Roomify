@@ -1,4 +1,4 @@
-package kqlhotel.dao.account;
+package kqlhotel.dao.Account;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Account;
