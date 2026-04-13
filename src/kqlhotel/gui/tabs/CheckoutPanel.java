@@ -66,13 +66,13 @@ public class CheckoutPanel extends JPanel {
     private String nextRoomStatus = "Trong";
     private boolean isSaveInvoice = true;
     private boolean isPrintInvoice = false;
-
+    /*
     private final List<CheckoutData> mockDataList = Arrays.asList(
         new CheckoutData("DP001", "Phòng 101 · Deluxe", "Nguyễn Văn A", "0912345678", "07/04/2026", "10/04/2026", "900.000đ/đêm", "Trả hôm nay", new Color(240, 60, 60)),
         new CheckoutData("DP002", "Phòng 205 · Grand Premium 1", "Trần Thị B", "0888123456", "08/04/2026", "10/04/2026", "1.500.000đ/đêm", "Trả hôm nay", new Color(240, 60, 60)),
         new CheckoutData("DP004", "Phòng 401 · Grand Premium 2", "Phạm Thu D", "0933555777", "05/04/2026", "10/04/2026", "1.800.000đ/đêm", "Trả hôm nay", new Color(240, 60, 60))
     );
-
+    */
     public CheckoutPanel() {
         setOpaque(false);
         setBackground(PAGE_BG);
