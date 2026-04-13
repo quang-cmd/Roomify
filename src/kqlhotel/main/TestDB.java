@@ -1,4 +1,5 @@
 package kqlhotel.main;
+// hahahah
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.Account.AccountDAO;
