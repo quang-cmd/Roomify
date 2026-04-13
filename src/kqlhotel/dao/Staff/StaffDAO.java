@@ -4,13 +4,14 @@ import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Staff;
 import kqlhotel.entity.Account;
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StaffDAO {
     public List<Staff> getAll() {
         List<Staff> list = new ArrayList<>();
-        String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.taiKhoan = tk.tenDangNhap";
+        String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
@@ -35,6 +36,15 @@ public class StaffDAO {
                     rs.getBoolean("gioiTinh"),
                     acc
                 );
+                // Đọc ngàyVào và lương nếu có
+                Date ngayVaoDate = rs.getDate("ngayVao");
+                if (ngayVaoDate != null) {
+                    staff.setNgayVao(ngayVaoDate.toLocalDate());
+                }
+                double luong = rs.getDouble("luong");
+                if (!rs.wasNull()) {
+                    staff.setLuong(luong);
+                }
                 list.add(staff);
             }
         } catch (SQLException e) {
@@ -45,7 +55,7 @@ public class StaffDAO {
     }
 
     public boolean insert(Staff staff) {
-        String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, taiKhoan) VALUES(?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, tenDangNhap, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
@@ -60,6 +70,16 @@ public class StaffDAO {
             pstmt.setString(3, staff.getPhone());
             pstmt.setBoolean(4, staff.getGender());
             pstmt.setString(5, staff.getAccount().getUsername());
+            // ngàyVao
+            pstmt.setDate(6, staff.getNgayVao() != null
+                ? Date.valueOf(staff.getNgayVao())
+                : Date.valueOf(LocalDate.now()));
+            // lương
+            if (staff.getLuong() != null) {
+                pstmt.setDouble(7, staff.getLuong());
+            } else {
+                pstmt.setDouble(7, 0.0);
+            }
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi thêm nhân viên: " + e.getMessage());
@@ -69,7 +89,7 @@ public class StaffDAO {
     }
 
     public boolean update(Staff staff) {
-        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, taiKhoan = ? WHERE maNV = ?";
+        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, tenDangNhap = ? WHERE maNV = ?";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {

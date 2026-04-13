@@ -35,6 +35,13 @@ public class ConnectDB {
     }
 
     public Connection getConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                connect();
+            }
+        } catch (Exception e) {
+            System.err.println("ConnectDB.getConnection() – tự kết nối lại thất bại: " + e.getMessage());
+        }
         return connection;
     }
 }
