@@ -24,17 +24,17 @@ public class StaffDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Account acc = new Account(
-                        rs.getString("tenDangNhap"),
-                        rs.getString("matKhau"),
-                        rs.getString("vaiTro"),
-                        rs.getString("TrangThaiTK")
+                    rs.getString("tenDangNhap"),
+                    rs.getString("matKhau"),
+                    rs.getString("vaiTro"),
+                    rs.getString("TrangThaiTK")
                 );
                 Staff staff = new Staff(
-                        rs.getString("maNV"),
-                        rs.getString("hoTenNV"),
-                        rs.getString("sdt"),
-                        rs.getBoolean("gioiTinh"),
-                        acc
+                    rs.getString("maNV"),
+                    rs.getString("hoTenNV"),
+                    rs.getString("sdt"),
+                    rs.getBoolean("gioiTinh"),
+                    acc
                 );
                 // Đọc ngàyVào và lương nếu có
                 Date ngayVaoDate = rs.getDate("ngayVao");
@@ -72,8 +72,8 @@ public class StaffDAO {
             pstmt.setString(5, staff.getAccount().getUsername());
             // ngàyVao
             pstmt.setDate(6, staff.getNgayVao() != null
-                    ? Date.valueOf(staff.getNgayVao())
-                    : Date.valueOf(LocalDate.now()));
+                ? Date.valueOf(staff.getNgayVao())
+                : Date.valueOf(LocalDate.now()));
             // lương
             if (staff.getLuong() != null) {
                 pstmt.setDouble(7, staff.getLuong());

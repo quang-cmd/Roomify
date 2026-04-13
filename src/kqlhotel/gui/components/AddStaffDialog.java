@@ -62,7 +62,7 @@ public class AddStaffDialog extends JDialog {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 GradientPaint gp = new GradientPaint(0, 0, new Color(18, 35, 67),
-                        getWidth(), 0, new Color(36, 60, 110));
+                                                     getWidth(), 0, new Color(36, 60, 110));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight() + 20, 16, 16);
                 g2.dispose();
@@ -116,8 +116,8 @@ public class AddStaffDialog extends JDialog {
     // ===== Form =====
     private JPanel buildForm() {
         JPanel form = new JPanel(new MigLayout(
-                "wrap 2, insets 24 28 8 28, gap 14 10",
-                "[grow, fill][grow, fill]", "[]"
+            "wrap 2, insets 24 28 8 28, gap 14 10",
+            "[grow, fill][grow, fill]", "[]"
         ));
         form.setOpaque(false);
 
@@ -198,8 +198,8 @@ public class AddStaffDialog extends JDialog {
         btnCancel.setFocusPainted(false);
         btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCancel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
-                BorderFactory.createEmptyBorder(8, 20, 8, 20)
+            BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
+            BorderFactory.createEmptyBorder(8, 20, 8, 20)
         ));
         btnCancel.addActionListener(e -> dispose());
 
@@ -309,8 +309,8 @@ public class AddStaffDialog extends JDialog {
 
     private javax.swing.border.Border border(boolean focused) {
         return BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(focused ? ThemeColors.PRIMARY : new Color(215, 225, 245), 1),
-                BorderFactory.createEmptyBorder(6, 10, 6, 10)
+            BorderFactory.createLineBorder(focused ? ThemeColors.PRIMARY : new Color(215, 225, 245), 1),
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)
         );
     }
 
