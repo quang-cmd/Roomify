@@ -1,34 +1,40 @@
 package kqlhotel.dao;
 
-import kqlhotel.entity.PhongEntity;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DoiPhongDao {
 
-    private Connection conn;
+    public String getCurrentRoom(String maDatPhong) {
+        try {
+            Connection conn = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT MaPhong FROM DatPhong WHERE MaDatPhong=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, maDatPhong);
+            ResultSet rs = ps.executeQuery();
 
-    public DoiPhongDao(Connection conn) {
-        this.conn = conn;
+            if (rs.next()) {
+                return rs.getString("MaPhong");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
-    // Lấy danh sách phòng
-    public List<PhongEntity> getDanhSachPhong() {
-        List<PhongEntity> list = new ArrayList<>();
+    public List<String> getAvailableRooms() {
+        List<String> list = new ArrayList<>();
 
-        String sql = "SELECT ma_phong, trang_thai FROM Phong"; // ⚠️ sửa nếu khác DB
-
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+        try {
+            Connection conn = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT MaPhong FROM Phong WHERE TrangThai='Trong'";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                PhongEntity p = new PhongEntity(
-                        rs.getString("ma_phong"),
-                        rs.getString("trang_thai")
-                );
-                list.add(p);
+                list.add(rs.getString("MaPhong"));
             }
 
         } catch (Exception e) {
@@ -38,26 +44,35 @@ public class DoiPhongDao {
         return list;
     }
 
-    // Đổi phòng
-    public void doiPhong(String phongCu, String phongMoi) {
+    public boolean changeRoom(String maDatPhong, String newRoom) {
         try {
-            conn.setAutoCommit(false);
+            Connection conn = ConnectDB.getInstance().getConnection();
 
-            String sql1 = "UPDATE Phong SET trang_thai = N'Trống' WHERE ma_phong = ?";
-            String sql2 = "UPDATE Phong SET trang_thai = N'Đang ở' WHERE ma_phong = ?";
-
+            // Cập nhật phòng mới vào đặt phòng
+            String sql1 = "UPDATE DatPhong SET MaPhong=? WHERE MaDatPhong=?";
             PreparedStatement ps1 = conn.prepareStatement(sql1);
-            ps1.setString(1, phongCu);
-            ps1.executeUpdate();
+            ps1.setString(1, newRoom);
+            ps1.setString(2, maDatPhong);
 
+            // Cập nhật trạng thái phòng
+            String sql2 = "UPDATE Phong SET TrangThai='Trong' WHERE MaPhong=(SELECT MaPhong FROM DatPhong WHERE MaDatPhong=?)";
             PreparedStatement ps2 = conn.prepareStatement(sql2);
-            ps2.setString(1, phongMoi);
-            ps2.executeUpdate();
+            ps2.setString(1, maDatPhong);
 
-            conn.commit();
+            String sql3 = "UPDATE Phong SET TrangThai='Dang o' WHERE MaPhong=?";
+            PreparedStatement ps3 = conn.prepareStatement(sql3);
+            ps3.setString(1, newRoom);
+
+            ps1.executeUpdate();
+            ps2.executeUpdate();
+            ps3.executeUpdate();
+
+            return true;
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return false;
     }
 }

@@ -45,7 +45,7 @@ public class CreateBookingCommand {
     }
 
     public String getCustomerPhone() {
-        return guestInfos != null && !guestInfos.isEmpty() ? guestInfos.get(0).getPhone() : null;
+        return guestInfos != null && !guestInfos.isEmpty() ? guestInfos.get(0).getSdt() : null;
     }
 
     public String getCustomerIdNo() {

@@ -59,7 +59,7 @@ public class MockBookingService implements BookingService {
         }
 
         for (GuestInfoDto guest : command.getGuestInfos()) {
-            if (guest == null || isBlank(guest.getFullName()) || isBlank(guest.getPhone()) || isBlank(guest.getIdNo())) {
+            if (guest == null || isBlank(guest.getHoTenNV()) || isBlank(guest.getSdt()) || isBlank(guest.getIdNo())) {
                 return new BookingConfirmationResult(false, null, "Mỗi khách cần đầy đủ họ tên, số điện thoại và CCCD/Hộ chiếu.");
             }
         }

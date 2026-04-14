@@ -1,6 +1,7 @@
 package kqlhotel.bus.booking.model;
 
 public class GuestInfoDto {
+
     private final String fullName;
     private final String phone;
     private final String idNo;
@@ -11,6 +12,7 @@ public class GuestInfoDto {
         this.idNo = idNo;
     }
 
+    // ===== GETTER CHUẨN GUI =====
     public String getFullName() {
         return fullName;
     }
@@ -21,5 +23,14 @@ public class GuestInfoDto {
 
     public String getIdNo() {
         return idNo;
+    }
+
+    // ===== (OPTIONAL - GIỮ LẠI CHO AN TOÀN) =====
+    public String getHoTenNV() {
+        return fullName;
+    }
+
+    public String getSdt() {
+        return phone;
     }
 }

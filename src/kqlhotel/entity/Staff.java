@@ -1,34 +1,34 @@
 package kqlhotel.entity;
 
 public class Staff {
-    private String staffId;
-    private String fullName;
-    private String phone;
-    private Boolean gender;
-    private Account account;
 
-    public Staff() {}
+    private String maNV;
+    private String hoTenNV;
+    private String sdt;
+    private String tenDangNhap;
 
-    public Staff(String staffId, String fullName, String phone, Boolean gender, Account account) {
-        this.staffId = staffId;
-        this.fullName = fullName;
-        this.phone = phone;
-        this.gender = gender;
-        this.account = account;
+    public Staff(String maNV, String hoTenNV, String sdt, String tenDangNhap) {
+        this.maNV = maNV;
+        this.hoTenNV = hoTenNV;
+        this.sdt = sdt;
+        this.tenDangNhap = tenDangNhap;
     }
 
-    public String getStaffId() { return staffId; }
-    public void setStaffId(String staffId) { this.staffId = staffId; }
+    public String getMaNV() { return maNV; }
+    public String getHoTenNV() { return hoTenNV; }
+    public String getSdt() { return sdt; }
+    public String getTenDangNhap() { return tenDangNhap; }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    // 🔥 THÊM CÁC HÀM NÀY
+    public String getFullName() {
+        return hoTenNV;
+    }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public String getPhone() {
+        return sdt;
+    }
 
-    public Boolean getGender() { return gender; }
-    public void setGender(Boolean gender) { this.gender = gender; }
-
-    public Account getAccount() { return account; }
-    public void setAccount(Account account) { this.account = account; }
+    public String getAccount() {
+        return tenDangNhap;
+    }
 }

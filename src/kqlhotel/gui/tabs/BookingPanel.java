@@ -876,7 +876,7 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        String leadGuestName = guestInfos.get(0).getFullName();
+        String leadGuestName = guestInfos.get(0).getHoTenNV();
         String successMessage = "Đặt phòng thành công cho khách " + leadGuestName + " (" + selectedRooms.size() + " phòng)";
         if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
             successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
@@ -980,8 +980,8 @@ public class BookingPanel extends JPanel {
                 Optional<GuestInfoDto> found = CustomerDirectoryServiceProvider.get().findByIdNo(idNo);
                 if (found.isPresent()) {
                     GuestInfoDto customer = found.get();
-                    nameField.setText(customer.getFullName());
-                    phoneField.setText(customer.getPhone());
+                    nameField.setText(customer.getHoTenNV());
+                    phoneField.setText(customer.getSdt());
                 }
             }
         });

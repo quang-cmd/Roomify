@@ -33,12 +33,12 @@ import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
 import kqlhotel.gui.tabs.UnderDevelopmentPanel;
-import kqlhotel.gui.tabs.SwapRoomPanel;
+import kqlhotel.gui.tabs.DoiPhongPanel;
 import kqlhotel.gui.tabs.CancelRoomPanel;
 import kqlhotel.gui.tabs.RoomManagementPanel;
 import kqlhotel.gui.tabs.StaffPanel;
-import kqlhotel.gui.tabs.CustomersPanel;
-import kqlhotel.gui.tabs.ServicesPanel;
+import kqlhotel.gui.tabs.KhachHangPanel;
+import kqlhotel.gui.tabs.DichVuPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -95,12 +95,12 @@ public class AppFrame extends JFrame {
         screenPanel.add(new BookingPanel(), "booking");
         screenPanel.add(new StatisticsPanel(), "statistics");
         screenPanel.add(new UnderDevelopmentPanel("Trả phòng"), "checkout");
-        screenPanel.add(new SwapRoomPanel(), "swap-room");
+        screenPanel.add(new DoiPhongPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
         screenPanel.add(new RoomManagementPanel(), "room-management");
         screenPanel.add(new StaffPanel(), "staff");
-        screenPanel.add(new CustomersPanel(), "customers");
-        screenPanel.add(new ServicesPanel(), "services");
+        screenPanel.add(new KhachHangPanel(), "customers");
+        screenPanel.add(new DichVuPanel(), "services");
         screenPanel.add(new UnderDevelopmentPanel("Khuyến mãi"), "promotions");
         screenPanel.add(new UnderDevelopmentPanel("Hóa đơn"), "invoices");
         activateRoute(currentRoute);

@@ -1,28 +1,25 @@
 package kqlhotel.bus;
 
 import kqlhotel.dao.DoiPhongDao;
-import kqlhotel.entity.PhongEntity;
-
-import java.sql.Connection;
 import java.util.List;
 
 public class DoiPhongBus {
 
     private DoiPhongDao dao;
 
-    public DoiPhongBus(Connection conn) {
-        dao = new DoiPhongDao(conn);
+    public DoiPhongBus() {
+        dao = new DoiPhongDao();
     }
 
-    public List<PhongEntity> layDanhSachPhong() {
-        return dao.getDanhSachPhong();
+    public String getCurrentRoom(String maDatPhong) {
+        return dao.getCurrentRoom(maDatPhong);
     }
 
-    public void doiPhong(String phongCu, String phongMoi) {
-        if (phongCu.equals(phongMoi)) {
-            throw new IllegalArgumentException("Không thể đổi cùng phòng");
-        }
+    public List<String> getAvailableRooms() {
+        return dao.getAvailableRooms();
+    }
 
-        dao.doiPhong(phongCu, phongMoi);
+    public boolean changeRoom(String maDatPhong, String newRoom) {
+        return dao.changeRoom(maDatPhong, newRoom);
     }
 }
