@@ -29,6 +29,27 @@ public class StaffBUS {
     }
 
     /**
+     * Cập nhật nhân viên: update TaiKhoan trước, sau đó update NhanVien.
+     */
+    public boolean updateStaff(Staff staff) {
+        // 1. Update tài khoản trong bảng TaiKhoan
+        boolean accountOk = accountDAO.update(staff.getAccount());
+        if (!accountOk) {
+            System.err.println("[StaffBUS] Cập nhật tài khoản thất bại: " + staff.getAccount().getUsername());
+            return false;
+        }
+        System.out.println("[StaffBUS] Đã cập nhật tài khoản: " + staff.getAccount().getUsername());
+
+        // 2. Update nhân viên trong bảng NhanVien
+        boolean staffOk = staffDAO.update(staff);
+        if (!staffOk) {
+            System.err.println("[StaffBUS] Cập nhật nhân viên thất bại: " + staff.getStaffId());
+            return false;
+        }
+        System.out.println("[StaffBUS] Đã cập nhật nhân viên: " + staff.getStaffId());
+        return true;
+    }
+    /**
      * Thêm nhân viên mới: insert TaiKhoan trước, sau đó insert NhanVien.
      */
     public boolean addStaff(Staff staff) {
