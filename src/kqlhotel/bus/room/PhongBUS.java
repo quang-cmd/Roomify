@@ -48,4 +48,9 @@ public class PhongBUS {
         if (list == null) return 0;
         return list.stream().filter(p -> dbStatus.equals(p.getTrangThaiPhong())).count();
     }
+    public boolean addRoom(Phong p) {
+        if (p.getMaPhong() == null || p.getMaPhong().trim().isEmpty()) return false;
+        if (p.getTrangThaiPhong() == null) p.setTrangThaiPhong("Trong");
+        return phongDAO.create(p);
+    }
 }

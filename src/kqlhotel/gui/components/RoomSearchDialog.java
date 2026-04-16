@@ -8,6 +8,9 @@ import javax.swing.*;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.tabs.RoomManagementPanel;
+import kqlhotel.entity.Phong;
+import kqlhotel.entity.LoaiPhong;
+import kqlhotel.bus.room.PhongBUS;
 
 public class RoomSearchDialog extends JDialog {
 
@@ -226,13 +229,22 @@ public class RoomSearchDialog extends JDialog {
         String typeQuery = (String) cbRoomType.getSelectedItem();
         String statusQuery = (String) cbStatus.getSelectedItem();
 
-        List<RoomManagementPanel.RoomData> results = new ArrayList<>();
-        for (RoomManagementPanel.RoomData data : roomPanel.mockData) {
-            boolean matchNo = roomQuery.isEmpty() || data.roomNo.toLowerCase().contains(roomQuery);
-            boolean matchType = "Tất cả loại phòng".equals(typeQuery) || data.roomType.equals(typeQuery);
-            boolean matchStatus = "Tất cả trạng thái".equals(statusQuery) || data.status.equals(statusQuery);
+        List<Phong> results = new ArrayList<>();
+        PhongBUS bus = roomPanel.getPhongBUS();
+        List<Phong> currentRooms = roomPanel.getPhongList();
+        
+        if (currentRooms == null) currentRooms = new ArrayList<>();
+
+        for (Phong p : currentRooms) {
+            String guiStatus = bus.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
+            LoaiPhong lp = p.getLoaiPhong();
+            
+            boolean matchNo = roomQuery.isEmpty() || p.getMaPhong().toLowerCase().contains(roomQuery);
+            boolean matchType = "Tất cả loại phòng".equals(typeQuery) || lp.getTenLoaiPhong().equals(typeQuery);
+            boolean matchStatus = "Tất cả trạng thái".equals(statusQuery) || guiStatus.equals(statusQuery);
+            
             if (matchNo && matchType && matchStatus) {
-                results.add(data);
+                results.add(p);
             }
         }
 
@@ -251,8 +263,8 @@ public class RoomSearchDialog extends JDialog {
         } else {
             JPanel grid = new JPanel(new MigLayout("insets 12 16 16 16, wrap 2, gap 16", "[grow,fill][grow,fill]", "[]"));
             grid.setOpaque(false);
-            for (RoomManagementPanel.RoomData data : results) {
-                grid.add(roomPanel.createRoomCard(data));
+            for (Phong p : results) {
+                grid.add(roomPanel.createRoomCard(p));
             }
             JScrollPane scrollPane = new JScrollPane(grid);
             scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -288,143 +300,4 @@ public class RoomSearchDialog extends JDialog {
         resultContainer.repaint();
     }
 
-    private JPanel createRoomCard(RoomData data) {
-        RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);
-        card.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
-
-        // ===== Header (Number & Bed icon) =====
-        JPanel topRow = new JPanel(new MigLayout("insets 0", "[][grow,right]", "[]"));
-        topRow.setOpaque(false);
-        
-        JPanel numGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
-        numGroup.setOpaque(false);
-        JLabel roomNo = new JLabel(data.roomNo);
-        roomNo.setFont(roomNo.getFont().deriveFont(Font.BOLD, 18f));
-        roomNo.setForeground(new Color(30, 50, 80));
-        JLabel floor = new JLabel(data.floor);
-        floor.setFont(floor.getFont().deriveFont(11f));
-        floor.setForeground(new Color(130, 145, 170));
-        numGroup.add(roomNo);
-        numGroup.add(floor);
-
-        JLabel bedIcon = new JLabel("🛏");
-        bedIcon.setFont(bedIcon.getFont().deriveFont(20f));
-        bedIcon.setForeground(new Color(160, 175, 200));
-
-        topRow.add(numGroup);
-        topRow.add(bedIcon);
-
-        // ===== Type & Status =====
-        JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
-        midRow.setOpaque(false);
-        
-        Color badgeBg = new Color(data.statusColor.getRed(), data.statusColor.getGreen(), data.statusColor.getBlue(), 25);
-        JPanel typeBadge = makeBadge(data.roomType, new Color(240, 244, 255), new Color(80, 120, 200));
-        JPanel statusBadge = makeBadge("• " + data.status, badgeBg, data.statusColor);
-        
-        midRow.add(typeBadge, "left");
-        midRow.add(statusBadge, "right");
-
-        // ===== Info Row (Guests & Area) =====
-        JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 12", "[][]", "[]"));
-        infoRow.setOpaque(false);
-        JLabel guests = new JLabel("👤 " + data.guests);
-        guests.setForeground(new Color(130, 145, 170));
-        guests.setFont(guests.getFont().deriveFont(11f));
-        JLabel area = new JLabel("⛶ " + data.area);
-        area.setForeground(new Color(130, 145, 170));
-        area.setFont(area.getFont().deriveFont(11f));
-        infoRow.add(guests);
-        infoRow.add(area);
-
-        // ===== Footer (Price & Action) =====
-        JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
-        botRow.setOpaque(false);
-        
-        JPanel priceGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 0", "[]", "[]"));
-        priceGroup.setOpaque(false);
-        JLabel priceLbl = new JLabel(data.price);
-        priceLbl.setFont(priceLbl.getFont().deriveFont(Font.BOLD, 14f));
-        priceLbl.setForeground(new Color(30, 50, 80));
-        JLabel night = new JLabel("/đêm");
-        night.setFont(night.getFont().deriveFont(11f));
-        night.setForeground(new Color(150, 165, 190));
-        priceGroup.add(priceLbl);
-        priceGroup.add(night);
-
-        botRow.add(priceGroup, "aligny center");
-        
-        // Buttons
-        if (data.status.equals("Trống")) {
-            JButton btn = new JButton("✎ Chi tiết");
-            btn.setBackground(Color.WHITE);
-            btn.setForeground(new Color(100, 120, 150));
-            btn.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
-            btn.setFocusPainted(false);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            botRow.add(btn, "h 32!");
-        } else if (data.status.equals("Đã đặt") || data.status.equals("Đang dọn")) {
-            PrimaryButton btn = new PrimaryButton("👤 Khách & Hóa đơn");
-            btn.setBackground(ThemeColors.PRIMARY);
-            btn.setForeground(Color.WHITE);
-            btn.addActionListener(e -> {
-                // Show room detail dialog
-                JOptionPane.showMessageDialog(this, "Chi tiết phòng " + data.roomNo, "Thông tin", JOptionPane.INFORMATION_MESSAGE);
-            });
-            botRow.add(btn, "span 2,growx,h 36!,gapy 6 0");
-        } else {
-            JButton btn = new JButton("Chi tiết");
-            btn.setBackground(Color.WHITE);
-            btn.setForeground(new Color(100, 120, 150));
-            btn.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
-            btn.setFocusPainted(false);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            botRow.add(btn, "h 32!");
-        }
-
-        card.add(topRow, "growx");
-        card.add(midRow, "gapy 12 0,growx");
-        card.add(infoRow, "gapy 8 0");
-        
-        if (data.status.equals("Đã đặt") || data.status.equals("Đang dọn")) {
-            card.add(priceGroup, "gapy 12 0");
-            card.add(botRow, "gapy 4 0,growx");
-        } else {
-            card.add(botRow, "gapy 12 0,growx");
-        }
-
-        return card;
-    }
-
-    private JPanel makeBadge(String text, Color bg, Color fg) {
-        JPanel badge = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        badge.setOpaque(false);
-        badge.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-        JLabel lbl = new JLabel(text, SwingConstants.CENTER);
-        lbl.setForeground(fg);
-        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 10f));
-        badge.add(lbl);
-        return badge;
-    }
-
-    private static final class RoomData {
-        final String roomNo, floor, roomType, status, guests, area, price;
-        final Color statusColor;
-
-        RoomData(String roomNo, String floor, String roomType, String status, String guests, String area, String price, Color color) {
-            this.roomNo = roomNo; this.floor = floor; this.roomType = roomType;
-            this.status = status; this.guests = guests; this.area = area;
-            this.price = price; this.statusColor = color;
-        }
-    }
 }
