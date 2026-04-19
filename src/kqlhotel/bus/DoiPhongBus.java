@@ -1,25 +1,27 @@
 package kqlhotel.bus;
 
-import kqlhotel.dao.DoiPhongDao;
 import java.util.List;
+import kqlhotel.dao.DoiPhongDao;
+import kqlhotel.entity.DoiPhongRoomOption;
+import kqlhotel.entity.DoiPhongSearchResult;
 
 public class DoiPhongBus {
 
-    private DoiPhongDao dao;
+    private final DoiPhongDao dao;
 
     public DoiPhongBus() {
         dao = new DoiPhongDao();
     }
 
-    public String getCurrentRoom(String maDatPhong) {
-        return dao.getCurrentRoom(maDatPhong);
+    public List<DoiPhongSearchResult> searchBookings(String maDatPhong, String tenKhach, String soDienThoai, String maPhong) {
+        return dao.searchBookings(maDatPhong, tenKhach, soDienThoai, maPhong);
     }
 
-    public List<String> getAvailableRooms() {
-        return dao.getAvailableRooms();
+    public List<DoiPhongRoomOption> getAvailableRooms(String currentRoom) {
+        return dao.getAvailableRooms(currentRoom);
     }
 
-    public boolean changeRoom(String maDatPhong, String newRoom) {
-        return dao.changeRoom(maDatPhong, newRoom);
+    public boolean changeRoom(String maChiTietDatPhong, String newRoom) {
+        return dao.changeRoom(maChiTietDatPhong, newRoom);
     }
 }

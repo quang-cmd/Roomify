@@ -1,74 +1,144 @@
 package kqlhotel.dao;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import kqlhotel.entity.DoiPhongRoomOption;
+import kqlhotel.entity.DoiPhongSearchResult;
 
 public class DoiPhongDao {
 
-    public String getCurrentRoom(String maDatPhong) {
-        try {
-            Connection conn = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT MaPhong FROM DatPhong WHERE MaDatPhong=?";
-            PreparedStatement ps = conn.prepareStatement(sql);
+    public List<DoiPhongSearchResult> searchBookings(String maDatPhong, String tenKhach, String soDienThoai, String maPhong) {
+        List<DoiPhongSearchResult> results = new ArrayList<>();
+        String sql =
+            "SELECT ctdp.maCTDP, dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
+            "ctdp.maPhong, lp.tenLoaiPhong, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
+            "FROM ChiTietDatPhong ctdp " +
+            "JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
+            "JOIN KhachHang kh ON kh.maKH = dp.maKH " +
+            "JOIN Phong p ON p.maPhong = ctdp.maPhong " +
+            "JOIN LoaiPhong lp ON lp.maLoaiPhong = p.maLoaiPhong " +
+            "WHERE (? = '' OR dp.maDatPhong LIKE ?) " +
+            "AND (? = '' OR kh.hoTenKH LIKE ?) " +
+            "AND (? = '' OR kh.sdt LIKE ?) " +
+            "AND (? = '' OR ctdp.maPhong LIKE ?) " +
+            "ORDER BY dp.ngayNhanDuKien DESC, dp.maDatPhong DESC";
+
+        try (Connection conn = ConnectDB.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maDatPhong);
-            ResultSet rs = ps.executeQuery();
+            ps.setString(2, "%" + maDatPhong + "%");
+            ps.setString(3, tenKhach);
+            ps.setString(4, "%" + tenKhach + "%");
+            ps.setString(5, soDienThoai);
+            ps.setString(6, "%" + soDienThoai + "%");
+            ps.setString(7, maPhong);
+            ps.setString(8, "%" + maPhong + "%");
 
-            if (rs.next()) {
-                return rs.getString("MaPhong");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DoiPhongSearchResult item = new DoiPhongSearchResult();
+                    item.setMaChiTietDatPhong(rs.getString("maCTDP"));
+                    item.setMaDatPhong(rs.getString("maDatPhong"));
+                    item.setMaKhachHang(rs.getString("maKH"));
+                    item.setTenKhachHang(rs.getString("hoTenKH"));
+                    item.setSoDienThoai(rs.getString("sdt"));
+                    item.setCccd(rs.getString("CCCD"));
+                    item.setMaPhongHienTai(rs.getString("maPhong"));
+                    item.setLoaiPhongHienTai(rs.getString("tenLoaiPhong"));
+                    Timestamp ngayNhan = rs.getTimestamp("ngayNhanDuKien");
+                    Timestamp ngayTra = rs.getTimestamp("ngayTraDuKien");
+                    item.setNgayNhan(ngayNhan != null ? ngayNhan.toLocalDateTime() : null);
+                    item.setNgayTra(ngayTra != null ? ngayTra.toLocalDateTime() : null);
+                    item.setSoLuongNguoiO(rs.getInt("soLuongNguoiO"));
+                    results.add(item);
+                }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return "";
+
+        return results;
     }
 
-    public List<String> getAvailableRooms() {
-        List<String> list = new ArrayList<>();
+    public List<DoiPhongRoomOption> getAvailableRooms(String currentRoom) {
+        List<DoiPhongRoomOption> rooms = new ArrayList<>();
+        String sql =
+            "SELECT p.maPhong, lp.tenLoaiPhong, p.tang, p.trangThaiPhong " +
+            "FROM Phong p " +
+            "JOIN LoaiPhong lp ON lp.maLoaiPhong = p.maLoaiPhong " +
+            "WHERE p.trangThaiPhong = 'Trong' AND p.maPhong <> ? " +
+            "ORDER BY p.tang, p.maPhong";
 
-        try {
-            Connection conn = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT MaPhong FROM Phong WHERE TrangThai='Trong'";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
+        try (Connection conn = ConnectDB.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, currentRoom == null ? "" : currentRoom);
 
-            while (rs.next()) {
-                list.add(rs.getString("MaPhong"));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DoiPhongRoomOption room = new DoiPhongRoomOption();
+                    room.setMaPhong(rs.getString("maPhong"));
+                    room.setTenLoaiPhong(rs.getString("tenLoaiPhong"));
+                    room.setTang(rs.getInt("tang"));
+                    room.setTrangThaiPhong(rs.getString("trangThaiPhong"));
+                    rooms.add(room);
+                }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return list;
+        return rooms;
     }
 
-    public boolean changeRoom(String maDatPhong, String newRoom) {
-        try {
-            Connection conn = ConnectDB.getInstance().getConnection();
+    public boolean changeRoom(String maChiTietDatPhong, String newRoom) {
+        String selectSql = "SELECT maPhong FROM ChiTietDatPhong WHERE maCTDP = ?";
+        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maCTDP = ?";
+        String updateOldRoomSql = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?";
+        String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?";
 
-            // Cập nhật phòng mới vào đặt phòng
-            String sql1 = "UPDATE DatPhong SET MaPhong=? WHERE MaDatPhong=?";
-            PreparedStatement ps1 = conn.prepareStatement(sql1);
-            ps1.setString(1, newRoom);
-            ps1.setString(2, maDatPhong);
+        try (Connection conn = ConnectDB.getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                String oldRoom;
+                try (PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
+                    selectPs.setString(1, maChiTietDatPhong);
+                    try (ResultSet rs = selectPs.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.rollback();
+                            return false;
+                        }
+                        oldRoom = rs.getString("maPhong");
+                    }
+                }
 
-            // Cập nhật trạng thái phòng
-            String sql2 = "UPDATE Phong SET TrangThai='Trong' WHERE MaPhong=(SELECT MaPhong FROM DatPhong WHERE MaDatPhong=?)";
-            PreparedStatement ps2 = conn.prepareStatement(sql2);
-            ps2.setString(1, maDatPhong);
+                try (PreparedStatement updateDetailPs = conn.prepareStatement(updateDetailSql);
+                     PreparedStatement updateOldRoomPs = conn.prepareStatement(updateOldRoomSql);
+                     PreparedStatement updateNewRoomPs = conn.prepareStatement(updateNewRoomSql)) {
+                    updateDetailPs.setString(1, newRoom);
+                    updateDetailPs.setString(2, maChiTietDatPhong);
+                    updateDetailPs.executeUpdate();
 
-            String sql3 = "UPDATE Phong SET TrangThai='Dang o' WHERE MaPhong=?";
-            PreparedStatement ps3 = conn.prepareStatement(sql3);
-            ps3.setString(1, newRoom);
+                    updateOldRoomPs.setString(1, oldRoom);
+                    updateOldRoomPs.executeUpdate();
 
-            ps1.executeUpdate();
-            ps2.executeUpdate();
-            ps3.executeUpdate();
+                    updateNewRoomPs.setString(1, newRoom);
+                    updateNewRoomPs.executeUpdate();
+                }
 
-            return true;
-
+                conn.commit();
+                conn.setAutoCommit(autoCommit);
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                conn.setAutoCommit(autoCommit);
+                throw ex;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

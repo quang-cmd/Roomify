@@ -1,180 +1,763 @@
 package kqlhotel.gui.tabs;
 
-import net.miginfocom.swing.MigLayout;
-
-import javax.swing.*;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.RenderingHints;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import kqlhotel.bus.KhachHangBus;
+import kqlhotel.entity.KhachHangBookingHistory;
+import kqlhotel.entity.KhachHangEntity;
 
 public class KhachHangPanel extends JPanel {
 
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+
+    private final KhachHangBus bus = new KhachHangBus();
+    private final JTextField searchField = new JTextField();
+    private final JPanel customerListPanel = new JPanel();
+    private final JPanel detailPanel = new JPanel(new BorderLayout());
+    private final JLabel countLabel = new JLabel();
+    private List<KhachHangEntity> customers = new ArrayList<>();
+    private KhachHangEntity selectedCustomer;
+
     public KhachHangPanel() {
-        setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
+        setOpaque(false);
+        setLayout(new BorderLayout(0, 18));
+        setBorder(new EmptyBorder(22, 26, 22, 26));
 
-        JPanel main = new JPanel(new MigLayout(
-                "insets 20,gap 20",
-                "[320!][grow]",
-                "[grow]"
-        ));
-        main.setOpaque(false);
+        add(createHeader(), BorderLayout.NORTH);
+        add(createContent(), BorderLayout.CENTER);
 
-        main.add(leftPanel(), "growy");
-        main.add(rightPanel(), "grow");
-
-        add(main, BorderLayout.CENTER);
+        loadCustomers();
     }
 
-    // ================= LEFT =================
-    private JPanel leftPanel() {
-        JPanel panel = new JPanel(new MigLayout("wrap 1,insets 15,gap 10", "[grow,fill]", "[]"));
-        panel.setBackground(Color.WHITE);
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
 
-        JTextField search = new JTextField("Tìm khách hàng...");
-        search.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panel.add(search);
+        JPanel titleWrap = new JPanel();
+        titleWrap.setOpaque(false);
+        titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        panel.add(item("MK", "Trần Minh Khoa", "0912 345 678", true));
-        panel.add(item("TH", "Nguyễn Thị Hoa", "0987 654 321", true));
-        panel.add(item("VD", "Lê Văn Dũng", "0901 234 567", true));
-        panel.add(item("TL", "Phạm Thị Lan", "0934 567 890", true));
-        panel.add(item("MT", "Hoàng Minh Tú", "0965 432 109", true));
-        panel.add(item("TM", "Vũ Thị Mai", "0978 901 234", true));
-        panel.add(item("QB", "Đặng Quốc Bảo", "0923 456 789", true));
-        panel.add(item("TN", "Bùi Thị Ngọc", "0956 789 012", false));
+        JLabel title = new JLabel("Khách hàng");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        title.setForeground(new Color(15, 23, 42));
 
-        return panel;
+        countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        countLabel.setForeground(new Color(100, 116, 139));
+
+        titleWrap.add(title);
+        titleWrap.add(Box.createVerticalStrut(6));
+        titleWrap.add(countLabel);
+
+        JButton addButton = createPrimaryButton("Thêm khách hàng", "customers.png");
+        addButton.addActionListener(e -> showCustomerDialog(null));
+
+        header.add(titleWrap, BorderLayout.WEST);
+        header.add(addButton, BorderLayout.EAST);
+        return header;
     }
 
-    private JPanel item(String avatar, String name, String phone, boolean active) {
-        JPanel p = new JPanel(new MigLayout("insets 10,gap 10", "[][grow][]", "[]"));
-        p.setBackground(new Color(248, 250, 252));
-        p.setBorder(BorderFactory.createLineBorder(new Color(230,230,230)));
+    private JPanel createContent() {
+        JPanel content = new JPanel(new BorderLayout(18, 0));
+        content.setOpaque(false);
 
-        JLabel ava = new JLabel(avatar, SwingConstants.CENTER);
-        ava.setOpaque(true);
-        ava.setBackground(new Color(16, 185, 129));
-        ava.setForeground(Color.WHITE);
-        ava.setPreferredSize(new Dimension(40,40));
+        JPanel leftPane = new RoundedPanel(20, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        leftPane.setLayout(new BorderLayout(0, 12));
+        leftPane.setPreferredSize(new Dimension(360, 0));
+        leftPane.setBorder(new EmptyBorder(18, 18, 18, 18));
 
-        JLabel nameLbl = new JLabel(name);
-        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        leftPane.add(createSearchBox(), BorderLayout.NORTH);
 
-        JLabel phoneLbl = new JLabel(phone);
-        phoneLbl.setForeground(Color.GRAY);
+        customerListPanel.setOpaque(false);
+        customerListPanel.setLayout(new BoxLayout(customerListPanel, BoxLayout.Y_AXIS));
 
-        JPanel text = new JPanel(new GridLayout(2,1));
+        JScrollPane listScroll = new JScrollPane(customerListPanel);
+        listScroll.setOpaque(false);
+        listScroll.getViewport().setOpaque(false);
+        listScroll.setBorder(null);
+        listScroll.getVerticalScrollBar().setUnitIncrement(16);
+        leftPane.add(listScroll, BorderLayout.CENTER);
+
+        detailPanel.setOpaque(false);
+
+        content.add(leftPane, BorderLayout.WEST);
+        content.add(detailPanel, BorderLayout.CENTER);
+        return content;
+    }
+
+    private JPanel createSearchBox() {
+        JPanel wrapper = new RoundedPanel(16, new Color(248, 250, 252), new Color(226, 232, 240), 1f, new Color(15, 23, 42, 0), 0);
+        wrapper.setLayout(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        JLabel icon = new JLabel();
+        ImageIcon searchIcon = loadIcon("search.png", 16, 16);
+        if (searchIcon != null) {
+            icon.setIcon(searchIcon);
+        } else {
+            icon.setText("?");
+        }
+        icon.setBorder(new EmptyBorder(0, 0, 0, 8));
+
+        searchField.setBorder(null);
+        searchField.setOpaque(false);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setText("");
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                renderCustomerList(filterCustomers(searchField.getText().trim()));
+            }
+        });
+
+        wrapper.add(icon, BorderLayout.WEST);
+        wrapper.add(searchField, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private void loadCustomers() {
+        customers = bus.getAll();
+        updateCounts();
+        renderCustomerList(customers);
+        if (!customers.isEmpty()) {
+            showCustomerDetail(customers.get(0));
+        } else {
+            showEmptyDetail();
+        }
+    }
+
+    private void updateCounts() {
+        long activeCount = customers.stream().filter(KhachHangEntity::isDangHoatDong).count();
+        countLabel.setText(customers.size() + " khách hàng · " + activeCount + " đang hoạt động");
+    }
+
+    private List<KhachHangEntity> filterCustomers(String keyword) {
+        if (keyword.isBlank()) {
+            return customers;
+        }
+        String lowered = keyword.toLowerCase();
+        List<KhachHangEntity> filtered = new ArrayList<>();
+        for (KhachHangEntity customer : customers) {
+            if (safe(customer.getTenKH()).toLowerCase().contains(lowered)
+                || safe(customer.getSdt()).contains(lowered)
+                || safe(customer.getMaKH()).toLowerCase().contains(lowered)) {
+                filtered.add(customer);
+            }
+        }
+        return filtered;
+    }
+
+    private void renderCustomerList(List<KhachHangEntity> data) {
+        customerListPanel.removeAll();
+        for (KhachHangEntity customer : data) {
+            customerListPanel.add(createCustomerRow(customer));
+            customerListPanel.add(Box.createVerticalStrut(10));
+        }
+        customerListPanel.revalidate();
+        customerListPanel.repaint();
+    }
+
+    private JPanel createCustomerRow(KhachHangEntity customer) {
+        boolean selected = selectedCustomer != null && safe(selectedCustomer.getMaKH()).equals(customer.getMaKH());
+        JPanel row = new RoundedPanel(18, selected ? new Color(239, 246, 255) : Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 4), 2);
+        row.setLayout(new BorderLayout(12, 0));
+        row.setBorder(new EmptyBorder(14, 14, 14, 14));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 84));
+        row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JLabel avatar = createAvatar(customer.getTenKH(), selected ? new Color(16, 185, 129) : pickAvatarColor(customer.getMaKH()));
+        row.add(avatar, BorderLayout.WEST);
+
+        JPanel textWrap = new JPanel();
+        textWrap.setOpaque(false);
+        textWrap.setLayout(new BoxLayout(textWrap, BoxLayout.Y_AXIS));
+
+        JLabel name = new JLabel(customer.getTenKH());
+        name.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        name.setForeground(new Color(15, 23, 42));
+
+        JLabel phone = new JLabel(safe(customer.getSdt()));
+        phone.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        phone.setForeground(new Color(148, 163, 184));
+
+        textWrap.add(name);
+        textWrap.add(Box.createVerticalStrut(4));
+        textWrap.add(phone);
+        row.add(textWrap, BorderLayout.CENTER);
+
+        JPanel statusWrap = new JPanel();
+        statusWrap.setOpaque(false);
+        statusWrap.setLayout(new BoxLayout(statusWrap, BoxLayout.Y_AXIS));
+
+        JLabel badge = createStatusBadge(customer.isDangHoatDong() ? "Active" : "Inactive", customer.isDangHoatDong());
+        badge.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        JLabel arrow = new JLabel("›");
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        arrow.setForeground(new Color(148, 163, 184));
+        arrow.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        statusWrap.add(badge);
+        statusWrap.add(Box.createVerticalGlue());
+        statusWrap.add(arrow);
+        row.add(statusWrap, BorderLayout.EAST);
+
+        row.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                showCustomerDetail(customer);
+                renderCustomerList(filterCustomers(searchField.getText().trim()));
+            }
+        });
+        return row;
+    }
+
+    private void showCustomerDetail(KhachHangEntity customer) {
+        selectedCustomer = customer;
+        detailPanel.removeAll();
+
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        RoundedPanel profileCard = new RoundedPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        profileCard.setLayout(new BoxLayout(profileCard, BoxLayout.Y_AXIS));
+        profileCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        profileCard.add(createProfileHeader(customer));
+        profileCard.add(Box.createVerticalStrut(18));
+        profileCard.add(createStatsRow(customer));
+        profileCard.add(Box.createVerticalStrut(18));
+        profileCard.add(createInfoGrid(customer));
+
+        RoundedPanel historyCard = new RoundedPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        historyCard.setLayout(new BoxLayout(historyCard, BoxLayout.Y_AXIS));
+        historyCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+        historyCard.add(createHistorySection(customer));
+
+        content.add(profileCard);
+        content.add(Box.createVerticalStrut(16));
+        content.add(historyCard);
+
+        JScrollPane scrollPane = new JScrollPane(content);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        detailPanel.add(scrollPane, BorderLayout.CENTER);
+        detailPanel.revalidate();
+        detailPanel.repaint();
+    }
+
+    private JPanel createProfileHeader(KhachHangEntity customer) {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
+
+        JLabel avatar = createAvatar(customer.getTenKH(), new Color(16, 185, 129));
+        avatar.setPreferredSize(new Dimension(52, 52));
+        avatar.setMinimumSize(new Dimension(52, 52));
+
+        JPanel text = new JPanel();
         text.setOpaque(false);
-        text.add(nameLbl);
-        text.add(phoneLbl);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 
-        JLabel status = new JLabel(active ? "Active" : "Inactive");
-        status.setForeground(active ? new Color(34,197,94) : Color.GRAY);
-
-        p.add(ava);
-        p.add(text, "growx");
-        p.add(status);
-
-        return p;
-    }
-
-    // ================= RIGHT =================
-    private JPanel rightPanel() {
-        JPanel panel = new JPanel(new MigLayout(
-                "wrap 1,insets 20,gap 20",
-                "[grow,fill]",
-                "[]"
-        ));
-        panel.setOpaque(false);
-
-        panel.add(header());
-        panel.add(statistics());
-        panel.add(info());
-        panel.add(history());
-
-        return panel;
-    }
-
-    private JPanel header() {
-        JPanel p = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
-        p.setOpaque(false);
-
-        JLabel name = new JLabel("Trần Minh Khoa");
+        JLabel name = new JLabel(customer.getTenKH());
         name.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        name.setForeground(new Color(15, 23, 42));
 
-        JButton btn = new JButton("+ Đặt phòng mới");
-        btn.setBackground(new Color(59,130,246));
-        btn.setForeground(Color.WHITE);
+        JPanel meta = new JPanel();
+        meta.setOpaque(false);
+        meta.setLayout(new BoxLayout(meta, BoxLayout.X_AXIS));
+        meta.add(createStatusBadge(customer.isDangHoatDong() ? "Đang hoạt động" : "Inactive", customer.isDangHoatDong()));
+        meta.add(Box.createHorizontalStrut(8));
+        meta.add(createMutedLabel("Từ " + formatDate(customer.getNgayDatGanNhat())));
 
-        p.add(name);
-        p.add(btn);
+        text.add(name);
+        text.add(Box.createVerticalStrut(6));
+        text.add(meta);
 
-        return p;
+        left.add(avatar);
+        left.add(Box.createHorizontalStrut(14));
+        left.add(text);
+
+        JPanel actions = new JPanel();
+        actions.setOpaque(false);
+        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
+
+        JButton editButton = createPrimaryButton("Sửa khách hàng", "customers.png");
+        editButton.addActionListener(e -> showCustomerDialog(customer));
+
+        JButton bookingButton = createOutlineButton("Đặt phòng mới");
+        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mở tab Đặt phòng để tạo booking mới cho khách này."));
+
+        actions.add(editButton);
+        actions.add(Box.createHorizontalStrut(10));
+        actions.add(bookingButton);
+
+        header.add(left, BorderLayout.WEST);
+        header.add(actions, BorderLayout.EAST);
+        return header;
     }
 
-    private JPanel statistics() {
-        JPanel p = new JPanel(new GridLayout(1,3,15,0));
-        p.setOpaque(false);
-
-        p.add(box("Tổng đặt phòng", "5"));
-        p.add(box("Tổng chi tiêu", "24.500.000đ"));
-        p.add(box("Lần gần nhất", "20/03/2026"));
-
-        return p;
+    private JPanel createStatsRow(KhachHangEntity customer) {
+        JPanel row = new JPanel(new GridLayout(1, 3, 14, 0));
+        row.setOpaque(false);
+        row.add(createStatCard("Tổng đặt phòng", String.valueOf(customer.getTongDatPhong())));
+        row.add(createStatCard("Tổng chi tiêu", MONEY_FORMAT.format(customer.getTongChiTieu()) + "đ"));
+        row.add(createStatCard("Đặt phòng cuối", formatDate(customer.getNgayDatGanNhat())));
+        return row;
     }
 
-    private JPanel box(String title, String value) {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
-        p.setBorder(new EmptyBorder(15,15,15,15));
+    private JPanel createStatCard(String labelText, String value) {
+        JPanel card = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(16, 14, 16, 14));
 
-        JLabel t = new JLabel(title);
-        t.setForeground(Color.GRAY);
+        JLabel label = new JLabel(labelText, SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(148, 163, 184));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel v = new JLabel(value);
-        v.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        valueLabel.setForeground(new Color(15, 23, 42));
+        valueLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        p.add(t, BorderLayout.NORTH);
-        p.add(v, BorderLayout.CENTER);
-
-        return p;
+        card.add(label);
+        card.add(Box.createVerticalStrut(8));
+        card.add(valueLabel);
+        return card;
     }
 
-    private JPanel info() {
-        JPanel p = new JPanel(new GridLayout(2,2,15,15));
-        p.setOpaque(false);
-
-        p.add(box("SĐT", "0912 345 678"));
-        p.add(box("Email", "khoa@gmail.com"));
-        p.add(box("Địa chỉ", "Hà Nội"));
-        p.add(box("CCCD", "001090012345"));
-
-        return p;
+    private JPanel createInfoGrid(KhachHangEntity customer) {
+        JPanel grid = new JPanel(new GridLayout(3, 2, 14, 14));
+        grid.setOpaque(false);
+        grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "search.png"));
+        grid.add(createInfoCard("Email", safe(customer.getEmail()), "services.png"));
+        grid.add(createInfoCard("Địa chỉ", safe(customer.getDiaChi()), "room-management.png"));
+        grid.add(createInfoCard("Ngày sinh", formatDate(customer.getNgaySinh()), "calendar.png"));
+        grid.add(createInfoCard("CCCD/CMND", safe(customer.getCCCD()), "pick.png"));
+        grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "star.png"));
+        return grid;
     }
 
-    private JPanel history() {
-        JPanel p = new JPanel(new MigLayout("wrap 1", "[grow,fill]", "[]"));
-        p.setBackground(Color.WHITE);
-        p.setBorder(new EmptyBorder(15,15,15,15));
+    private JPanel createInfoCard(String title, String value, String iconFile) {
+        JPanel card = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        card.setLayout(new BorderLayout(10, 0));
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        p.add(new JLabel("Lịch sử đặt phòng"));
+        JLabel icon = new JLabel();
+        ImageIcon imageIcon = loadIcon(iconFile, 16, 16);
+        if (imageIcon != null) {
+            icon.setIcon(imageIcon);
+        } else {
+            icon.setText("•");
+        }
 
-        p.add(historyItem("Phòng 401 - Suite", "11.000.000đ"));
-        p.add(historyItem("Phòng 301 - Premium", "9.600.000đ"));
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 
-        return p;
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(new Color(148, 163, 184));
+
+        JLabel content = new JLabel(value.isBlank() ? "-" : value);
+        content.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        content.setForeground(new Color(15, 23, 42));
+
+        text.add(label);
+        text.add(Box.createVerticalStrut(4));
+        text.add(content);
+
+        card.add(icon, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
+        return card;
     }
 
-    private JPanel historyItem(String room, String price) {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(new EmptyBorder(10,0,10,0));
+    private JPanel createHistorySection(KhachHangEntity customer) {
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 
-        JLabel r = new JLabel(room);
-        JLabel pr = new JLabel(price);
+        JLabel title = new JLabel("Lịch sử đặt phòng");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(new Color(15, 23, 42));
+        section.add(title);
+        section.add(Box.createVerticalStrut(14));
 
-        p.add(r, BorderLayout.WEST);
-        p.add(pr, BorderLayout.EAST);
+        List<KhachHangBookingHistory> histories = bus.getBookingHistory(customer.getMaKH());
+        if (histories.isEmpty()) {
+            section.add(createMutedLabel("Khách hàng này chưa có lịch sử hóa đơn."));
+            return section;
+        }
 
-        return p;
+        for (KhachHangBookingHistory history : histories) {
+            section.add(createHistoryRow(history));
+            section.add(Box.createVerticalStrut(10));
+        }
+        return section;
+    }
+
+    private JPanel createHistoryRow(KhachHangBookingHistory history) {
+        JPanel row = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        row.setLayout(new BorderLayout());
+        row.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+
+        JLabel booking = new JLabel("Đơn " + safe(history.getMaDatPhong()) + " · Hóa đơn " + safe(history.getMaHoaDon()));
+        booking.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        booking.setForeground(new Color(15, 23, 42));
+
+        JLabel date = new JLabel(formatDate(history.getNgayLap()));
+        date.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        date.setForeground(new Color(148, 163, 184));
+
+        left.add(booking);
+        left.add(Box.createVerticalStrut(4));
+        left.add(date);
+
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+
+        JLabel amount = new JLabel(MONEY_FORMAT.format(history.getTongTien()) + "đ");
+        amount.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        amount.setForeground(new Color(15, 23, 42));
+        amount.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        JLabel status = createStatusBadge(mapInvoiceStatus(history.getTrangThai()), "DaThanhToan".equalsIgnoreCase(history.getTrangThai()));
+        status.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        right.add(amount);
+        right.add(Box.createVerticalStrut(6));
+        right.add(status);
+
+        row.add(left, BorderLayout.WEST);
+        row.add(right, BorderLayout.EAST);
+        return row;
+    }
+
+    private void showCustomerDialog(KhachHangEntity existing) {
+        boolean editing = existing != null;
+        JDialog dialog = new JDialog();
+        dialog.setModal(true);
+        dialog.setTitle(editing ? "Sửa khách hàng" : "Thêm khách hàng");
+        dialog.setSize(390, 470);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel root = new JPanel();
+        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
+        root.setBorder(new EmptyBorder(18, 18, 18, 18));
+
+        JTextField nameField = createDialogField(editing ? existing.getTenKH() : "");
+        JTextField phoneField = createDialogField(editing ? existing.getSdt() : "");
+        JTextField cccdField = createDialogField(editing ? existing.getCCCD() : "");
+        JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
+        JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
+        JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Viet Nam");
+        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinh()) : "01/01/1990");
+        JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nu"});
+        genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
+        JComboBox<String> rankBox = new JComboBox<>(new String[]{"Dong", "Bac", "Vang", "KimCuong"});
+        rankBox.setSelectedItem(editing ? safe(existing.getHangKH()) : "Dong");
+
+        root.add(createDialogFieldGroup("Tên khách", nameField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Số điện thoại", phoneField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("CCCD", cccdField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Email", emailField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Địa chỉ", addressField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Quốc tịch", nationalityField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Ngày sinh (dd/MM/yyyy)", birthField));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Giới tính", genderBox));
+        root.add(Box.createVerticalStrut(10));
+        root.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
+        root.add(Box.createVerticalStrut(18));
+
+        JPanel actions = new JPanel(new BorderLayout(10, 0));
+        actions.setOpaque(false);
+        JButton cancelButton = createOutlineButton("Hủy");
+        cancelButton.addActionListener(e -> dialog.dispose());
+        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách", "customers.png");
+        saveButton.addActionListener(e -> {
+            KhachHangEntity payload = editing ? existing : new KhachHangEntity();
+            payload.setTenKH(nameField.getText().trim());
+            payload.setSdt(phoneField.getText().trim());
+            payload.setCCCD(cccdField.getText().trim());
+            payload.setEmail(emailField.getText().trim());
+            payload.setDiaChi(addressField.getText().trim());
+            payload.setQuocTich(nationalityField.getText().trim());
+            payload.setGioiTinh(String.valueOf(genderBox.getSelectedItem()));
+            payload.setHangKH(String.valueOf(rankBox.getSelectedItem()));
+            payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+
+            try {
+                payload.setNgaySinh(DATE_FORMAT.parse(birthField.getText().trim()));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Ngày sinh phải theo định dạng dd/MM/yyyy.");
+                return;
+            }
+
+            if (payload.getTenKH().isBlank() || payload.getSdt().isBlank() || payload.getCCCD().isBlank()) {
+                JOptionPane.showMessageDialog(dialog, "Tên, số điện thoại và CCCD là bắt buộc.");
+                return;
+            }
+
+            boolean success = editing ? bus.update(payload) : bus.insert(payload);
+            if (success) {
+                dialog.dispose();
+                loadCustomers();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu khách hàng. Kiểm tra dữ liệu hoặc ràng buộc database.");
+            }
+        });
+
+        actions.add(cancelButton, BorderLayout.WEST);
+        actions.add(saveButton, BorderLayout.EAST);
+        root.add(actions);
+
+        dialog.setContentPane(root);
+        dialog.setVisible(true);
+    }
+
+    private JPanel createDialogFieldGroup(String labelText, Component field) {
+        JPanel group = new JPanel();
+        group.setOpaque(false);
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(51, 65, 85));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        if (field instanceof JComponent) {
+            ((JComponent) field).setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+
+        group.add(label);
+        group.add(Box.createVerticalStrut(6));
+        group.add(field);
+        return group;
+    }
+
+    private JTextField createDialogField(String value) {
+        JTextField field = new JTextField(value);
+        field.setMaximumSize(new Dimension(320, 36));
+        field.setPreferredSize(new Dimension(320, 36));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240)),
+            new EmptyBorder(8, 10, 8, 10)
+        ));
+        return field;
+    }
+
+    private JButton createPrimaryButton(String text, String iconFile) {
+        JButton button = new JButton(text);
+        ImageIcon icon = loadIcon(iconFile, 14, 14);
+        if (icon != null) {
+            button.setIcon(icon);
+            button.setIconTextGap(8);
+        }
+        button.setBackground(new Color(15, 23, 42));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(new EmptyBorder(12, 18, 12, 18));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        return button;
+    }
+
+    private JButton createOutlineButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(Color.WHITE);
+        button.setForeground(new Color(37, 99, 235));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(191, 219, 254)),
+            new EmptyBorder(12, 18, 12, 18)
+        ));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        return button;
+    }
+
+    private JLabel createAvatar(String fullName, Color bgColor) {
+        String initials = "KH";
+        if (fullName != null && !fullName.isBlank()) {
+            String[] parts = fullName.trim().split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < Math.min(parts.length, 2); i++) {
+                sb.append(Character.toUpperCase(parts[i].charAt(0)));
+            }
+            initials = sb.toString();
+        }
+
+        JLabel label = new JLabel(initials, SwingConstants.CENTER);
+        label.setForeground(Color.WHITE);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        label.setOpaque(true);
+        label.setBackground(bgColor);
+        label.setPreferredSize(new Dimension(42, 42));
+        label.setMinimumSize(new Dimension(42, 42));
+        label.setMaximumSize(new Dimension(42, 42));
+        return label;
+    }
+
+    private JLabel createStatusBadge(String text, boolean active) {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setOpaque(true);
+        label.setBorder(new EmptyBorder(4, 10, 4, 10));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
+        label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
+        return label;
+    }
+
+    private JLabel createMutedLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(148, 163, 184));
+        return label;
+    }
+
+    private void showEmptyDetail() {
+        detailPanel.removeAll();
+        JLabel label = new JLabel("Chưa có dữ liệu khách hàng", SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        label.setForeground(new Color(148, 163, 184));
+        detailPanel.add(label, BorderLayout.CENTER);
+    }
+
+    private ImageIcon loadIcon(String filename, int width, int height) {
+        try {
+            URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
+            if (resource == null) {
+                java.io.File file = new java.io.File("src/kqlhotel/resources/icons/" + filename);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
+            }
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                return new ImageIcon(icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH));
+            }
+        } catch (Exception e) {
+            // Ignore icon loading failures.
+        }
+        return null;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String formatDate(Date date) {
+        return date == null ? "-" : DATE_FORMAT.format(date);
+    }
+
+    private String mapInvoiceStatus(String status) {
+        if ("DaThanhToan".equalsIgnoreCase(status)) {
+            return "Đã trả phòng";
+        }
+        if ("ChuaThanhToan".equalsIgnoreCase(status)) {
+            return "Chưa thanh toán";
+        }
+        return safe(status);
+    }
+
+    private Color pickAvatarColor(String seed) {
+        Color[] colors = {
+            new Color(59, 130, 246),
+            new Color(139, 92, 246),
+            new Color(236, 72, 153),
+            new Color(245, 158, 11),
+            new Color(6, 182, 212)
+        };
+        int index = Math.abs(safe(seed).hashCode()) % colors.length;
+        return colors[index];
+    }
+
+    private static class RoundedPanel extends JPanel {
+        private final int arc;
+        private final Color fill;
+        private final Color border;
+        private final float borderWidth;
+        private final Color shadow;
+        private final int shadowSize;
+
+        RoundedPanel(int arc, Color fill, Color border, float borderWidth, Color shadow, int shadowSize) {
+            this.arc = arc;
+            this.fill = fill;
+            this.border = border;
+            this.borderWidth = borderWidth;
+            this.shadow = shadow;
+            this.shadowSize = shadowSize;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int h = getHeight() - Math.max(shadowSize, 1);
+            if (shadowSize > 0) {
+                g2.setColor(shadow);
+                g2.fillRoundRect(0, shadowSize, getWidth() - 1, h, arc, arc);
+            }
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth() - 1, h, arc, arc);
+            if (border != null && borderWidth > 0f) {
+                g2.setColor(border);
+                g2.setStroke(new BasicStroke(borderWidth));
+                g2.drawRoundRect(0, 0, getWidth() - 1, h, arc, arc);
+            }
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }
