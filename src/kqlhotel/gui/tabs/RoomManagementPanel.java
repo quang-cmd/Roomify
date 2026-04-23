@@ -64,7 +64,19 @@ public class RoomManagementPanel extends JPanel {
         titlePanel.add(title);
         titlePanel.add(subtitle);
 
-        PrimaryButton btnSearch = new PrimaryButton("🔍 Tra cứu phòng");
+        PrimaryButton btnSearch = new PrimaryButton(" Tra cứu phòng");
+        try {
+            java.net.URL searchURL = getClass().getResource("/kqlhotel/resources/icons/search.png");
+            if (searchURL != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(searchURL);
+                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+                btnSearch.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                btnSearch.setText("🔍 Tra cứu phòng");
+            }
+        } catch (Exception ex) {
+            btnSearch.setText("🔍 Tra cứu phòng");
+        }
         btnSearch.setBackground(ThemeColors.PRIMARY);
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> {
@@ -82,8 +94,18 @@ public class RoomManagementPanel extends JPanel {
             dialog.setVisible(true);
         });
 
+        PrimaryButton btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
+        btnAddRoomType.setBackground(new Color(30, 41, 59));
+        btnAddRoomType.setForeground(Color.WHITE);
+        btnAddRoomType.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            kqlhotel.gui.components.AddRoomTypeDialog dialog = new kqlhotel.gui.components.AddRoomTypeDialog(owner, new kqlhotel.bus.room.RoomTypeBUS(), this::reloadData);
+            dialog.setVisible(true);
+        });
+
         header.add(titlePanel);
         header.add(btnSearch, "alignx right,h 44!");
+        header.add(btnAddRoomType, "h 44!");
         header.add(btnAdd, "h 44!");
 
         // ===== 2. Stats Row =====
@@ -197,7 +219,7 @@ public class RoomManagementPanel extends JPanel {
 
         // Update Filter Row
         filterRow.removeAll();
-        filterRow.add(createFilterBtn("Tất cả", String.valueOf(total), true));
+        filterRow.add(createFilterBtn("Tất cả", String.valueOf(total - bt), true));
         filterRow.add(createFilterBtn("Trống", String.valueOf(tr), false));
         filterRow.add(createFilterBtn("Đã đặt", String.valueOf(dd), false));
         filterRow.add(createFilterBtn("Bảo trì", String.valueOf(bt), false));
@@ -245,7 +267,11 @@ public class RoomManagementPanel extends JPanel {
         gridContainer.removeAll();
         for (kqlhotel.entity.Phong p : phongList) {
             String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
-            if (filter.equals("Tất cả") || guiStatus.equals(filter)) {
+            if (filter.equals("Tất cả")) {
+                if (!guiStatus.equals("Bảo trì")) {
+                    gridContainer.add(createRoomCard(p));
+                }
+            } else if (guiStatus.equals(filter)) {
                 gridContainer.add(createRoomCard(p));
             }
         }
@@ -277,7 +303,33 @@ public class RoomManagementPanel extends JPanel {
         floor.setForeground(new Color(130, 145, 170));
         numGroup.add(roomNo); numGroup.add(floor);
         topRow.add(numGroup);
-        topRow.add(new JLabel("🛏") {{ setFont(getFont().deriveFont(20f)); setForeground(new Color(160, 175, 200)); }});
+
+        JButton btnEdit = new JButton();
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/edit.png");
+            if (url != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
+                java.awt.Image img = icon.getImage().getScaledInstance(18, 18, java.awt.Image.SCALE_SMOOTH);
+                btnEdit.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                btnEdit.setText("✎");
+            }
+        } catch (Exception ex) {
+            btnEdit.setText("✎");
+        }
+        btnEdit.setFont(btnEdit.getFont().deriveFont(20f));
+        btnEdit.setForeground(new Color(100, 120, 150));
+        btnEdit.setBorderPainted(false);
+        btnEdit.setContentAreaFilled(false);
+        btnEdit.setFocusPainted(false);
+        btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEdit.setToolTipText("Chỉnh sửa phòng");
+        btnEdit.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            kqlhotel.gui.components.EditRoomDialog dialog = new kqlhotel.gui.components.EditRoomDialog(owner, p, phongBUS, this::reloadData);
+            dialog.setVisible(true);
+        });
+        topRow.add(btnEdit, "gapleft 8, w 32!, h 32!");
 
         // Type & Status
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));

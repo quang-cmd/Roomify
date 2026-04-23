@@ -8,11 +8,11 @@ import kqlhotel.dao.room.RoomTypeDAO;
 import kqlhotel.entity.LoaiPhong;
 import kqlhotel.entity.Phong;
 import kqlhotel.entity.RoomType;
-import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
-public class AddRoomDialog extends JDialog {
+public class EditRoomDialog extends JDialog {
     private final PhongBUS phongBUS;
+    private final Phong currentPhong;
     private final Runnable onSuccess;
     private final RoomTypeDAO roomTypeDAO = new RoomTypeDAO();
 
@@ -20,13 +20,15 @@ public class AddRoomDialog extends JDialog {
     private JTextField tfTang;
     private JComboBox<RoomTypeWrapper> cbLoaiPhong;
     private JTextField tfTienCoc;
+    private JComboBox<String> cbTrangThai;
     private JLabel lblGia, lblDienTich, lblSucChua;
     private JLabel lblError;
     private List<RoomType> listLoaiPhong;
 
-    public AddRoomDialog(Window owner, PhongBUS phongBUS, Runnable onSuccess) {
-        super(owner, "Thêm phòng mới", ModalityType.APPLICATION_MODAL);
+    public EditRoomDialog(Window owner, Phong currentPhong, PhongBUS phongBUS, Runnable onSuccess) {
+        super(owner, "Chỉnh sửa phòng", ModalityType.APPLICATION_MODAL);
         this.phongBUS = phongBUS;
+        this.currentPhong = currentPhong;
         this.onSuccess = onSuccess;
 
         setUndecorated(true);
@@ -46,6 +48,7 @@ public class AddRoomDialog extends JDialog {
         setLocationRelativeTo(owner);
         
         loadRoomTypes();
+        populateData();
     }
 
     private void loadRoomTypes() {
@@ -53,6 +56,25 @@ public class AddRoomDialog extends JDialog {
         for (RoomType rt : listLoaiPhong) {
             cbLoaiPhong.addItem(new RoomTypeWrapper(rt));
         }
+        cbLoaiPhong.addActionListener(e -> updateRoomTypeInfo());
+    }
+
+    private void populateData() {
+        tfMaPhong.setText(currentPhong.getMaPhong());
+        tfTang.setText(String.valueOf(currentPhong.getTang()));
+        tfTienCoc.setText(String.valueOf(currentPhong.getTienCoc() != null ? currentPhong.getTienCoc().longValue() : 0));
+        
+        // Select room type
+        for (int i = 0; i < cbLoaiPhong.getItemCount(); i++) {
+            if (cbLoaiPhong.getItemAt(i).roomType.getMaLoaiPhong().equals(currentPhong.getLoaiPhong().getMaLoaiPhong())) {
+                cbLoaiPhong.setSelectedIndex(i);
+                break;
+            }
+        }
+        
+        // Select status
+        cbTrangThai.setSelectedItem(phongBUS.mapDbStatusToGuiStatus(currentPhong.getTrangThaiPhong()));
+        
         updateRoomTypeInfo();
     }
 
@@ -79,7 +101,7 @@ public class AddRoomDialog extends JDialog {
         };
         header.setOpaque(false);
 
-        JLabel title = new JLabel("Thêm phòng mới");
+        JLabel title = new JLabel("Chỉnh sửa phòng " + currentPhong.getMaPhong());
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setForeground(Color.WHITE);
 
@@ -102,9 +124,11 @@ public class AddRoomDialog extends JDialog {
         JPanel form = new JPanel(new MigLayout("wrap 2, insets 24 28 8 28, gap 14 12", "[grow,fill][grow,fill]", "[]"));
         form.setOpaque(false);
 
-        form.add(label("Mã phòng", true));
+        form.add(label("Mã phòng (Không được sửa)", false));
         form.add(label("Tầng", true));
         tfMaPhong = styledField();
+        tfMaPhong.setEditable(false);
+        tfMaPhong.setForeground(Color.GRAY);
         tfTang = styledField();
         form.add(tfMaPhong, "h 38!");
         form.add(tfTang, "h 38!");
@@ -112,7 +136,6 @@ public class AddRoomDialog extends JDialog {
         form.add(label("Loại phòng", true), "span 2");
         cbLoaiPhong = new JComboBox<>();
         styleCombo(cbLoaiPhong);
-        cbLoaiPhong.addActionListener(e -> updateRoomTypeInfo());
         form.add(cbLoaiPhong, "span 2, h 38!");
 
         // Info area
@@ -129,10 +152,17 @@ public class AddRoomDialog extends JDialog {
         infoArea.add(infoItem("Sức chứa:", lblSucChua));
         form.add(infoArea, "span 2, growx");
 
-        form.add(label("Tiền cọc (VNĐ)", false), "span 2");
+        form.add(label("Tiền cọc (VNĐ)", false));
+        form.add(label("Trạng thái", true));
+        
         tfTienCoc = styledField();
         tfTienCoc.putClientProperty("JTextField.placeholderText", "0");
-        form.add(tfTienCoc, "span 2, h 38!");
+        
+        cbTrangThai = new JComboBox<>(new String[]{"Trống", "Đã đặt", "Bảo trì", "Đang dọn"});
+        styleCombo(cbTrangThai);
+        
+        form.add(tfTienCoc, "h 38!");
+        form.add(cbTrangThai, "h 38!");
 
         return form;
     }
@@ -164,7 +194,7 @@ public class AddRoomDialog extends JDialog {
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("✔ Thêm phòng");
+        PrimaryButton btnConfirm = new PrimaryButton("✔ Lưu thay đổi");
         btnConfirm.setBackground(new Color(17, 24, 39));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());
@@ -204,26 +234,30 @@ public class AddRoomDialog extends JDialog {
             }
         }
 
-        // Map RoomType (entity used by RoomTypeDAO) to LoaiPhong (entity used by Phong)
+        String guiStatus = (String) cbTrangThai.getSelectedItem();
+        String dbStatus = phongBUS.mapGuiStatusToDbStatus(guiStatus);
+
         RoomType rt = wrapper.roomType;
 
-        long currentCount = phongBUS.getAllRooms().stream()
-                .filter(room -> room.getLoaiPhong().getMaLoaiPhong().equals(rt.getMaLoaiPhong()))
-                .count();
-        if (currentCount >= rt.getSoLuongPhong()) {
-            lblError.setText("⚠ Loại phòng này đã đủ cấu hình " + rt.getSoLuongPhong() + " phòng.");
-            return;
+        if (!rt.getMaLoaiPhong().equals(currentPhong.getLoaiPhong().getMaLoaiPhong())) {
+            long currentCount = phongBUS.getAllRooms().stream()
+                    .filter(room -> room.getLoaiPhong().getMaLoaiPhong().equals(rt.getMaLoaiPhong()))
+                    .count();
+            if (currentCount >= rt.getSoLuongPhong()) {
+                lblError.setText("⚠ Loại phòng này đã đủ cấu hình " + rt.getSoLuongPhong() + " phòng.");
+                return;
+            }
         }
 
         LoaiPhong lp = new LoaiPhong(rt.getMaLoaiPhong(), rt.getTenLoaiPhong(), rt.getSoLuongPhong(), rt.getGiaPhong(), rt.getSucChuaToiDa(), rt.getDienTich(), rt.getMoTa(), rt.getTienNghi());
 
-        Phong p = new Phong(ma, tienCoc, lp, tang, "Trong");
+        Phong p = new Phong(ma, tienCoc, lp, tang, dbStatus);
 
-        if (phongBUS.addRoom(p)) {
+        if (phongBUS.updateRoom(p)) {
             if (onSuccess != null) onSuccess.run();
             dispose();
         } else {
-            lblError.setText("⚠ Thêm phòng thất bại. Có thể mã phòng đã tồn tại.");
+            lblError.setText("⚠ Cập nhật thất bại.");
         }
     }
 

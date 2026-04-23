@@ -53,4 +53,9 @@ public class PhongBUS {
         if (p.getTrangThaiPhong() == null) p.setTrangThaiPhong("Trong");
         return phongDAO.create(p);
     }
+
+    public boolean updateRoom(Phong p) {
+        if (p.getMaPhong() == null || p.getMaPhong().trim().isEmpty()) return false;
+        return phongDAO.update(p);
+    }
 }

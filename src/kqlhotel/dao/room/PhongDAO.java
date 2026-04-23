@@ -139,4 +139,23 @@ public class PhongDAO {
         }
         return false;
     }
+
+    public boolean update(Phong p) {
+        String sql = "UPDATE Phong SET tienCoc = ?, maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
+        try {
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
+            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                pstmt.setDouble(1, p.getTienCoc() != null ? p.getTienCoc() : 0.0);
+                pstmt.setString(2, p.getLoaiPhong().getMaLoaiPhong());
+                pstmt.setInt(3, p.getTang());
+                pstmt.setString(4, p.getTrangThaiPhong());
+                pstmt.setString(5, p.getMaPhong());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

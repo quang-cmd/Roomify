@@ -16,6 +16,7 @@ public class RoomSearchDialog extends JDialog {
 
     private JTextField txtRoomNo;
     private JComboBox<String> cbRoomType;
+    private final kqlhotel.dao.room.RoomTypeDAO roomTypeDAO = new kqlhotel.dao.room.RoomTypeDAO();
     private JComboBox<String> cbStatus;
     private JPanel resultContainer;
     private final RoomManagementPanel roomPanel;
@@ -131,7 +132,12 @@ public class RoomSearchDialog extends JDialog {
         JLabel lbl2 = new JLabel("Loại phòng");
         lbl2.setForeground(ThemeColors.TEXT_MUTED);
         lbl2.setFont(lbl2.getFont().deriveFont(12f));
-        cbRoomType = new JComboBox<>(new String[]{"Tất cả loại phòng", "Deluxe", "Grand Premium 1", "Grand Premium 2", "Suite"});
+        cbRoomType = new JComboBox<>();
+        cbRoomType.addItem("Tất cả loại phòng");
+        java.util.List<kqlhotel.entity.RoomType> loaiPhongs = roomTypeDAO.getAll();
+        for (kqlhotel.entity.RoomType rt : loaiPhongs) {
+            cbRoomType.addItem(rt.getTenLoaiPhong());
+        }
         cbRoomType.putClientProperty("JComponent.roundRect", true);
         col2.add(lbl2);
         col2.add(cbRoomType, "h 36!");
@@ -158,7 +164,19 @@ public class RoomSearchDialog extends JDialog {
         JPanel panel = new JPanel(new MigLayout("insets 0 20 20 20, gap 12", "[][]", "[]"));
         panel.setOpaque(false);
 
-        PrimaryButton btnSearch = new PrimaryButton("🔍 Tìm kiếm");
+        PrimaryButton btnSearch = new PrimaryButton(" Tìm kiếm");
+        try {
+            java.net.URL searchURL = getClass().getResource("/kqlhotel/resources/icons/search.png");
+            if (searchURL != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(searchURL);
+                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+                btnSearch.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                btnSearch.setText("🔍 Tìm kiếm");
+            }
+        } catch (Exception ex) {
+            btnSearch.setText("🔍 Tìm kiếm");
+        }
         btnSearch.setBackground(new Color(17, 24, 39));
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> performSearch());
