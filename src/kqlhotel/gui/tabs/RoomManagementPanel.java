@@ -24,32 +24,26 @@ import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
 public class RoomManagementPanel extends JPanel {
-    private static final Color PAGE_BG = new Color(245, 248, 252);
+    private static final Color PAGE_BG = ThemeColors.BG_PRIMARY;
     private final JPanel gridContainer = new JPanel(new java.awt.GridLayout(0, 5, 16, 16));
     private final JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
 
-    // Status colors
-    private static final Color COLOR_TRONG = new Color(30, 180, 120);
-    private static final Color COLOR_DADAT = new Color(49, 130, 206);
-    private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
-    private static final Color COLOR_DANGDON = new Color(143, 97, 255);
-
     public final List<RoomData> mockData = Arrays.asList(
-        new RoomData("101", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", COLOR_TRONG),
-        new RoomData("102", "Tầng 1", "Deluxe", "Đã đặt", "2 khách", "28m²", "1.200.000đ", COLOR_DADAT),
-        new RoomData("103", "Tầng 1", "Deluxe", "Bảo trì", "2 khách", "28m²", "1.200.000đ", COLOR_BAOTRI),
-        new RoomData("104", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", COLOR_TRONG),
-        new RoomData("105", "Tầng 1", "Deluxe", "Đang dọn", "2 khách", "28m²", "1.200.000đ", COLOR_DANGDON),
-        new RoomData("201", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", COLOR_TRONG),
-        new RoomData("202", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", COLOR_DADAT),
-        new RoomData("203", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", COLOR_TRONG),
-        new RoomData("204", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", COLOR_DADAT),
-        new RoomData("301", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", COLOR_TRONG),
-        new RoomData("302", "Tầng 3", "Grand Premium 2", "Bảo trì", "4 khách", "55m²", "3.200.000đ", COLOR_BAOTRI),
-        new RoomData("303", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", COLOR_TRONG),
-        new RoomData("401", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", COLOR_TRONG),
-        new RoomData("402", "Tầng 4", "Suite", "Đã đặt", "4 khách", "85m²", "5.500.000đ", COLOR_DADAT),
-        new RoomData("403", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", COLOR_TRONG)
+        new RoomData("101", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("102", "Tầng 1", "Deluxe", "Đã đặt", "2 khách", "28m²", "1.200.000đ", ThemeColors.statusColor("Đã đặt")),
+        new RoomData("103", "Tầng 1", "Deluxe", "Bảo trì", "2 khách", "28m²", "1.200.000đ", ThemeColors.statusColor("Bảo trì")),
+        new RoomData("104", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("105", "Tầng 1", "Deluxe", "Đang dọn", "2 khách", "28m²", "1.200.000đ", ThemeColors.statusColor("Đang dọn")),
+        new RoomData("201", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("202", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", ThemeColors.statusColor("Đã đặt")),
+        new RoomData("203", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("204", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", ThemeColors.statusColor("Đã đặt")),
+        new RoomData("301", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("302", "Tầng 3", "Grand Premium 2", "Bảo trì", "4 khách", "55m²", "3.200.000đ", ThemeColors.statusColor("Bảo trì")),
+        new RoomData("303", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("401", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", ThemeColors.statusColor("Trống")),
+        new RoomData("402", "Tầng 4", "Suite", "Đã đặt", "4 khách", "85m²", "5.500.000đ", ThemeColors.statusColor("Đã đặt")),
+        new RoomData("403", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", ThemeColors.statusColor("Trống"))
     );
 
     public RoomManagementPanel() {
@@ -91,10 +85,10 @@ public class RoomManagementPanel extends JPanel {
         // ===== 2. Stats Row =====
         JPanel statsRow = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
         statsRow.setOpaque(false);
-        statsRow.add(createStatCard("Trống", "8", "53%", COLOR_TRONG));
-        statsRow.add(createStatCard("Đã đặt", "4", "27%", COLOR_DADAT));
-        statsRow.add(createStatCard("Bảo trì", "2", "13%", COLOR_BAOTRI));
-        statsRow.add(createStatCard("Đang dọn", "1", "7%", COLOR_DANGDON));
+        statsRow.add(createStatCard("Trống", "8", "53%", ThemeColors.statusColor("Trống")));
+        statsRow.add(createStatCard("Đã đặt", "4", "27%", ThemeColors.statusColor("Đã đặt")));
+        statsRow.add(createStatCard("Bảo trì", "2", "13%", ThemeColors.statusColor("Bảo trì")));
+        statsRow.add(createStatCard("Đang dọn", "1", "7%", ThemeColors.statusColor("Đang dọn")));
 
         // ===== 3. Filter Row =====
         filterRow.setOpaque(false);
@@ -258,9 +252,8 @@ public class RoomManagementPanel extends JPanel {
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         midRow.setOpaque(false);
         
-        Color badgeBg = new Color(data.statusColor.getRed(), data.statusColor.getGreen(), data.statusColor.getBlue(), 25);
-        JPanel typeBadge = makeBadge(data.roomType, new Color(240, 244, 255), new Color(80, 120, 200));
-        JPanel statusBadge = makeBadge("• " + data.status, badgeBg, data.statusColor);
+        JPanel typeBadge = makeBadge(data.roomType, ThemeColors.PRIMARY_SOFT, ThemeColors.PRIMARY);
+        JPanel statusBadge = makeBadge("• " + data.status, ThemeColors.statusBackground(data.status), ThemeColors.statusColor(data.status));
         
         midRow.add(typeBadge, "left");
         midRow.add(statusBadge, "right");
