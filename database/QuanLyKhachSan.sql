@@ -1,4 +1,3 @@
--- SQL Server script generated from Class_Diagram_QLyKhachSan.vpp
 SET NOCOUNT ON;
 
 IF DB_ID(N'QLKhachSan') IS NULL CREATE DATABASE QLKhachSan;
@@ -6,905 +5,524 @@ GO
 USE QLKhachSan;
 GO
 
-IF OBJECT_ID('dbo.ThanhToan', 'U') IS NOT NULL DROP TABLE dbo.ThanhToan;
-IF OBJECT_ID('dbo.ChiTietDichVu', 'U') IS NOT NULL DROP TABLE dbo.ChiTietDichVu;
-IF OBJECT_ID('dbo.ChiTietHoaDon', 'U') IS NOT NULL DROP TABLE dbo.ChiTietHoaDon;
-IF OBJECT_ID('dbo.HoaDon', 'U') IS NOT NULL DROP TABLE dbo.HoaDon;
-IF OBJECT_ID('dbo.ChiTietDatPhong', 'U') IS NOT NULL DROP TABLE dbo.ChiTietDatPhong;
-IF OBJECT_ID('dbo.DatPhong', 'U') IS NOT NULL DROP TABLE dbo.DatPhong;
-IF OBJECT_ID('dbo.PhanCongCa', 'U') IS NOT NULL DROP TABLE dbo.PhanCongCa;
-IF OBJECT_ID('dbo.Phong', 'U') IS NOT NULL DROP TABLE dbo.Phong;
-IF OBJECT_ID('dbo.LoaiPhong', 'U') IS NOT NULL DROP TABLE dbo.LoaiPhong;
-IF OBJECT_ID('dbo.KhuyenMai', 'U') IS NOT NULL DROP TABLE dbo.KhuyenMai;
-IF OBJECT_ID('dbo.DichVu', 'U') IS NOT NULL DROP TABLE dbo.DichVu;
-IF OBJECT_ID('dbo.CaLam', 'U') IS NOT NULL DROP TABLE dbo.CaLam;
-IF OBJECT_ID('dbo.KhachHang', 'U') IS NOT NULL DROP TABLE dbo.KhachHang;
-IF OBJECT_ID('dbo.NhanVien', 'U') IS NOT NULL DROP TABLE dbo.NhanVien;
-IF OBJECT_ID('dbo.TaiKhoan', 'U') IS NOT NULL DROP TABLE dbo.TaiKhoan;
+-- ===== Drop in dependency order =====
+IF OBJECT_ID('dbo.ThanhToan', 'U')      IS NOT NULL DROP TABLE dbo.ThanhToan;
+IF OBJECT_ID('dbo.ChiTietDichVu', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietDichVu;
+IF OBJECT_ID('dbo.ChiTietHoaDon', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietHoaDon;
+IF OBJECT_ID('dbo.HoaDon', 'U')         IS NOT NULL DROP TABLE dbo.HoaDon;
+IF OBJECT_ID('dbo.ChiTietDatPhong', 'U')IS NOT NULL DROP TABLE dbo.ChiTietDatPhong;
+IF OBJECT_ID('dbo.DatPhong', 'U')       IS NOT NULL DROP TABLE dbo.DatPhong;
+IF OBJECT_ID('dbo.PhanCongCa', 'U')     IS NOT NULL DROP TABLE dbo.PhanCongCa;
+IF OBJECT_ID('dbo.Phong', 'U')          IS NOT NULL DROP TABLE dbo.Phong;
+IF OBJECT_ID('dbo.LoaiPhong', 'U')      IS NOT NULL DROP TABLE dbo.LoaiPhong;
+IF OBJECT_ID('dbo.KhuyenMai', 'U')      IS NOT NULL DROP TABLE dbo.KhuyenMai;
+IF OBJECT_ID('dbo.DichVu', 'U')         IS NOT NULL DROP TABLE dbo.DichVu;
+IF OBJECT_ID('dbo.CaLam', 'U')          IS NOT NULL DROP TABLE dbo.CaLam;
+IF OBJECT_ID('dbo.KhachHang', 'U')      IS NOT NULL DROP TABLE dbo.KhachHang;
+IF OBJECT_ID('dbo.NhanVien', 'U')       IS NOT NULL DROP TABLE dbo.NhanVien;
+IF OBJECT_ID('dbo.TaiKhoan', 'U')       IS NOT NULL DROP TABLE dbo.TaiKhoan;
 GO
 
+-- =====================================================================
+-- 1. Tai khoan / Nhan vien / Khach hang
+-- =====================================================================
 CREATE TABLE TaiKhoan (
-    tenDangNhap VARCHAR(50) PRIMARY KEY,
-    matKhau NVARCHAR(255) NOT NULL,
-    vaiTro VARCHAR(20) NOT NULL CHECK (vaiTro IN ('QuanLy', 'NhanVien')),
-    trangThaiTK VARCHAR(20) NOT NULL CHECK (trangThaiTK IN ('DangHoatDong', 'NgungHoatDong'))
+    tenDangNhap VARCHAR(50)  PRIMARY KEY,
+    matKhau     NVARCHAR(255) NOT NULL,
+    vaiTro      VARCHAR(20)  NOT NULL CHECK (vaiTro IN ('QuanLy', 'NhanVien')),
+    trangThaiTK VARCHAR(20)  NOT NULL DEFAULT 'DangHoatDong'
+                CHECK (trangThaiTK IN ('DangHoatDong', 'NgungHoatDong'))
 );
 GO
+
 CREATE TABLE NhanVien (
-    maNV CHAR(5) PRIMARY KEY,
-    hoTenNV NVARCHAR(100) NOT NULL,
-    sdt VARCHAR(15) NOT NULL UNIQUE,
-    gioiTinh BIT NOT NULL,
-    luong DECIMAL(18,2) NOT NULL CHECK (luong >= 0),
-    ngayVao DATETIME2 NOT NULL,
-    tenDangNhap VARCHAR(50) NOT NULL UNIQUE,
+    maNV         CHAR(5)        PRIMARY KEY,
+    hoTenNV      NVARCHAR(100)  NOT NULL,
+    sdt          VARCHAR(15)    NOT NULL UNIQUE,
+    gioiTinh     BIT            NOT NULL,
+    luong        DECIMAL(18,2)  NOT NULL CHECK (luong >= 0),
+    ngayVao      DATETIME2      NOT NULL,
+    tenDangNhap  VARCHAR(50)    NOT NULL UNIQUE,
     CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenDangNhap) REFERENCES TaiKhoan(tenDangNhap)
 );
 GO
+
 CREATE TABLE KhachHang (
-    maKH CHAR(5) PRIMARY KEY,
-    hoTenKH NVARCHAR(100) NOT NULL,
-    gioiTinh BIT NOT NULL,
-    ngaySinh DATETIME2 NOT NULL,
-    email VARCHAR(100) NULL UNIQUE,
-    sdt VARCHAR(15) NOT NULL UNIQUE,
-    CCCD VARCHAR(20) NOT NULL UNIQUE,
-    quocTich NVARCHAR(50) NOT NULL,
-    diaChi NVARCHAR(200) NULL,
-    hangKH VARCHAR(20) NOT NULL CHECK (hangKH IN ('Dong', 'Bac', 'Vang', 'KimCuong')),
-    diemTichLuy INT NOT NULL DEFAULT 0 CHECK (diemTichLuy >= 0)
+    maKH        CHAR(5)        PRIMARY KEY,
+    hoTenKH     NVARCHAR(100)  NOT NULL,
+    gioiTinh    BIT            NOT NULL DEFAULT 1,
+    ngaySinh    DATETIME2      NULL,
+    email       VARCHAR(100)   NULL,g
+    sdt         VARCHAR(15)    NOT NULL UNIQUE,
+    CCCD        VARCHAR(20)    NOT NULL UNIQUE,
+    quocTich    NVARCHAR(50)   NOT NULL DEFAULT N'Viet Nam',
+    diaChi      NVARCHAR(200)  NULL,
+    hangKH      VARCHAR(20)    NOT NULL DEFAULT 'Dong'
+                CHECK (hangKH IN ('Dong', 'Bac', 'Vang', 'KimCuong')),
+    diemTichLuy INT            NOT NULL DEFAULT 0 CHECK (diemTichLuy >= 0)
 );
 GO
+
+-- =====================================================================
+-- 2. Ca lam viec / Phan cong ca
+-- =====================================================================
 CREATE TABLE CaLam (
-    maCa CHAR(5) PRIMARY KEY,
-    gioBatDau TIME NOT NULL,
-    gioKetThuc TIME NOT NULL,
-    ghiChu NVARCHAR(200) NULL,
-    loaiCa VARCHAR(20) NOT NULL CHECK (loaiCa IN ('CaSang', 'CaChieu', 'CaToi'))
+    maCa       CHAR(5)       PRIMARY KEY,
+    gioBatDau  TIME          NOT NULL,
+    gioKetThuc TIME          NOT NULL,
+    ghiChu     NVARCHAR(200) NULL,
+    loaiCa     VARCHAR(20)   NOT NULL CHECK (loaiCa IN ('CaSang', 'CaChieu', 'CaToi'))
 );
 GO
+
 CREATE TABLE PhanCongCa (
-    maPC CHAR(5) PRIMARY KEY,
-    ngay DATETIME2 NOT NULL,
-    tienMoCa DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
-    tienKetCa DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
-    maNV CHAR(5) NOT NULL,
-    maCa CHAR(5) NOT NULL,
+    maPC       CHAR(5)       PRIMARY KEY,
+    ngay       DATETIME2     NOT NULL,
+    tienMoCa   DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
+    tienKetCa  DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
+    maNV       CHAR(5)       NOT NULL,
+    maCa       CHAR(5)       NOT NULL,
     CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-    CONSTRAINT FK_PhanCongCa_CaLam FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
+    CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
 );
 GO
+
+-- =====================================================================
+-- 3. Loai phong / Phong
+-- =====================================================================
 CREATE TABLE LoaiPhong (
-    maLoaiPhong CHAR(5) PRIMARY KEY,
-    tenLoaiPhong NVARCHAR(100) NOT NULL,
-    soLuongPhong INT NOT NULL CHECK (soLuongPhong >= 0),
-    giaPhong DECIMAL(18,2) NOT NULL CHECK (giaPhong >= 0),
-    sucChuaToiDa INT NOT NULL CHECK (sucChuaToiDa > 0),
-    dienTich DECIMAL(10,2) NOT NULL CHECK (dienTich > 0),
-    moTa NVARCHAR(255) NULL,
-    tienNghi NVARCHAR(255) NULL
+    maLoaiPhong  CHAR(5)        PRIMARY KEY,
+    tenLoaiPhong NVARCHAR(100)  NOT NULL,
+    soLuongPhong INT            NOT NULL CHECK (soLuongPhong >= 0),
+    giaPhong     DECIMAL(18,2)  NOT NULL CHECK (giaPhong >= 0),
+    sucChuaToiDa INT            NOT NULL CHECK (sucChuaToiDa > 0),
+    dienTich     DECIMAL(10,2)  NOT NULL CHECK (dienTich > 0),
+    moTa         NVARCHAR(255)  NULL,
+    tienNghi     NVARCHAR(255)  NULL
 );
 GO
+
 CREATE TABLE Phong (
-    maPhong CHAR(4) PRIMARY KEY,
-    maLoaiPhong CHAR(5) NOT NULL,
-    tang INT NOT NULL CHECK (tang > 0),
-    trangThaiPhong VARCHAR(20) NOT NULL CHECK (trangThaiPhong IN ('DaDat', 'Trong', 'BaoTri', 'DangDon')),
+    maPhong         CHAR(4)     PRIMARY KEY,
+    maLoaiPhong     CHAR(5)     NOT NULL,
+    tang            INT         NOT NULL CHECK (tang > 0),
+    trangThaiPhong  VARCHAR(20) NOT NULL DEFAULT 'Trong'
+                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri')),
     CONSTRAINT FK_Phong_LoaiPhong FOREIGN KEY (maLoaiPhong) REFERENCES LoaiPhong(maLoaiPhong)
 );
 GO
+
+-- =====================================================================
+-- 4. Dich vu / Khuyen mai
+-- =====================================================================
 CREATE TABLE DichVu (
-    maDV CHAR(5) PRIMARY KEY,
-    tenDV NVARCHAR(100) NOT NULL,
-    donGia DECIMAL(18,2) NOT NULL CHECK (donGia >= 0),
-    moTaDV NVARCHAR(255) NULL,
-    trangThaiDV VARCHAR(20) NOT NULL CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
+    maDV         CHAR(5)        PRIMARY KEY,
+    tenDV        NVARCHAR(100)  NOT NULL,
+    donGia       DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
+    moTaDV       NVARCHAR(255)  NULL,
+    trangThaiDV  VARCHAR(20)    NOT NULL DEFAULT 'DangHoatDong'
+                 CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
 );
 GO
+
 CREATE TABLE KhuyenMai (
-    maKM CHAR(5) PRIMARY KEY,
-    tenKM NVARCHAR(100) NOT NULL,
-    dieuKienApDung NVARCHAR(255) NULL,
-    loaiKM NVARCHAR(50) NOT NULL,
-    giaTriToiDa DECIMAL(18,2) NOT NULL CHECK (giaTriToiDa >= 0),
-    tienKhuyenMai DECIMAL(18,2) NOT NULL CHECK (tienKhuyenMai >= 0),
-    ngayBatDau DATETIME2 NOT NULL,
-    ngayKetThuc DATETIME2 NOT NULL,
-    trangThaiKM VARCHAR(20) NOT NULL CHECK (trangThaiKM IN ('SapDienRa', 'DangHoatDong', 'HetHan')),
+    maKM            CHAR(5)        PRIMARY KEY,
+    tenKM           NVARCHAR(100)  NOT NULL,
+    dieuKienApDung  NVARCHAR(255)  NULL,
+    loaiKM          VARCHAR(20)    NOT NULL CHECK (loaiKM IN ('TheoTien', 'TheoPhanTram')),
+    giaTriToiDa     DECIMAL(18,2)  NOT NULL CHECK (giaTriToiDa >= 0),
+    tienKhuyenMai   DECIMAL(18,2)  NOT NULL CHECK (tienKhuyenMai >= 0),
+    ngayBatDau      DATETIME2      NOT NULL,
+    ngayKetThuc     DATETIME2      NOT NULL,
+    trangThaiKM     VARCHAR(20)    NOT NULL CHECK (trangThaiKM IN ('SapDienRa', 'DangHoatDong', 'HetHan')),
     CONSTRAINT CK_KhuyenMai_Ngay CHECK (ngayKetThuc > ngayBatDau)
 );
 GO
+
+-- =====================================================================
+-- 5. Dat phong / Chi tiet dat phong
+-- =====================================================================
 CREATE TABLE DatPhong (
-    maDatPhong CHAR(5) PRIMARY KEY,
-    ngayDat DATETIME2 NOT NULL,
-    ngayNhanDuKien DATETIME2 NOT NULL,
-    ngayTraDuKien DATETIME2 NOT NULL,
-    tienCoc DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienCoc >= 0),
-    ghiChu NVARCHAR(255) NULL,
-    maKH CHAR(5) NOT NULL,
-    maNV CHAR(5) NOT NULL,
+    maDatPhong      CHAR(5)        PRIMARY KEY,
+    ngayDat         DATETIME2      NOT NULL,
+    ngayNhanDuKien  DATETIME2      NOT NULL,
+    ngayTraDuKien   DATETIME2      NOT NULL,
+    tienCoc         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienCoc >= 0),
+    ghiChu          NVARCHAR(255)  NULL,
+    maKH            CHAR(5)        NOT NULL,
+    maNV            CHAR(5)        NOT NULL,
     CONSTRAINT FK_DatPhong_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
-    CONSTRAINT FK_DatPhong_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+    CONSTRAINT FK_DatPhong_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
     CONSTRAINT CK_DatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien AND ngayNhanDuKien >= ngayDat)
 );
 GO
+
 CREATE TABLE ChiTietDatPhong (
-    maDatPhong CHAR(5) NOT NULL,
-    maPhong CHAR(4) NOT NULL,
-    ngayNhanDuKien DATETIME2 NOT NULL,
-    ngayTraDuKien DATETIME2 NOT NULL,
-    donGiaDat DECIMAL(18,2) NOT NULL CHECK (donGiaDat >= 0),
-    soLuongNguoiO INT NOT NULL CHECK (soLuongNguoiO > 0),
-    ghiChu NVARCHAR(255) NULL,
+    maDatPhong     CHAR(5)        NOT NULL,
+    maPhong        CHAR(4)        NOT NULL,
+    ngayNhanDuKien DATETIME2      NOT NULL,
+    ngayTraDuKien  DATETIME2      NOT NULL,
+    donGiaDat      DECIMAL(18,2)  NOT NULL CHECK (donGiaDat >= 0),
+    soLuongNguoiO  INT            NOT NULL CHECK (soLuongNguoiO > 0),
+    ghiChu         NVARCHAR(255)  NULL,
     CONSTRAINT PK_ChiTietDatPhong PRIMARY KEY (maDatPhong, maPhong),
     CONSTRAINT FK_CTDatPhong_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong),
-    CONSTRAINT FK_CTDatPhong_Phong FOREIGN KEY (maPhong) REFERENCES Phong(maPhong),
+    CONSTRAINT FK_CTDatPhong_Phong    FOREIGN KEY (maPhong)    REFERENCES Phong(maPhong),
     CONSTRAINT CK_CTDatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien)
 );
 GO
+
+-- =====================================================================
+-- 6. Hoa don / Chi tiet hoa don / Chi tiet dich vu / Thanh toan
+-- =====================================================================
 CREATE TABLE HoaDon (
-    maHD CHAR(5) PRIMARY KEY,
-    ngayLapHD DATETIME2 NOT NULL,
-    ngayThanhToan DATETIME2 NULL,
-    ghiChu NVARCHAR(255) NULL,
-    soLuongNguoiO INT NOT NULL CHECK (soLuongNguoiO > 0),
-    tienPhong DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienPhong >= 0),
-    tienDichVu DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienDichVu >= 0),
-    tienKhuyenMai DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKhuyenMai >= 0),
-    tienThue DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienThue >= 0),
-    tongTienThanhToan DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tongTienThanhToan >= 0),
-    phiDoiPhong DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (phiDoiPhong >= 0),
-    maKM CHAR(5) NULL,
-    maKH CHAR(5) NOT NULL,
-    maNV CHAR(5) NOT NULL,
-    phuongThucTT VARCHAR(20) NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
-    trangThai VARCHAR(20) NOT NULL CHECK (trangThai IN ('ChuaThanhToan', 'DaThanhToan', 'DaHuy')),
-    maDatPhong CHAR(5) NULL,
-    CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM) REFERENCES KhuyenMai(maKM),
-    CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
-    CONSTRAINT FK_HoaDon_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-    CONSTRAINT FK_HoaDon_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong)
+    maHD                CHAR(5)        PRIMARY KEY,
+    ngayLapHD           DATETIME2      NOT NULL,
+    ngayThanhToan       DATETIME2      NULL,
+    ghiChu              NVARCHAR(255)  NULL,
+    soLuongNguoiO       INT            NOT NULL CHECK (soLuongNguoiO > 0),
+    tienPhong           DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienPhong >= 0),
+    tienDichVu          DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienDichVu >= 0),
+    tienKhuyenMai       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKhuyenMai >= 0),
+    tienThue            DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienThue >= 0),
+    tongTienThanhToan   DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tongTienThanhToan >= 0),
+    phiDoiPhong         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiDoiPhong >= 0),
+    maKM                CHAR(5)        NULL,
+    maKH                CHAR(5)        NOT NULL,
+    maNV                CHAR(5)        NOT NULL,
+    phuongThucTT        VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
+    trangThai           VARCHAR(20)    NOT NULL DEFAULT 'ChuaThanhToan'
+                        CHECK (trangThai IN ('ChuaThanhToan', 'DaThanhToan', 'DaHuy')),
+    maDatPhong          CHAR(5)        NULL,
+    CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM)        REFERENCES KhuyenMai(maKM),
+    CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKH)        REFERENCES KhachHang(maKH),
+    CONSTRAINT FK_HoaDon_NhanVien  FOREIGN KEY (maNV)        REFERENCES NhanVien(maNV),
+    CONSTRAINT FK_HoaDon_DatPhong  FOREIGN KEY (maDatPhong)  REFERENCES DatPhong(maDatPhong)
 );
 GO
+
 CREATE TABLE ChiTietHoaDon (
-    maHD CHAR(5) NOT NULL,
-    maPhong CHAR(4) NOT NULL,
-    ngayNhanPhong DATETIME2 NOT NULL,
-    ngayTraPhong DATETIME2 NOT NULL,
-    ngayTraThucTe DATETIME2 NULL,
-    soDem INT NOT NULL CHECK (soDem > 0),
-    phuThu DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (phuThu >= 0),
-    thanhTien DECIMAL(18,2) NOT NULL CHECK (thanhTien >= 0),
+    maHD          CHAR(5)        NOT NULL,
+    maPhong       CHAR(4)        NOT NULL,
+    ngayNhanPhong DATETIME2      NOT NULL,    -- Thoi diem khach thuc su check-in
+    ngayTraPhong  DATETIME2      NOT NULL,    -- Thoi diem du kien tra phong
+    ngayTraThucTe DATETIME2      NULL,        -- NULL = chua check-out
+    soDem         INT            NOT NULL CHECK (soDem > 0),
+    phuThu        DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phuThu >= 0),
+    thanhTien     DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
     CONSTRAINT PK_ChiTietHoaDon PRIMARY KEY (maHD, maPhong),
-    CONSTRAINT FK_CTHoaDon_HoaDon FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
-    CONSTRAINT FK_CTHoaDon_Phong FOREIGN KEY (maPhong) REFERENCES Phong(maPhong),
+    CONSTRAINT FK_CTHoaDon_HoaDon FOREIGN KEY (maHD)    REFERENCES HoaDon(maHD),
+    CONSTRAINT FK_CTHoaDon_Phong  FOREIGN KEY (maPhong) REFERENCES Phong(maPhong),
     CONSTRAINT CK_CTHoaDon_Ngay CHECK (ngayTraPhong > ngayNhanPhong)
 );
 GO
+
 CREATE TABLE ChiTietDichVu (
-    maCTDV CHAR(8) PRIMARY KEY,
-    maHD CHAR(5) NOT NULL,
-    maDV CHAR(5) NOT NULL,
-    soLuong INT NOT NULL CHECK (soLuong > 0),
-    donGia DECIMAL(18,2) NOT NULL CHECK (donGia >= 0),
-    thanhTien DECIMAL(18,2) NOT NULL CHECK (thanhTien >= 0),
-    ghiChu NVARCHAR(255) NULL,
+    maCTDV    CHAR(8)        PRIMARY KEY,
+    maHD      CHAR(5)        NOT NULL,
+    maDV      CHAR(5)        NOT NULL,
+    soLuong   INT            NOT NULL CHECK (soLuong > 0),
+    donGia    DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
+    thanhTien DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
+    ghiChu    NVARCHAR(255)  NULL,
     CONSTRAINT FK_CTDichVu_HoaDon FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
     CONSTRAINT FK_CTDichVu_DichVu FOREIGN KEY (maDV) REFERENCES DichVu(maDV)
 );
 GO
+
 CREATE TABLE ThanhToan (
-    maTT CHAR(5) PRIMARY KEY,
-    ngayTT DATETIME2 NOT NULL,
-    soTienTT DECIMAL(18,2) NOT NULL CHECK (soTienTT >= 0),
-    ghiChu NVARCHAR(255) NULL,
-    phuongThucTT VARCHAR(20) NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
-    trangThaiTT VARCHAR(30) NOT NULL CHECK (trangThaiTT IN ('ChoThanhToan', 'ThanhToanThanhCong', 'ThanhToanThatBai', 'DaHuy')),
-    maHD CHAR(5) NOT NULL,
-    CONSTRAINT FK_ThanhToan_HoaDon FOREIGN KEY (maHD) REFERENCES HoaDon(maHD)
+    maTT          CHAR(5)        PRIMARY KEY,
+    ngayTT        DATETIME2      NOT NULL,
+    soTienTT      DECIMAL(18,2)  NOT NULL CHECK (soTienTT >= 0),
+    ghiChu        NVARCHAR(255)  NULL,
+    phuongThucTT  VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
+    trangThaiTT   VARCHAR(30)    NOT NULL DEFAULT 'ThanhToanThanhCong'
+                  CHECK (trangThaiTT IN ('ChoThanhToan', 'ThanhToanThanhCong', 'ThanhToanThatBai', 'DaHuy')),
+    maHD          CHAR(5)        NOT NULL,
+    maPC          CHAR(5)        NULL,         -- Ca lam thu tien (de doi soat ca)
+    maNV          CHAR(5)        NULL,         -- Le tan thu tien
+    CONSTRAINT FK_ThanhToan_HoaDon     FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
+    CONSTRAINT FK_ThanhToan_PhanCongCa FOREIGN KEY (maPC) REFERENCES PhanCongCa(maPC),
+    CONSTRAINT FK_ThanhToan_NhanVien   FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
 );
 GO
 
+-- =====================================================================
+-- 7. Indexes (cho cac query thuong xuyen)
+-- =====================================================================
 CREATE INDEX IX_PhanCongCa_maNV_ngay ON PhanCongCa(maNV, ngay);
-CREATE INDEX IX_Phong_maLoaiPhong ON Phong(maLoaiPhong);
-CREATE INDEX IX_DatPhong_maKH ON DatPhong(maKH);
-CREATE INDEX IX_DatPhong_maNV ON DatPhong(maNV);
-CREATE INDEX IX_CTDP_maPhong ON ChiTietDatPhong(maPhong);
-CREATE INDEX IX_HoaDon_maKH ON HoaDon(maKH);
-CREATE INDEX IX_HoaDon_maNV ON HoaDon(maNV);
-CREATE INDEX IX_HoaDon_maDatPhong ON HoaDon(maDatPhong);
-CREATE INDEX IX_CTHD_maPhong ON ChiTietHoaDon(maPhong);
-CREATE INDEX IX_CTDV_maHD ON ChiTietDichVu(maHD);
-CREATE INDEX IX_ThanhToan_maHD ON ThanhToan(maHD);
+CREATE INDEX IX_Phong_maLoaiPhong    ON Phong(maLoaiPhong);
+CREATE INDEX IX_Phong_trangThai      ON Phong(trangThaiPhong);
+CREATE INDEX IX_DatPhong_maKH        ON DatPhong(maKH);
+CREATE INDEX IX_DatPhong_ngayNhan    ON DatPhong(ngayNhanDuKien);
+CREATE INDEX IX_CTDP_maPhong         ON ChiTietDatPhong(maPhong);
+CREATE INDEX IX_CTDP_ngayNhan        ON ChiTietDatPhong(ngayNhanDuKien, ngayTraDuKien);
+CREATE INDEX IX_HoaDon_maKH          ON HoaDon(maKH);
+CREATE INDEX IX_HoaDon_maDatPhong    ON HoaDon(maDatPhong);
+CREATE INDEX IX_HoaDon_trangThai     ON HoaDon(trangThai);
+CREATE INDEX IX_CTHD_maPhong         ON ChiTietHoaDon(maPhong);
+CREATE INDEX IX_CTHD_ngayNhan        ON ChiTietHoaDon(ngayNhanPhong);
+CREATE INDEX IX_CTDV_maHD            ON ChiTietDichVu(maHD);
+CREATE INDEX IX_ThanhToan_maHD       ON ThanhToan(maHD);
+CREATE INDEX IX_ThanhToan_maPC       ON ThanhToan(maPC);
+
+-- Filtered unique index: email phai unique khi co gia tri, nhung cho phep nhieu NULL
+CREATE UNIQUE INDEX UX_KhachHang_email ON KhachHang(email) WHERE email IS NOT NULL;
 GO
 
--- Du lieu mau: TaiKhoan (20 dong)
+-- =====================================================================
+-- 8. DU LIEU MAU - Anchor "hom nay" = 2026-04-25
+-- =====================================================================
+
+-- ----- TaiKhoan + NhanVien (1 quan ly + 4 le tan) -----
 INSERT INTO TaiKhoan (tenDangNhap, matKhau, vaiTro, trangThaiTK) VALUES
-('tk001', N'Hash@001', 'QuanLy', 'DangHoatDong'),
-('tk002', N'Hash@002', 'QuanLy', 'DangHoatDong'),
-('tk003', N'Hash@003', 'QuanLy', 'DangHoatDong'),
-('tk004', N'Hash@004', 'QuanLy', 'DangHoatDong'),
-('tk005', N'Hash@005', 'NhanVien', 'DangHoatDong'),
-('tk006', N'Hash@006', 'NhanVien', 'DangHoatDong'),
-('tk007', N'Hash@007', 'NhanVien', 'DangHoatDong'),
-('tk008', N'Hash@008', 'NhanVien', 'DangHoatDong'),
-('tk009', N'Hash@009', 'NhanVien', 'DangHoatDong'),
-('tk010', N'Hash@010', 'NhanVien', 'DangHoatDong'),
-('tk011', N'Hash@011', 'NhanVien', 'DangHoatDong'),
-('tk012', N'Hash@012', 'NhanVien', 'DangHoatDong'),
-('tk013', N'Hash@013', 'NhanVien', 'DangHoatDong'),
-('tk014', N'Hash@014', 'NhanVien', 'DangHoatDong'),
-('tk015', N'Hash@015', 'NhanVien', 'DangHoatDong'),
-('tk016', N'Hash@016', 'NhanVien', 'DangHoatDong'),
-('tk017', N'Hash@017', 'NhanVien', 'DangHoatDong'),
-('tk018', N'Hash@018', 'NhanVien', 'DangHoatDong'),
-('tk019', N'Hash@019', 'NhanVien', 'NgungHoatDong'),
-('tk020', N'Hash@020', 'NhanVien', 'NgungHoatDong');
+('admin',  N'Hash@admin',  'QuanLy',   'DangHoatDong'),
+('letan1', N'Hash@letan1', 'NhanVien', 'DangHoatDong'),
+('letan2', N'Hash@letan2', 'NhanVien', 'DangHoatDong'),
+('letan3', N'Hash@letan3', 'NhanVien', 'DangHoatDong'),
+('letan4', N'Hash@letan4', 'NhanVien', 'DangHoatDong');
 GO
 
--- Du lieu mau: NhanVien (20 dong)
 INSERT INTO NhanVien (maNV, hoTenNV, sdt, gioiTinh, luong, ngayVao, tenDangNhap) VALUES
-('NV001', N'Nguyen Minh Anh', '0910000001', 1, 8850000.00, '2023-02-12 00:00:00', 'tk001'),
-('NV002', N'Tran Quoc Bao', '0910000002', 0, 9200000.00, '2023-03-12 00:00:00', 'tk002'),
-('NV003', N'Le Thu Ha', '0910000003', 1, 9550000.00, '2023-04-09 00:00:00', 'tk003'),
-('NV004', N'Pham Gia Huy', '0910000004', 0, 9900000.00, '2023-05-07 00:00:00', 'tk004'),
-('NV005', N'Do Khanh Linh', '0910000005', 1, 10250000.00, '2023-06-04 00:00:00', 'tk005'),
-('NV006', N'Vo Tuan Kiet', '0910000006', 0, 10600000.00, '2023-07-02 00:00:00', 'tk006'),
-('NV007', N'Bui Ngoc Mai', '0910000007', 1, 10950000.00, '2023-07-30 00:00:00', 'tk007'),
-('NV008', N'Dang Hoang Nam', '0910000008', 0, 11300000.00, '2023-08-27 00:00:00', 'tk008'),
-('NV009', N'Hoang Thi Lan', '0910000009', 1, 11650000.00, '2023-09-24 00:00:00', 'tk009'),
-('NV010', N'Phan Duc Long', '0910000010', 0, 12000000.00, '2023-10-22 00:00:00', 'tk010'),
-('NV011', N'Nguyen Thanh Truc', '0910000011', 1, 12350000.00, '2023-11-19 00:00:00', 'tk011'),
-('NV012', N'Trinh Quang Huy', '0910000012', 0, 12700000.00, '2023-12-17 00:00:00', 'tk012'),
-('NV013', N'Ly My Tien', '0910000013', 1, 13050000.00, '2024-01-14 00:00:00', 'tk013'),
-('NV014', N'Doan Bao Chau', '0910000014', 0, 13400000.00, '2024-02-11 00:00:00', 'tk014'),
-('NV015', N'Ngo Duc An', '0910000015', 1, 13750000.00, '2024-03-10 00:00:00', 'tk015'),
-('NV016', N'Le Bao Ngan', '0910000016', 0, 14100000.00, '2024-04-07 00:00:00', 'tk016'),
-('NV017', N'Pham Quoc Huy', '0910000017', 1, 14450000.00, '2024-05-05 00:00:00', 'tk017'),
-('NV018', N'Tran Nhat Minh', '0910000018', 0, 14800000.00, '2024-06-02 00:00:00', 'tk018'),
-('NV019', N'Bui Thu Trang', '0910000019', 1, 15150000.00, '2024-06-30 00:00:00', 'tk019'),
-('NV020', N'Dang Gia Bao', '0910000020', 0, 15500000.00, '2024-07-28 00:00:00', 'tk020');
+('NV001', N'Nguyen Khanh Luan',  '0901000001', 0, 18000000.00, '2024-01-15', 'admin'),
+('NV002', N'Tran Thi Mai Anh',   '0901000002', 1, 10000000.00, '2024-03-01', 'letan1'),
+('NV003', N'Le Hoang Phuc',      '0901000003', 0,  9500000.00, '2024-06-10', 'letan2'),
+('NV004', N'Pham Thu Trang',     '0901000004', 1,  9000000.00, '2025-01-20', 'letan3'),
+('NV005', N'Vo Minh Tuan',       '0901000005', 0,  9000000.00, '2025-09-05', 'letan4');
 GO
 
--- Du lieu mau: KhachHang (20 dong)
+-- ----- KhachHang (8 khach phu cho ~10 booking) -----
 INSERT INTO KhachHang (maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) VALUES
-('KH001', N'Nguyen Van An', 1, '1988-11-30 00:00:00', 'kh001@example.com', '0820000001', '700000000001', N'Viet Nam', N'Ha Noi', 'Dong', 0),
-('KH002', N'Tran Thi Bich', 0, '1989-10-26 00:00:00', 'kh002@example.com', '0820000002', '700000000002', N'Viet Nam', N'Da Nang', 'Dong', 85),
-('KH003', N'Le Quoc Cuong', 1, '1990-09-21 00:00:00', 'kh003@example.com', '0820000003', '700000000003', N'Viet Nam', N'Can Tho', 'Dong', 170),
-('KH004', N'Pham Thu Dung', 0, '1991-08-17 00:00:00', 'kh004@example.com', '0820000004', '700000000004', N'Viet Nam', N'Nha Trang', 'Dong', 255),
-('KH005', N'Vo Minh Duc', 1, '1992-07-12 00:00:00', 'kh005@example.com', '0820000005', '700000000005', N'Viet Nam', N'TP HCM', 'Bac', 340),
-('KH006', N'Bui Ngoc Giang', 0, '1993-06-07 00:00:00', 'kh006@example.com', '0820000006', '700000000006', N'Viet Nam', N'Ha Noi', 'Bac', 425),
-('KH007', N'Dang Hoai Nam', 1, '1994-05-03 00:00:00', 'kh007@example.com', '0820000007', '700000000007', N'Viet Nam', N'Da Nang', 'Bac', 510),
-('KH008', N'Hoang Yen Nhi', 0, '1995-03-29 00:00:00', 'kh008@example.com', '0820000008', '700000000008', N'Viet Nam', N'Can Tho', 'Bac', 595),
-('KH009', N'Phan Tuan Khang', 1, '1996-02-22 00:00:00', 'kh009@example.com', '0820000009', '700000000009', N'Viet Nam', N'Nha Trang', 'Vang', 680),
-('KH010', N'Ngo Bao Tram', 0, '1997-01-17 00:00:00', 'kh010@example.com', '0820000010', '700000000010', N'Viet Nam', N'TP HCM', 'Vang', 765),
-('KH011', N'Do Huu Phuc', 1, '1997-12-13 00:00:00', 'kh011@example.com', '0820000011', '700000000011', N'Viet Nam', N'Ha Noi', 'Vang', 850),
-('KH012', N'Truong My Linh', 0, '1998-11-08 00:00:00', 'kh012@example.com', '0820000012', '700000000012', N'Viet Nam', N'Da Nang', 'Vang', 935),
-('KH013', N'Ly Gia Han', 1, '1999-10-04 00:00:00', 'kh013@example.com', '0820000013', '700000000013', N'Han Quoc', N'Can Tho', 'KimCuong', 1020),
-('KH014', N'Nguyen Quoc Viet', 0, '2000-08-29 00:00:00', 'kh014@example.com', '0820000014', '700000000014', N'Nhat Ban', N'Nha Trang', 'KimCuong', 1105),
-('KH015', N'Tran Khanh Vy', 1, '2001-07-25 00:00:00', 'kh015@example.com', '0820000015', '700000000015', N'Singapore', N'TP HCM', 'KimCuong', 1190),
-('KH016', N'Pham Thanh Son', 0, '2002-06-20 00:00:00', 'kh016@example.com', '0820000016', '700000000016', N'Viet Nam', N'Ha Noi', 'Dong', 1275),
-('KH017', N'Le Ngoc Huyen', 1, '2003-05-16 00:00:00', 'kh017@example.com', '0820000017', '700000000017', N'Thai Lan', N'Da Nang', 'Bac', 1360),
-('KH018', N'Vo Minh Chau', 0, '2004-04-10 00:00:00', 'kh018@example.com', '0820000018', '700000000018', N'Viet Nam', N'Can Tho', 'Vang', 1445),
-('KH019', N'Dang Duc Hieu', 1, '2005-03-06 00:00:00', 'kh019@example.com', '0820000019', '700000000019', N'My', N'Nha Trang', 'Dong', 1530),
-('KH020', N'Bui Quynh Anh', 0, '2006-01-30 00:00:00', 'kh020@example.com', '0820000020', '700000000020', N'Viet Nam', N'TP HCM', 'KimCuong', 1615);
+('KH001', N'Nguyen Van An',   1, '1990-05-12', 'an.nguyen@example.com',     '0820000001', '079090000001', N'Viet Nam',  N'Ha Noi',     'Vang',     1200),
+('KH002', N'Tran Thi Bich',   0, '1992-08-20', 'bich.tran@example.com',     '0820000002', '079092000002', N'Viet Nam',  N'Da Nang',    'Bac',       650),
+('KH003', N'Le Quoc Cuong',   1, '1988-11-03', 'cuong.le@example.com',      '0820000003', '079088000003', N'Viet Nam',  N'TP HCM',     'KimCuong', 2200),
+('KH004', N'Pham Thu Dung',   0, '1995-02-14', NULL,                        '0820000004', '079095000004', N'Viet Nam',  N'Can Tho',    'Dong',      120),
+('KH005', N'Vo Minh Duc',     1, '1985-07-09', 'duc.vo@example.com',        '0820000005', '079085000005', N'Viet Nam',  N'Nha Trang',  'Vang',     1450),
+('KH006', N'Bui Ngoc Giang',  0, '1998-12-25', NULL,                        '0820000006', '079098000006', N'Viet Nam',  N'Ha Noi',     'Dong',      300),
+('KH007', N'Hoang Yen Nhi',   0, '1993-04-18', 'nhi.hoang@example.com',     '0820000007', '079093000007', N'Han Quoc',  N'TP HCM',     'Bac',       780),
+('KH008', N'Phan Tuan Khang', 1, '1987-09-30', 'khang.phan@example.com',    '0820000008', '079087000008', N'Viet Nam',  N'Da Nang',    'KimCuong', 3100);
 GO
 
--- Du lieu mau: CaLam (20 dong)
+-- ----- CaLam + PhanCongCa (3 ca chuan, 5 phan cong gan ngay) -----
 INSERT INTO CaLam (maCa, gioBatDau, gioKetThuc, ghiChu, loaiCa) VALUES
-('CA001','06:00:00','14:00:00',N'Ca sang thuong','CaSang'),
-('CA002','14:00:00','22:00:00',N'Ca chieu thuong','CaChieu'),
-('CA003','22:00:00','06:00:00',N'Ca toi thuong','CaToi'),
-('CA004','05:30:00','13:30:00',N'Ca sang cuoi tuan','CaSang'),
-('CA005','13:30:00','21:30:00',N'Ca chieu cuoi tuan','CaChieu'),
-('CA006','21:30:00','05:30:00',N'Ca toi cuoi tuan','CaToi'),
-('CA007','06:30:00','14:30:00',N'Ca sang le','CaSang'),
-('CA008','14:30:00','22:30:00',N'Ca chieu le','CaChieu'),
-('CA009','22:30:00','06:30:00',N'Ca toi le','CaToi'),
-('CA010','07:00:00','15:00:00',N'Ca hanh chinh sang','CaSang'),
-('CA011','15:00:00','23:00:00',N'Ca hanh chinh chieu','CaChieu'),
-('CA012','23:00:00','07:00:00',N'Ca hanh chinh toi','CaToi'),
-('CA013','06:00:00','12:00:00',N'Ca ngan sang ho tro','CaSang'),
-('CA014','12:00:00','18:00:00',N'Ca ngan chieu ho tro','CaChieu'),
-('CA015','18:00:00','23:59:59',N'Ca ngan toi ho tro','CaToi'),
-('CA016','08:00:00','16:00:00',N'Ca sang dao tao','CaSang'),
-('CA017','16:00:00','23:30:00',N'Ca chieu tang cuong','CaChieu'),
-('CA018','00:00:00','08:00:00',N'Ca dem tang cuong','CaToi'),
-('CA019','09:00:00','17:00:00',N'Ca hanh chinh dac biet','CaSang'),
-('CA020','17:00:00','23:00:00',N'Ca toi su kien','CaToi');
+('CA001', '06:00:00', '14:00:00', N'Ca sang', 'CaSang'),
+('CA002', '14:00:00', '22:00:00', N'Ca chieu','CaChieu'),
+('CA003', '22:00:00', '06:00:00', N'Ca toi',  'CaToi');
 GO
 
--- Du lieu mau: PhanCongCa (20 dong)
 INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES
-('PC001', '2026-04-01 00:00:00', 600000.00, 2285000.00, 'NV001', 'CA001'),
-('PC002', '2026-04-02 00:00:00', 700000.00, 2470000.00, 'NV002', 'CA002'),
-('PC003', '2026-04-03 00:00:00', 800000.00, 2655000.00, 'NV003', 'CA003'),
-('PC004', '2026-04-04 00:00:00', 900000.00, 2840000.00, 'NV004', 'CA004'),
-('PC005', '2026-04-05 00:00:00', 500000.00, 2525000.00, 'NV005', 'CA005'),
-('PC006', '2026-04-06 00:00:00', 600000.00, 2710000.00, 'NV006', 'CA006'),
-('PC007', '2026-04-07 00:00:00', 700000.00, 2895000.00, 'NV007', 'CA007'),
-('PC008', '2026-04-08 00:00:00', 800000.00, 3080000.00, 'NV008', 'CA008'),
-('PC009', '2026-04-09 00:00:00', 900000.00, 3265000.00, 'NV009', 'CA009'),
-('PC010', '2026-04-10 00:00:00', 500000.00, 2950000.00, 'NV010', 'CA010'),
-('PC011', '2026-04-11 00:00:00', 600000.00, 3135000.00, 'NV011', 'CA011'),
-('PC012', '2026-04-12 00:00:00', 700000.00, 3320000.00, 'NV012', 'CA012'),
-('PC013', '2026-04-13 00:00:00', 800000.00, 3505000.00, 'NV013', 'CA013'),
-('PC014', '2026-04-14 00:00:00', 900000.00, 3690000.00, 'NV014', 'CA014'),
-('PC015', '2026-04-15 00:00:00', 500000.00, 3375000.00, 'NV015', 'CA015'),
-('PC016', '2026-04-16 00:00:00', 600000.00, 3560000.00, 'NV016', 'CA016'),
-('PC017', '2026-04-17 00:00:00', 700000.00, 3745000.00, 'NV017', 'CA017'),
-('PC018', '2026-04-18 00:00:00', 800000.00, 3930000.00, 'NV018', 'CA018'),
-('PC019', '2026-04-19 00:00:00', 900000.00, 4115000.00, 'NV019', 'CA019'),
-('PC020', '2026-04-20 00:00:00', 500000.00, 3800000.00, 'NV020', 'CA020');
+('PC001', '2026-04-23', 500000.00,  3500000.00, 'NV002', 'CA001'),
+('PC002', '2026-04-23', 500000.00,  4200000.00, 'NV003', 'CA002'),
+('PC003', '2026-04-24', 500000.00,  3800000.00, 'NV004', 'CA001'),
+('PC004', '2026-04-24', 500000.00,  4500000.00, 'NV005', 'CA002'),
+('PC005', '2026-04-25', 500000.00,        0.00, 'NV002', 'CA001'); -- ca dang mo
 GO
 
--- Du lieu mau: LoaiPhong (20 dong)
+-- ----- LoaiPhong (6 loai) + Phong (12 phong) -----
 INSERT INTO LoaiPhong (maLoaiPhong, tenLoaiPhong, soLuongPhong, giaPhong, sucChuaToiDa, dienTich, moTa, tienNghi) VALUES
-('LP001', N'Standard Don', 12, 510000.00, 2, 22.00, N'Mo ta standard don', N'TV, Wifi, May lanh'),
-('LP002', N'Standard Doi', 11, 600000.00, 2, 24.00, N'Mo ta standard doi', N'TV, Wifi, May lanh'),
-('LP003', N'Superior Don', 11, 690000.00, 2, 26.00, N'Mo ta superior don', N'TV, Wifi, May lanh'),
-('LP004', N'Superior Doi', 10, 780000.00, 2, 28.00, N'Mo ta superior doi', N'TV, Wifi, May lanh'),
-('LP005', N'Deluxe Twin', 10, 870000.00, 2, 30.00, N'Mo ta deluxe twin', N'TV, Wifi, May lanh'),
-('LP006', N'Deluxe Double', 9, 960000.00, 2, 32.00, N'Mo ta deluxe double', N'TV, Wifi, May lanh'),
-('LP007', N'Deluxe City View', 9, 1050000.00, 2, 34.00, N'Mo ta deluxe city view', N'TV, Wifi, May lanh'),
-('LP008', N'Deluxe River View', 8, 1140000.00, 4, 36.00, N'Mo ta deluxe river view', N'TV, Wifi, May lanh'),
-('LP009', N'Family 4', 8, 1230000.00, 4, 38.00, N'Mo ta family 4', N'TV, Wifi, May lanh'),
-('LP010', N'Family 6', 7, 1320000.00, 6, 40.00, N'Mo ta family 6', N'TV, Wifi, May lanh'),
-('LP011', N'Junior Suite', 7, 1410000.00, 4, 42.00, N'Mo ta junior suite', N'TV, Wifi, May lanh'),
-('LP012', N'Executive Suite', 6, 1500000.00, 4, 44.00, N'Mo ta executive suite', N'TV, Wifi, May lanh'),
-('LP013', N'Premier Suite', 6, 1590000.00, 4, 46.00, N'Mo ta premier suite', N'TV, Wifi, May lanh'),
-('LP014', N'VIP Diamond', 5, 1680000.00, 4, 48.00, N'Mo ta vip diamond', N'TV, Wifi, May lanh'),
-('LP015', N'Presidential', 5, 1770000.00, 6, 50.00, N'Mo ta presidential', N'TV, Wifi, May lanh'),
-('LP016', N'Eco Single', 4, 1860000.00, 3, 52.00, N'Mo ta eco single', N'TV, Wifi, May lanh'),
-('LP017', N'Eco Double', 4, 1950000.00, 3, 54.00, N'Mo ta eco double', N'TV, Wifi, May lanh'),
-('LP018', N'Business Room', 3, 2040000.00, 3, 56.00, N'Mo ta business room', N'TV, Wifi, May lanh'),
-('LP019', N'Connecting Room', 3, 2130000.00, 3, 58.00, N'Mo ta connecting room', N'TV, Wifi, May lanh'),
-('LP020', N'Honeymoon Suite', 2, 2220000.00, 3, 60.00, N'Mo ta honeymoon suite', N'TV, Wifi, May lanh');
+('LP001', N'Standard',  2,  500000.00, 2, 22.00, N'Phong tieu chuan 1 giuong doi',          N'Wifi, May lanh, TV'),
+('LP002', N'Superior',  2,  750000.00, 2, 26.00, N'Phong superior co cua so',                N'Wifi, May lanh, TV, Minibar'),
+('LP003', N'Deluxe',    2, 1000000.00, 3, 32.00, N'Phong deluxe huong thanh pho',            N'Wifi, May lanh, TV, Minibar, Bon tam'),
+('LP004', N'Family',    2, 1500000.00, 4, 42.00, N'Phong gia dinh 2 giuong',                 N'Wifi, May lanh, TV, Minibar, Bon tam, Bep nho'),
+('LP005', N'Suite',     2, 2200000.00, 4, 55.00, N'Suite cao cap voi phong khach rieng',     N'Wifi, May lanh, TV, Minibar, Bon tam, Phong khach'),
+('LP006', N'VIP',       2, 3500000.00, 6, 80.00, N'Phong VIP huong bien, view dep nhat',     N'Full tien nghi, Bon tam jacuzzi, Sky bar');
 GO
 
--- Du lieu mau: Phong (20 dong)
 INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES
 ('P101', 'LP001', 1, 'Trong'),
-('P102', 'LP002', 1, 'Trong'),
-('P103', 'LP003', 1, 'DangDon'),
-('P104', 'LP004', 1, 'Trong'),
-('P105', 'LP005', 1, 'DaDat'),
-('P106', 'LP006', 1, 'Trong'),
-('P107', 'LP007', 1, 'Trong'),
-('P108', 'LP008', 1, 'BaoTri'),
-('P109', 'LP009', 1, 'Trong'),
-('P201', 'LP010', 2, 'DaDat'),
-('P202', 'LP011', 2, 'Trong'),
-('P203', 'LP012', 2, 'Trong'),
-('P204', 'LP013', 2, 'Trong'),
-('P205', 'LP014', 2, 'DaDat'),
-('P206', 'LP015', 2, 'Trong'),
-('P207', 'LP016', 2, 'Trong'),
-('P301', 'LP017', 3, 'DangDon'),
-('P302', 'LP018', 3, 'Trong'),
-('P303', 'LP019', 3, 'DaDat'),
-('P304', 'LP020', 3, 'Trong');
+('P102', 'LP001', 1, 'Trong'),
+('P103', 'LP002', 1, 'Trong'),
+('P104', 'LP002', 1, 'BaoTri'),       -- 1 phong dang bao tri de demo loc
+('P201', 'LP003', 2, 'DangSuDung'),   -- khach DP004 dang o
+('P202', 'LP003', 2, 'Trong'),
+('P203', 'LP004', 2, 'DangSuDung'),   -- khach DP005 dang o
+('P204', 'LP004', 2, 'Trong'),
+('P301', 'LP005', 3, 'Trong'),
+('P302', 'LP005', 3, 'Trong'),
+('P401', 'LP006', 4, 'Trong'),
+('P402', 'LP006', 4, 'Trong');
 GO
 
--- Du lieu mau: DichVu (20 dong)
+-- ----- DichVu (5) + KhuyenMai (3) -----
 INSERT INTO DichVu (maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES
-('DV001', N'Nuoc suoi', 10000.00, N'Dich vu nuoc suoi', 'DangHoatDong'),
-('DV002', N'Nuoc ngot', 15000.00, N'Dich vu nuoc ngot', 'DangHoatDong'),
-('DV003', N'Bia lon', 25000.00, N'Dich vu bia lon', 'DangHoatDong'),
-('DV004', N'Mi ly', 30000.00, N'Dich vu mi ly', 'DangHoatDong'),
-('DV005', N'Do an nhanh', 55000.00, N'Dich vu do an nhanh', 'DangHoatDong'),
-('DV006', N'Giat ui', 40000.00, N'Dich vu giat ui', 'DangHoatDong'),
-('DV007', N'Don phong them', 80000.00, N'Dich vu don phong them', 'DangHoatDong'),
-('DV008', N'Dua don san bay', 250000.00, N'Dich vu dua don san bay', 'DangHoatDong'),
-('DV009', N'Thue xe may', 180000.00, N'Dich vu thue xe may', 'DangHoatDong'),
-('DV010', N'Thue xe hoi', 950000.00, N'Dich vu thue xe hoi', 'DangHoatDong'),
-('DV011', N'An sang buffet', 120000.00, N'Dich vu an sang buffet', 'DangHoatDong'),
-('DV012', N'Spa thu gian', 450000.00, N'Dich vu spa thu gian', 'DangHoatDong'),
-('DV013', N'Phu thu them nguoi', 200000.00, N'Dich vu phu thu them nguoi', 'DangHoatDong'),
-('DV014', N'Trang tri phong', 350000.00, N'Dich vu trang tri phong', 'DangHoatDong'),
-('DV015', N'Nuoc uong mini bar', 90000.00, N'Dich vu nuoc uong mini bar', 'DangHoatDong'),
-('DV016', N'Cafe pha may', 35000.00, N'Dich vu cafe pha may', 'DangHoatDong'),
-('DV017', N'Tra sua', 45000.00, N'Dich vu tra sua', 'DangHoatDong'),
-('DV018', N'Giat hap nhanh', 70000.00, N'Dich vu giat hap nhanh', 'DangHoatDong'),
-('DV019', N'Goi them khan', 20000.00, N'Dich vu goi them khan', 'DangHoatDong'),
-('DV020', N'Trang tri honeymoon', 500000.00, N'Dich vu trang tri honeymoon', 'DangHoatDong');
+('DV001', N'An sang buffet',      120000.00, N'Buffet sang theo nguoi',         'DangHoatDong'),
+('DV002', N'Giat ui',              60000.00, N'Giat ui theo kg',                'DangHoatDong'),
+('DV003', N'Don phong them',       80000.00, N'Don phong ngoai gio',            'DangHoatDong'),
+('DV004', N'Nuoc minibar',         30000.00, N'Tinh theo so chai tieu thu',     'DangHoatDong'),
+('DV005', N'Dua don san bay',     250000.00, N'Xe rieng dua don san bay',       'DangHoatDong');
 GO
 
--- Du lieu mau: KhuyenMai (20 dong)
 INSERT INTO KhuyenMai (maKM, tenKM, dieuKienApDung, loaiKM, giaTriToiDa, tienKhuyenMai, ngayBatDau, ngayKetThuc, trangThaiKM) VALUES
-('KM001', N'Khuyen mai 1', N'Dieu kien ap dung 1', N'TheoTien', 1100000.00, 75000.00, '2026-01-11 00:00:00', '2026-02-25 00:00:00', 'HetHan'),
-('KM002', N'Khuyen mai 2', N'Dieu kien ap dung 2', N'TheoPhanTram', 1200000.00, 100000.00, '2026-01-21 00:00:00', '2026-03-07 00:00:00', 'HetHan'),
-('KM003', N'Khuyen mai 3', N'Dieu kien ap dung 3', N'TheoTien', 1300000.00, 125000.00, '2026-01-31 00:00:00', '2026-03-17 00:00:00', 'HetHan'),
-('KM004', N'Khuyen mai 4', N'Dieu kien ap dung 4', N'TheoPhanTram', 1400000.00, 150000.00, '2026-02-10 00:00:00', '2026-03-27 00:00:00', 'HetHan'),
-('KM005', N'Khuyen mai 5', N'Dieu kien ap dung 5', N'TheoTien', 1500000.00, 175000.00, '2026-02-20 00:00:00', '2026-04-06 00:00:00', 'HetHan'),
-('KM006', N'Khuyen mai 6', N'Dieu kien ap dung 6', N'TheoPhanTram', 1600000.00, 200000.00, '2026-03-02 00:00:00', '2026-04-16 00:00:00', 'DangHoatDong'),
-('KM007', N'Khuyen mai 7', N'Dieu kien ap dung 7', N'TheoTien', 1700000.00, 225000.00, '2026-03-12 00:00:00', '2026-04-26 00:00:00', 'DangHoatDong'),
-('KM008', N'Khuyen mai 8', N'Dieu kien ap dung 8', N'TheoPhanTram', 1800000.00, 250000.00, '2026-03-22 00:00:00', '2026-05-06 00:00:00', 'DangHoatDong'),
-('KM009', N'Khuyen mai 9', N'Dieu kien ap dung 9', N'TheoTien', 1900000.00, 275000.00, '2026-04-01 00:00:00', '2026-05-16 00:00:00', 'DangHoatDong'),
-('KM010', N'Khuyen mai 10', N'Dieu kien ap dung 10', N'TheoPhanTram', 2000000.00, 300000.00, '2026-04-11 00:00:00', '2026-05-26 00:00:00', 'DangHoatDong'),
-('KM011', N'Khuyen mai 11', N'Dieu kien ap dung 11', N'TheoTien', 2100000.00, 325000.00, '2026-04-21 00:00:00', '2026-06-05 00:00:00', 'DangHoatDong'),
-('KM012', N'Khuyen mai 12', N'Dieu kien ap dung 12', N'TheoPhanTram', 2200000.00, 350000.00, '2026-05-01 00:00:00', '2026-06-15 00:00:00', 'DangHoatDong'),
-('KM013', N'Khuyen mai 13', N'Dieu kien ap dung 13', N'TheoTien', 2300000.00, 375000.00, '2026-05-11 00:00:00', '2026-06-25 00:00:00', 'DangHoatDong'),
-('KM014', N'Khuyen mai 14', N'Dieu kien ap dung 14', N'TheoPhanTram', 2400000.00, 400000.00, '2026-05-21 00:00:00', '2026-07-05 00:00:00', 'DangHoatDong'),
-('KM015', N'Khuyen mai 15', N'Dieu kien ap dung 15', N'TheoTien', 2500000.00, 425000.00, '2026-05-31 00:00:00', '2026-07-15 00:00:00', 'SapDienRa'),
-('KM016', N'Khuyen mai 16', N'Dieu kien ap dung 16', N'TheoPhanTram', 2600000.00, 450000.00, '2026-06-10 00:00:00', '2026-07-25 00:00:00', 'SapDienRa'),
-('KM017', N'Khuyen mai 17', N'Dieu kien ap dung 17', N'TheoTien', 2700000.00, 475000.00, '2026-06-20 00:00:00', '2026-08-04 00:00:00', 'SapDienRa'),
-('KM018', N'Khuyen mai 18', N'Dieu kien ap dung 18', N'TheoPhanTram', 2800000.00, 500000.00, '2026-06-30 00:00:00', '2026-08-14 00:00:00', 'SapDienRa'),
-('KM019', N'Khuyen mai 19', N'Dieu kien ap dung 19', N'TheoTien', 2900000.00, 525000.00, '2026-07-10 00:00:00', '2026-08-24 00:00:00', 'SapDienRa'),
-('KM020', N'Khuyen mai 20', N'Dieu kien ap dung 20', N'TheoPhanTram', 3000000.00, 550000.00, '2026-07-20 00:00:00', '2026-09-03 00:00:00', 'SapDienRa');
+('KM001', N'Tet 2026',          N'Hoa don tu 5tr',  'TheoTien',     500000.00,  500000.00, '2026-01-15','2026-02-28','HetHan'),
+('KM002', N'He 2026',           N'Hoa don tu 3tr',  'TheoPhanTram', 600000.00,  300000.00, '2026-04-01','2026-06-30','DangHoatDong'),
+('KM003', N'Trung Thu 2026',    N'Hoa don tu 4tr',  'TheoTien',     800000.00,  400000.00, '2026-08-15','2026-09-30','SapDienRa');
 GO
 
--- Du lieu mau: DatPhong (20 dong)
-INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES
-('DP001', '2026-04-01 10:00:00', '2026-04-03 10:00:00', '2026-04-05 10:00:00', 95000.00, N'Dat qua hotline', 'KH001', 'NV003'),
-('DP002', '2026-04-02 11:00:00', '2026-04-05 11:00:00', '2026-04-08 11:00:00', 110000.00, N'Dat truc tiep le tan', 'KH002', 'NV004'),
-('DP003', '2026-04-03 12:00:00', '2026-04-04 12:00:00', '2026-04-08 12:00:00', 125000.00, N'Khach doan nho', 'KH003', 'NV005'),
-('DP004', '2026-04-04 09:00:00', '2026-04-06 09:00:00', '2026-04-07 09:00:00', 140000.00, N'Dat qua website', 'KH004', 'NV006'),
-('DP005', '2026-04-05 10:00:00', '2026-04-08 10:00:00', '2026-04-10 10:00:00', 155000.00, N'Dat qua hotline', 'KH005', 'NV007'),
-('DP006', '2026-04-06 11:00:00', '2026-04-07 11:00:00', '2026-04-10 11:00:00', 170000.00, N'Dat truc tiep le tan', 'KH006', 'NV008'),
-('DP007', '2026-04-07 12:00:00', '2026-04-09 12:00:00', '2026-04-13 12:00:00', 185000.00, N'Khach doan nho', 'KH007', 'NV009'),
-('DP008', '2026-04-08 09:00:00', '2026-04-11 09:00:00', '2026-04-12 09:00:00', 200000.00, N'Dat qua website', 'KH008', 'NV010'),
-('DP009', '2026-04-09 10:00:00', '2026-04-10 10:00:00', '2026-04-12 10:00:00', 215000.00, N'Dat qua hotline', 'KH009', 'NV011'),
-('DP010', '2026-04-10 11:00:00', '2026-04-12 11:00:00', '2026-04-15 11:00:00', 230000.00, N'Dat truc tiep le tan', 'KH010', 'NV012'),
-('DP011', '2026-04-11 12:00:00', '2026-04-14 12:00:00', '2026-04-18 12:00:00', 245000.00, N'Khach doan nho', 'KH011', 'NV013'),
-('DP012', '2026-04-12 09:00:00', '2026-04-13 09:00:00', '2026-04-14 09:00:00', 260000.00, N'Dat qua website', 'KH012', 'NV014'),
-('DP013', '2026-04-13 10:00:00', '2026-04-15 10:00:00', '2026-04-17 10:00:00', 275000.00, N'Dat qua hotline', 'KH013', 'NV015'),
-('DP014', '2026-04-14 11:00:00', '2026-04-17 11:00:00', '2026-04-20 11:00:00', 290000.00, N'Dat truc tiep le tan', 'KH014', 'NV016'),
-('DP015', '2026-04-15 12:00:00', '2026-04-16 12:00:00', '2026-04-20 12:00:00', 305000.00, N'Khach doan nho', 'KH015', 'NV017'),
-('DP016', '2026-04-16 09:00:00', '2026-04-18 09:00:00', '2026-04-19 09:00:00', 320000.00, N'Dat qua website', 'KH016', 'NV018'),
-('DP017', '2026-04-17 10:00:00', '2026-04-20 10:00:00', '2026-04-22 10:00:00', 335000.00, N'Dat qua hotline', 'KH017', 'NV019'),
-('DP018', '2026-04-18 11:00:00', '2026-04-19 11:00:00', '2026-04-22 11:00:00', 350000.00, N'Dat truc tiep le tan', 'KH018', 'NV020'),
-('DP019', '2026-04-19 12:00:00', '2026-04-21 12:00:00', '2026-04-25 12:00:00', 365000.00, N'Khach doan nho', 'KH019', 'NV001'),
-('DP020', '2026-04-20 09:00:00', '2026-04-23 09:00:00', '2026-04-24 09:00:00', 380000.00, N'Dat qua website', 'KH020', 'NV002');
-GO
-
--- Du lieu mau: ChiTietDatPhong (20 dong)
-INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES
-('DP001', 'P101', '2026-04-03 10:00:00', '2026-04-05 10:00:00', 510000.00, 2, N'Yeu cau phong P101'),
-('DP002', 'P102', '2026-04-05 11:00:00', '2026-04-08 11:00:00', 600000.00, 2, N'Yeu cau phong P102'),
-('DP003', 'P103', '2026-04-04 12:00:00', '2026-04-08 12:00:00', 690000.00, 2, N'Yeu cau phong P103'),
-('DP004', 'P104', '2026-04-06 09:00:00', '2026-04-07 09:00:00', 780000.00, 3, N'Yeu cau phong P104'),
-('DP005', 'P105', '2026-04-08 10:00:00', '2026-04-10 10:00:00', 870000.00, 3, N'Yeu cau phong P105'),
-('DP006', 'P106', '2026-04-07 11:00:00', '2026-04-10 11:00:00', 960000.00, 2, N'Yeu cau phong P106'),
-('DP007', 'P107', '2026-04-09 12:00:00', '2026-04-13 12:00:00', 1050000.00, 2, N'Yeu cau phong P107'),
-('DP008', 'P108', '2026-04-11 09:00:00', '2026-04-12 09:00:00', 1140000.00, 2, N'Yeu cau phong P108'),
-('DP009', 'P109', '2026-04-10 10:00:00', '2026-04-12 10:00:00', 1230000.00, 3, N'Yeu cau phong P109'),
-('DP010', 'P201', '2026-04-12 11:00:00', '2026-04-15 11:00:00', 1320000.00, 4, N'Yeu cau phong P201'),
-('DP011', 'P202', '2026-04-14 12:00:00', '2026-04-18 12:00:00', 1410000.00, 2, N'Yeu cau phong P202'),
-('DP012', 'P203', '2026-04-13 09:00:00', '2026-04-14 09:00:00', 1500000.00, 2, N'Yeu cau phong P203'),
-('DP013', 'P204', '2026-04-15 10:00:00', '2026-04-17 10:00:00', 1590000.00, 2, N'Yeu cau phong P204'),
-('DP014', 'P205', '2026-04-17 11:00:00', '2026-04-20 11:00:00', 1680000.00, 3, N'Yeu cau phong P205'),
-('DP015', 'P206', '2026-04-16 12:00:00', '2026-04-20 12:00:00', 1770000.00, 4, N'Yeu cau phong P206'),
-('DP016', 'P207', '2026-04-18 09:00:00', '2026-04-19 09:00:00', 1860000.00, 2, N'Yeu cau phong P207'),
-('DP017', 'P301', '2026-04-20 10:00:00', '2026-04-22 10:00:00', 1950000.00, 2, N'Yeu cau phong P301'),
-('DP018', 'P302', '2026-04-19 11:00:00', '2026-04-22 11:00:00', 2040000.00, 2, N'Yeu cau phong P302'),
-('DP019', 'P303', '2026-04-21 12:00:00', '2026-04-25 12:00:00', 2130000.00, 3, N'Yeu cau phong P303'),
-('DP020', 'P304', '2026-04-23 09:00:00', '2026-04-24 09:00:00', 2220000.00, 4, N'Yeu cau phong P304');
-GO
-
--- Du lieu mau: HoaDon (20 dong)
-INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) VALUES
-('HD001', '2026-04-05 10:00:00', '2026-04-05 11:00:00', N'Hoa don cho DP001', 2, 1020000.00, 20000.00, 0.00, 83200.00, 1123200.00, 0.00, NULL, 'KH001', 'NV003', 'TienMat', 'DaThanhToan', 'DP001'),
-('HD002', '2026-04-08 11:00:00', '2026-04-08 12:00:00', N'Hoa don cho DP002', 2, 1800000.00, 45000.00, 100000.00, 139600.00, 1884600.00, 0.00, 'KM002', 'KH002', 'NV004', 'ChuyenKhoan', 'DaThanhToan', 'DP002'),
-('HD003', '2026-04-08 12:00:00', '2026-04-08 13:00:00', N'Hoa don cho DP003', 2, 2760000.00, 25000.00, 0.00, 222800.00, 3007800.00, 0.00, NULL, 'KH003', 'NV005', 'TienMat', 'DaThanhToan', 'DP003'),
-('HD004', '2026-04-07 09:00:00', '2026-04-07 10:00:00', N'Hoa don cho DP004', 3, 830000.00, 60000.00, 150000.00, 59200.00, 799200.00, 50000.00, 'KM004', 'KH004', 'NV006', 'ChuyenKhoan', 'DaThanhToan', 'DP004'),
-('HD005', '2026-04-10 10:00:00', '2026-04-10 11:00:00', N'Hoa don cho DP005', 3, 1740000.00, 165000.00, 0.00, 152400.00, 2057400.00, 0.00, NULL, 'KH005', 'NV007', 'TienMat', 'DaThanhToan', 'DP005'),
-('HD006', '2026-04-10 11:00:00', NULL, N'Hoa don cho DP006', 2, 2880000.00, 40000.00, 200000.00, 217600.00, 2937600.00, 0.00, 'KM006', 'KH006', 'NV008', 'ChuyenKhoan', 'ChuaThanhToan', 'DP006'),
-('HD007', '2026-04-13 12:00:00', '2026-04-13 13:00:00', N'Hoa don cho DP007', 2, 4200000.00, 160000.00, 0.00, 348800.00, 4708800.00, 0.00, NULL, 'KH007', 'NV009', 'TienMat', 'DaThanhToan', 'DP007'),
-('HD008', '2026-04-12 09:00:00', '2026-04-12 10:00:00', N'Hoa don cho DP008', 2, 1190000.00, 750000.00, 250000.00, 135200.00, 1825200.00, 50000.00, 'KM008', 'KH008', 'NV010', 'ChuyenKhoan', 'DaThanhToan', 'DP008'),
-('HD009', '2026-04-12 10:00:00', '2026-04-12 11:00:00', N'Hoa don cho DP009', 3, 2460000.00, 180000.00, 0.00, 211200.00, 2851200.00, 0.00, NULL, 'KH009', 'NV011', 'TienMat', 'DaThanhToan', 'DP009'),
-('HD010', '2026-04-15 11:00:00', '2026-04-15 12:00:00', N'Hoa don cho DP010', 4, 3960000.00, 1900000.00, 300000.00, 444800.00, 6004800.00, 0.00, 'KM010', 'KH010', 'NV012', 'ChuyenKhoan', 'DaThanhToan', 'DP010'),
-('HD011', '2026-04-18 12:00:00', '2026-04-18 13:00:00', N'Hoa don cho DP011', 2, 5640000.00, 360000.00, 0.00, 480000.00, 6480000.00, 0.00, NULL, 'KH011', 'NV013', 'TienMat', 'DaThanhToan', 'DP011'),
-('HD012', '2026-04-14 09:00:00', '2026-04-14 10:00:00', N'Hoa don cho DP012', 2, 1550000.00, 450000.00, 350000.00, 132000.00, 1782000.00, 50000.00, 'KM012', 'KH012', 'NV014', 'ChuyenKhoan', 'DaThanhToan', 'DP012'),
-('HD013', '2026-04-17 10:00:00', '2026-04-17 11:00:00', N'Hoa don cho DP013', 2, 3180000.00, 400000.00, 0.00, 286400.00, 3866400.00, 0.00, NULL, 'KH013', 'NV015', 'TienMat', 'DaThanhToan', 'DP013'),
-('HD014', '2026-04-20 11:00:00', NULL, N'Hoa don cho DP014', 3, 5040000.00, 1050000.00, 400000.00, 455200.00, 6145200.00, 0.00, 'KM014', 'KH014', 'NV016', 'ChuyenKhoan', 'ChuaThanhToan', 'DP014'),
-('HD015', '2026-04-20 12:00:00', '2026-04-20 13:00:00', N'Hoa don cho DP015', 4, 7080000.00, 90000.00, 0.00, 573600.00, 7743600.00, 0.00, NULL, 'KH015', 'NV017', 'TienMat', 'DaThanhToan', 'DP015'),
-('HD016', '2026-04-19 09:00:00', '2026-04-19 10:00:00', N'Hoa don cho DP016', 2, 1910000.00, 70000.00, 450000.00, 122400.00, 1652400.00, 50000.00, 'KM016', 'KH016', 'NV018', 'ChuyenKhoan', 'DaThanhToan', 'DP016'),
-('HD017', '2026-04-22 10:00:00', '2026-04-22 11:00:00', N'Hoa don cho DP017', 2, 3900000.00, 135000.00, 0.00, 322800.00, 4357800.00, 0.00, NULL, 'KH017', 'NV019', 'TienMat', 'DaThanhToan', 'DP017'),
-('HD018', '2026-04-22 11:00:00', '2026-04-22 12:00:00', N'Hoa don cho DP018', 2, 6120000.00, 70000.00, 500000.00, 455200.00, 6145200.00, 0.00, 'KM018', 'KH018', 'NV020', 'ChuyenKhoan', 'DaThanhToan', 'DP018'),
-('HD019', '2026-04-25 12:00:00', NULL, N'Hoa don cho DP019', 3, 8520000.00, 40000.00, 0.00, 684800.00, 9244800.00, 0.00, NULL, 'KH019', 'NV001', 'TienMat', 'ChuaThanhToan', 'DP019'),
-('HD020', '2026-04-24 09:00:00', '2026-04-24 10:00:00', N'Hoa don cho DP020', 4, 2270000.00, 1500000.00, 550000.00, 257600.00, 3477600.00, 50000.00, 'KM020', 'KH020', 'NV002', 'ChuyenKhoan', 'DaThanhToan', 'DP020');
-GO
-
--- Du lieu mau: ChiTietHoaDon (20 dong)
-INSERT INTO ChiTietHoaDon (maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) VALUES
-('HD001', 'P101', '2026-04-03 10:00:00', '2026-04-05 10:00:00', '2026-04-05 10:00:00', 2, 0.00, 1020000.00),
-('HD002', 'P102', '2026-04-05 11:00:00', '2026-04-08 11:00:00', '2026-04-08 11:00:00', 3, 0.00, 1800000.00),
-('HD003', 'P103', '2026-04-04 12:00:00', '2026-04-08 12:00:00', '2026-04-08 12:00:00', 4, 0.00, 2760000.00),
-('HD004', 'P104', '2026-04-06 09:00:00', '2026-04-07 09:00:00', '2026-04-07 09:00:00', 1, 50000.00, 830000.00),
-('HD005', 'P105', '2026-04-08 10:00:00', '2026-04-10 10:00:00', '2026-04-10 10:00:00', 2, 0.00, 1740000.00),
-('HD006', 'P106', '2026-04-07 11:00:00', '2026-04-10 11:00:00', NULL, 3, 0.00, 2880000.00),
-('HD007', 'P107', '2026-04-09 12:00:00', '2026-04-13 12:00:00', '2026-04-13 12:00:00', 4, 0.00, 4200000.00),
-('HD008', 'P108', '2026-04-11 09:00:00', '2026-04-12 09:00:00', '2026-04-12 09:00:00', 1, 50000.00, 1190000.00),
-('HD009', 'P109', '2026-04-10 10:00:00', '2026-04-12 10:00:00', '2026-04-12 10:00:00', 2, 0.00, 2460000.00),
-('HD010', 'P201', '2026-04-12 11:00:00', '2026-04-15 11:00:00', '2026-04-15 11:00:00', 3, 0.00, 3960000.00),
-('HD011', 'P202', '2026-04-14 12:00:00', '2026-04-18 12:00:00', '2026-04-18 12:00:00', 4, 0.00, 5640000.00),
-('HD012', 'P203', '2026-04-13 09:00:00', '2026-04-14 09:00:00', '2026-04-14 09:00:00', 1, 50000.00, 1550000.00),
-('HD013', 'P204', '2026-04-15 10:00:00', '2026-04-17 10:00:00', '2026-04-17 10:00:00', 2, 0.00, 3180000.00),
-('HD014', 'P205', '2026-04-17 11:00:00', '2026-04-20 11:00:00', NULL, 3, 0.00, 5040000.00),
-('HD015', 'P206', '2026-04-16 12:00:00', '2026-04-20 12:00:00', '2026-04-20 12:00:00', 4, 0.00, 7080000.00),
-('HD016', 'P207', '2026-04-18 09:00:00', '2026-04-19 09:00:00', '2026-04-19 09:00:00', 1, 50000.00, 1910000.00),
-('HD017', 'P301', '2026-04-20 10:00:00', '2026-04-22 10:00:00', '2026-04-22 10:00:00', 2, 0.00, 3900000.00),
-('HD018', 'P302', '2026-04-19 11:00:00', '2026-04-22 11:00:00', '2026-04-22 11:00:00', 3, 0.00, 6120000.00),
-('HD019', 'P303', '2026-04-21 12:00:00', '2026-04-25 12:00:00', NULL, 4, 0.00, 8520000.00),
-('HD020', 'P304', '2026-04-23 09:00:00', '2026-04-24 09:00:00', '2026-04-24 09:00:00', 1, 50000.00, 2270000.00);
-GO
-
--- Du lieu mau: ChiTietDichVu (20 dong)
-INSERT INTO ChiTietDichVu (maCTDV, maHD, maDV, soLuong, donGia, thanhTien, ghiChu) VALUES
-('CTDV001', 'HD001', 'DV001', 2, 10000.00, 20000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV002', 'HD002', 'DV002', 3, 15000.00, 45000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV003', 'HD003', 'DV003', 1, 25000.00, 25000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV004', 'HD004', 'DV004', 2, 30000.00, 60000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV005', 'HD005', 'DV005', 3, 55000.00, 165000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV006', 'HD006', 'DV006', 1, 40000.00, 40000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV007', 'HD007', 'DV007', 2, 80000.00, 160000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV008', 'HD008', 'DV008', 3, 250000.00, 750000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV009', 'HD009', 'DV009', 1, 180000.00, 180000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV010', 'HD010', 'DV010', 2, 950000.00, 1900000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV011', 'HD011', 'DV011', 3, 120000.00, 360000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV012', 'HD012', 'DV012', 1, 450000.00, 450000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV013', 'HD013', 'DV013', 2, 200000.00, 400000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV014', 'HD014', 'DV014', 3, 350000.00, 1050000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV015', 'HD015', 'DV015', 1, 90000.00, 90000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV016', 'HD016', 'DV016', 2, 35000.00, 70000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV017', 'HD017', 'DV017', 3, 45000.00, 135000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV018', 'HD018', 'DV018', 1, 70000.00, 70000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV019', 'HD019', 'DV019', 2, 20000.00, 40000.00, N'Su dung trong thoi gian luu tru'),
-('CTDV020', 'HD020', 'DV020', 3, 500000.00, 1500000.00, N'Su dung trong thoi gian luu tru');
-GO
-
--- Du lieu mau: ThanhToan (20 dong)
-INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD) VALUES
-('TT001', '2026-04-05 11:15:00', 1123200.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD001'),
-('TT002', '2026-04-08 12:15:00', 1884600.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD002'),
-('TT003', '2026-04-08 13:15:00', 3007800.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD003'),
-('TT004', '2026-04-07 10:15:00', 799200.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD004'),
-('TT005', '2026-04-10 11:15:00', 2057400.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD005'),
-('TT006', '2026-04-10 12:15:00', 0.00, N'Cho thanh toan', 'ChuyenKhoan', 'ChoThanhToan', 'HD006'),
-('TT007', '2026-04-13 13:15:00', 4708800.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD007'),
-('TT008', '2026-04-12 10:15:00', 1825200.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD008'),
-('TT009', '2026-04-12 11:15:00', 2851200.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD009'),
-('TT010', '2026-04-15 12:15:00', 6004800.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD010'),
-('TT011', '2026-04-18 13:15:00', 6480000.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD011'),
-('TT012', '2026-04-14 10:15:00', 1782000.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD012'),
-('TT013', '2026-04-17 11:15:00', 3866400.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD013'),
-('TT014', '2026-04-20 12:15:00', 0.00, N'Cho thanh toan', 'ChuyenKhoan', 'ChoThanhToan', 'HD014'),
-('TT015', '2026-04-20 13:15:00', 7743600.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD015'),
-('TT016', '2026-04-19 10:15:00', 1652400.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD016'),
-('TT017', '2026-04-22 11:15:00', 4357800.00, N'Thanh toan hoa don', 'TienMat', 'ThanhToanThanhCong', 'HD017'),
-('TT018', '2026-04-22 12:15:00', 6145200.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD018'),
-('TT019', '2026-04-25 13:15:00', 0.00, N'Cho thanh toan', 'TienMat', 'ChoThanhToan', 'HD019'),
-('TT020', '2026-04-24 10:15:00', 3477600.00, N'Thanh toan hoa don', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD020');
-GO
-
-
--- =========================================================
--- BO SUNG THEM 20 MAU HOA DON MOI
--- 5 DA THANH TOAN, 15 CHUA THANH TOAN
--- KHONG XOA DU LIEU MAU CU, CHI BO SUNG THEM
--- DAN TU DP031 - DP050 / HD031 - HD050
--- =========================================================
+-- =====================================================================
+-- 9. PIPELINE BOOKING (10 bookings phu 5 giai doan)
+--   DP001-DP002 : Stage 4 - Hoan tat (da check-out, da thanh toan du)
+--   DP003       : Stage 3 - Da check-out, cho thanh toan phan con lai
+--   DP004-DP005 : Stage 2 - Dang luu tru (Phong DangSuDung)
+--   DP006-DP008 : Stage 1 - Da dat coc, chua check-in
+--   DP009       : Stage 5 - Da huy
+--   DP010       : Stage 4 dac biet - Thanh toan 100% ngay khi dat
+-- =====================================================================
 
 INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES
-('DP031', '2026-06-01 09:00:00', '2026-06-03 14:00:00', '2026-06-05 14:00:00', 666000.00, N'Bo sung mau dat 2 phong', 'KH001', 'NV005'),
-('DP032', '2026-06-02 09:00:00', '2026-06-04 14:00:00', '2026-06-07 14:00:00', 2349000.00, N'Bo sung mau dat 3 phong', 'KH002', 'NV006'),
-('DP033', '2026-06-03 09:00:00', '2026-06-05 14:00:00', '2026-06-09 14:00:00', 2628000.00, N'Bo sung mau dat 2 phong', 'KH003', 'NV007'),
-('DP034', '2026-06-04 09:00:00', '2026-06-06 14:00:00', '2026-06-08 14:00:00', 2538000.00, N'Bo sung mau dat 3 phong', 'KH004', 'NV008'),
-('DP035', '2026-06-05 09:00:00', '2026-06-07 14:00:00', '2026-06-10 14:00:00', 2943000.00, N'Bo sung mau dat 2 phong', 'KH005', 'NV009'),
-('DP036', '2026-06-06 09:00:00', '2026-06-08 14:00:00', '2026-06-12 14:00:00', 7020000.00, N'Bo sung mau dat 3 phong', 'KH006', 'NV010'),
-('DP037', '2026-06-07 09:00:00', '2026-06-09 14:00:00', '2026-06-11 14:00:00', 2610000.00, N'Bo sung mau dat 2 phong', 'KH007', 'NV011'),
-('DP038', '2026-06-08 09:00:00', '2026-06-10 14:00:00', '2026-06-13 14:00:00', 1863000.00, N'Bo sung mau dat 3 phong', 'KH008', 'NV012'),
-('DP039', '2026-06-09 09:00:00', '2026-06-11 14:00:00', '2026-06-15 14:00:00', 2196000.00, N'Bo sung mau dat 2 phong', 'KH009', 'NV013'),
-('DP040', '2026-06-10 09:00:00', '2026-06-12 14:00:00', '2026-06-14 14:00:00', 2214000.00, N'Bo sung mau dat 3 phong', 'KH010', 'NV014'),
-('DP041', '2026-06-11 09:00:00', '2026-06-13 14:00:00', '2026-06-16 14:00:00', 2619000.00, N'Bo sung mau dat 2 phong', 'KH011', 'NV015'),
-('DP042', '2026-06-12 09:00:00', '2026-06-14 14:00:00', '2026-06-18 14:00:00', 6372000.00, N'Bo sung mau dat 3 phong', 'KH012', 'NV016'),
-('DP043', '2026-06-13 09:00:00', '2026-06-15 14:00:00', '2026-06-17 14:00:00', 2394000.00, N'Bo sung mau dat 2 phong', 'KH013', 'NV017'),
-('DP044', '2026-06-14 09:00:00', '2026-06-16 14:00:00', '2026-06-19 14:00:00', 2997000.00, N'Bo sung mau dat 3 phong', 'KH014', 'NV018'),
-('DP045', '2026-06-15 09:00:00', '2026-06-17 14:00:00', '2026-06-21 14:00:00', 1764000.00, N'Bo sung mau dat 2 phong', 'KH015', 'NV019'),
-('DP046', '2026-06-16 09:00:00', '2026-06-18 14:00:00', '2026-06-20 14:00:00', 1890000.00, N'Bo sung mau dat 3 phong', 'KH016', 'NV020'),
-('DP047', '2026-06-17 09:00:00', '2026-06-19 14:00:00', '2026-06-22 14:00:00', 2295000.00, N'Bo sung mau dat 2 phong', 'KH017', 'NV001'),
-('DP048', '2026-06-18 09:00:00', '2026-06-20 14:00:00', '2026-06-24 14:00:00', 5724000.00, N'Bo sung mau dat 3 phong', 'KH018', 'NV002'),
-('DP049', '2026-06-19 09:00:00', '2026-06-21 14:00:00', '2026-06-23 14:00:00', 2178000.00, N'Bo sung mau dat 2 phong', 'KH019', 'NV003'),
-('DP050', '2026-06-20 09:00:00', '2026-06-22 14:00:00', '2026-06-25 14:00:00', 5751000.00, N'Bo sung mau dat 3 phong', 'KH020', 'NV004');
+-- Stage 4: hoan tat
+('DP001', '2026-04-10 09:00', '2026-04-15 14:00', '2026-04-18 12:00',  450000.00, N'Booking demo da hoan tat',    'KH001', 'NV002'),
+('DP002', '2026-04-12 10:00', '2026-04-17 14:00', '2026-04-20 12:00',  675000.00, N'Booking 2 phong da hoan tat', 'KH002', 'NV003'),
+-- Stage 3: da tra phong, chua thanh toan du
+('DP003', '2026-04-18 09:00', '2026-04-22 14:00', '2026-04-24 12:00',  450000.00, N'Khach da tra, no phan con lai','KH004', 'NV004'),
+-- Stage 2: dang luu tru
+('DP004', '2026-04-20 11:00', '2026-04-23 14:00', '2026-04-27 12:00',  900000.00, N'Khach dang luu tru',          'KH005', 'NV002'),
+('DP005', '2026-04-21 14:00', '2026-04-24 14:00', '2026-04-28 12:00', 1350000.00, N'Khach gia dinh dang o',       'KH008', 'NV003'),
+-- Stage 1: dat coc, chua check-in
+('DP006', '2026-04-23 16:00', '2026-04-27 14:00', '2026-04-30 12:00',  450000.00, N'Da dat coc - check-in tuong lai','KH003','NV004'),
+('DP007', '2026-04-24 09:00', '2026-04-28 14:00', '2026-05-02 12:00', 1500000.00, N'Dat phong VIP cho ky nghi',    'KH006', 'NV002'),
+('DP008', '2026-04-25 10:00', '2026-05-05 14:00', '2026-05-08 12:00',  675000.00, N'Booking xa - le 30/4',         'KH007', 'NV005'),
+-- Stage 5: huy
+('DP009', '2026-04-15 11:00', '2026-04-22 14:00', '2026-04-25 12:00',  300000.00, N'Khach huy do thay doi lich',   'KH001', 'NV003'),
+-- Stage 4 (full pay khong qua coc)
+('DP010', '2026-04-19 13:00', '2026-04-19 14:00', '2026-04-21 12:00',       0.00, N'Walk-in thanh toan 100% ngay', 'KH004', 'NV002');
 GO
 
 INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES
-('DP031', 'P101', '2026-06-03 14:00:00', '2026-06-05 14:00:00', 510000.00, 2, N'Phong 1 trong don DP031'),
-('DP031', 'P102', '2026-06-03 14:00:00', '2026-06-05 14:00:00', 600000.00, 2, N'Phong 2 trong don DP031'),
-('DP032', 'P104', '2026-06-04 14:00:00', '2026-06-07 14:00:00', 780000.00, 2, N'Phong 1 trong don DP032'),
-('DP032', 'P105', '2026-06-04 14:00:00', '2026-06-07 14:00:00', 870000.00, 2, N'Phong 2 trong don DP032'),
-('DP032', 'P106', '2026-06-04 14:00:00', '2026-06-07 14:00:00', 960000.00, 3, N'Phong 3 trong don DP032'),
-('DP033', 'P107', '2026-06-05 14:00:00', '2026-06-09 14:00:00', 1050000.00, 2, N'Phong 1 trong don DP033'),
-('DP033', 'P108', '2026-06-05 14:00:00', '2026-06-09 14:00:00', 1140000.00, 2, N'Phong 2 trong don DP033'),
-('DP034', 'P201', '2026-06-06 14:00:00', '2026-06-08 14:00:00', 1320000.00, 2, N'Phong 1 trong don DP034'),
-('DP034', 'P202', '2026-06-06 14:00:00', '2026-06-08 14:00:00', 1410000.00, 2, N'Phong 2 trong don DP034'),
-('DP034', 'P203', '2026-06-06 14:00:00', '2026-06-08 14:00:00', 1500000.00, 3, N'Phong 3 trong don DP034'),
-('DP035', 'P204', '2026-06-07 14:00:00', '2026-06-10 14:00:00', 1590000.00, 2, N'Phong 1 trong don DP035'),
-('DP035', 'P205', '2026-06-07 14:00:00', '2026-06-10 14:00:00', 1680000.00, 2, N'Phong 2 trong don DP035'),
-('DP036', 'P207', '2026-06-08 14:00:00', '2026-06-12 14:00:00', 1860000.00, 2, N'Phong 1 trong don DP036'),
-('DP036', 'P301', '2026-06-08 14:00:00', '2026-06-12 14:00:00', 1950000.00, 2, N'Phong 2 trong don DP036'),
-('DP036', 'P302', '2026-06-08 14:00:00', '2026-06-12 14:00:00', 2040000.00, 3, N'Phong 3 trong don DP036'),
-('DP037', 'P303', '2026-06-09 14:00:00', '2026-06-11 14:00:00', 2130000.00, 2, N'Phong 1 trong don DP037'),
-('DP037', 'P304', '2026-06-09 14:00:00', '2026-06-11 14:00:00', 2220000.00, 2, N'Phong 2 trong don DP037'),
-('DP038', 'P102', '2026-06-10 14:00:00', '2026-06-13 14:00:00', 600000.00, 2, N'Phong 1 trong don DP038'),
-('DP038', 'P103', '2026-06-10 14:00:00', '2026-06-13 14:00:00', 690000.00, 2, N'Phong 2 trong don DP038'),
-('DP038', 'P104', '2026-06-10 14:00:00', '2026-06-13 14:00:00', 780000.00, 3, N'Phong 3 trong don DP038'),
-('DP039', 'P105', '2026-06-11 14:00:00', '2026-06-15 14:00:00', 870000.00, 2, N'Phong 1 trong don DP039'),
-('DP039', 'P106', '2026-06-11 14:00:00', '2026-06-15 14:00:00', 960000.00, 2, N'Phong 2 trong don DP039'),
-('DP040', 'P108', '2026-06-12 14:00:00', '2026-06-14 14:00:00', 1140000.00, 2, N'Phong 1 trong don DP040'),
-('DP040', 'P109', '2026-06-12 14:00:00', '2026-06-14 14:00:00', 1230000.00, 2, N'Phong 2 trong don DP040'),
-('DP040', 'P201', '2026-06-12 14:00:00', '2026-06-14 14:00:00', 1320000.00, 3, N'Phong 3 trong don DP040'),
-('DP041', 'P202', '2026-06-13 14:00:00', '2026-06-16 14:00:00', 1410000.00, 2, N'Phong 1 trong don DP041'),
-('DP041', 'P203', '2026-06-13 14:00:00', '2026-06-16 14:00:00', 1500000.00, 2, N'Phong 2 trong don DP041'),
-('DP042', 'P205', '2026-06-14 14:00:00', '2026-06-18 14:00:00', 1680000.00, 2, N'Phong 1 trong don DP042'),
-('DP042', 'P206', '2026-06-14 14:00:00', '2026-06-18 14:00:00', 1770000.00, 2, N'Phong 2 trong don DP042'),
-('DP042', 'P207', '2026-06-14 14:00:00', '2026-06-18 14:00:00', 1860000.00, 3, N'Phong 3 trong don DP042'),
-('DP043', 'P301', '2026-06-15 14:00:00', '2026-06-17 14:00:00', 1950000.00, 2, N'Phong 1 trong don DP043'),
-('DP043', 'P302', '2026-06-15 14:00:00', '2026-06-17 14:00:00', 2040000.00, 2, N'Phong 2 trong don DP043'),
-('DP044', 'P304', '2026-06-16 14:00:00', '2026-06-19 14:00:00', 2220000.00, 2, N'Phong 1 trong don DP044'),
-('DP044', 'P101', '2026-06-16 14:00:00', '2026-06-19 14:00:00', 510000.00, 2, N'Phong 2 trong don DP044'),
-('DP044', 'P102', '2026-06-16 14:00:00', '2026-06-19 14:00:00', 600000.00, 3, N'Phong 3 trong don DP044'),
-('DP045', 'P103', '2026-06-17 14:00:00', '2026-06-21 14:00:00', 690000.00, 2, N'Phong 1 trong don DP045'),
-('DP045', 'P104', '2026-06-17 14:00:00', '2026-06-21 14:00:00', 780000.00, 2, N'Phong 2 trong don DP045'),
-('DP046', 'P106', '2026-06-18 14:00:00', '2026-06-20 14:00:00', 960000.00, 2, N'Phong 1 trong don DP046'),
-('DP046', 'P107', '2026-06-18 14:00:00', '2026-06-20 14:00:00', 1050000.00, 2, N'Phong 2 trong don DP046'),
-('DP046', 'P108', '2026-06-18 14:00:00', '2026-06-20 14:00:00', 1140000.00, 3, N'Phong 3 trong don DP046'),
-('DP047', 'P109', '2026-06-19 14:00:00', '2026-06-22 14:00:00', 1230000.00, 2, N'Phong 1 trong don DP047'),
-('DP047', 'P201', '2026-06-19 14:00:00', '2026-06-22 14:00:00', 1320000.00, 2, N'Phong 2 trong don DP047'),
-('DP048', 'P203', '2026-06-20 14:00:00', '2026-06-24 14:00:00', 1500000.00, 2, N'Phong 1 trong don DP048'),
-('DP048', 'P204', '2026-06-20 14:00:00', '2026-06-24 14:00:00', 1590000.00, 2, N'Phong 2 trong don DP048'),
-('DP048', 'P205', '2026-06-20 14:00:00', '2026-06-24 14:00:00', 1680000.00, 3, N'Phong 3 trong don DP048'),
-('DP049', 'P206', '2026-06-21 14:00:00', '2026-06-23 14:00:00', 1770000.00, 2, N'Phong 1 trong don DP049'),
-('DP049', 'P207', '2026-06-21 14:00:00', '2026-06-23 14:00:00', 1860000.00, 2, N'Phong 2 trong don DP049'),
-('DP050', 'P302', '2026-06-22 14:00:00', '2026-06-25 14:00:00', 2040000.00, 2, N'Phong 1 trong don DP050'),
-('DP050', 'P303', '2026-06-22 14:00:00', '2026-06-25 14:00:00', 2130000.00, 2, N'Phong 2 trong don DP050'),
-('DP050', 'P304', '2026-06-22 14:00:00', '2026-06-25 14:00:00', 2220000.00, 3, N'Phong 3 trong don DP050');
+-- DP001: 1 Standard
+('DP001', 'P101', '2026-04-15 14:00', '2026-04-18 12:00',  500000.00, 2, NULL),
+-- DP002: 2 phong (Superior + Deluxe)
+('DP002', 'P103', '2026-04-17 14:00', '2026-04-20 12:00',  750000.00, 2, NULL),
+('DP002', 'P201', '2026-04-17 14:00', '2026-04-20 12:00', 1000000.00, 3, NULL),
+-- DP003: 1 Deluxe
+('DP003', 'P202', '2026-04-22 14:00', '2026-04-24 12:00', 1000000.00, 2, NULL),
+-- DP004: 1 Deluxe (P201 - DangSuDung)
+('DP004', 'P201', '2026-04-23 14:00', '2026-04-27 12:00', 1000000.00, 2, NULL),
+-- DP005: 1 Family (P203 - DangSuDung)
+('DP005', 'P203', '2026-04-24 14:00', '2026-04-28 12:00', 1500000.00, 4, NULL),
+-- DP006: 1 Standard
+('DP006', 'P102', '2026-04-27 14:00', '2026-04-30 12:00',  500000.00, 2, NULL),
+-- DP007: 1 VIP
+('DP007', 'P401', '2026-04-28 14:00', '2026-05-02 12:00', 3500000.00, 4, NULL),
+-- DP008: 1 Suite
+('DP008', 'P301', '2026-05-05 14:00', '2026-05-08 12:00', 2200000.00, 3, NULL),
+-- DP009: 1 Standard (huy)
+('DP009', 'P102', '2026-04-22 14:00', '2026-04-25 12:00',  500000.00, 2, NULL),
+-- DP010: 1 Superior
+('DP010', 'P103', '2026-04-19 14:00', '2026-04-21 12:00',  750000.00, 2, NULL);
 GO
 
+-- ----- HoaDon -----
+-- Cong thuc: tongTienThanhToan = tienPhong + tienDichVu - tienKhuyenMai + tienThue + phiDoiPhong
+-- tienThue = 10% * (tienPhong + tienDichVu - tienKhuyenMai)
 INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) VALUES
-('HD031', '2026-06-05 14:00:00', '2026-06-05 15:00:00', N'Bo sung mau hoa don 2 phong', 4, 2220000.00, 20000.00, 300000.00, 194000.00, 2134000.00, 0.00, 'KM010', 'KH001', 'NV005', 'TienMat', 'DaThanhToan', 'DP031'),
-('HD032', '2026-06-07 14:00:00', '2026-06-07 15:00:00', N'Bo sung mau hoa don 3 phong', 7, 7830000.00, 330000.00, 0.00, 816000.00, 8976000.00, 0.00, NULL, 'KH002', 'NV006', 'ChuyenKhoan', 'DaThanhToan', 'DP032'),
-('HD033', '2026-06-09 14:00:00', '2026-06-09 15:00:00', N'Bo sung mau hoa don 2 phong', 4, 8760000.00, 250000.00, 0.00, 901000.00, 9911000.00, 0.00, NULL, 'KH003', 'NV007', 'TienMat', 'DaThanhToan', 'DP033'),
-('HD034', '2026-06-08 14:00:00', '2026-06-08 15:00:00', N'Bo sung mau hoa don 3 phong', 7, 8460000.00, 310000.00, 0.00, 877000.00, 9647000.00, 0.00, NULL, 'KH004', 'NV008', 'ChuyenKhoan', 'DaThanhToan', 'DP034'),
-('HD035', '2026-06-10 14:00:00', '2026-06-10 15:00:00', N'Bo sung mau hoa don 2 phong', 4, 9810000.00, 70000.00, 300000.00, 958000.00, 10538000.00, 0.00, 'KM010', 'KH005', 'NV009', 'TienMat', 'DaThanhToan', 'DP035'),
-('HD036', '2026-06-12 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 23400000.00, 70000.00, 0.00, 2347000.00, 25817000.00, 0.00, NULL, 'KH006', 'NV010', 'ChuyenKhoan', 'ChuaThanhToan', 'DP036'),
-('HD037', '2026-06-11 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 8700000.00, 40000.00, 0.00, 874000.00, 9614000.00, 0.00, NULL, 'KH007', 'NV011', 'TienMat', 'ChuaThanhToan', 'DP037'),
-('HD038', '2026-06-13 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 6210000.00, 620000.00, 0.00, 683000.00, 7513000.00, 0.00, NULL, 'KH008', 'NV012', 'ChuyenKhoan', 'ChuaThanhToan', 'DP038'),
-('HD039', '2026-06-15 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 7320000.00, 120000.00, 300000.00, 714000.00, 7854000.00, 0.00, 'KM010', 'KH009', 'NV013', 'TienMat', 'ChuaThanhToan', 'DP039'),
-('HD040', '2026-06-14 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 7380000.00, 125000.00, 0.00, 750500.00, 8255500.00, 0.00, NULL, 'KH010', 'NV014', 'ChuyenKhoan', 'ChuaThanhToan', 'DP040'),
-('HD041', '2026-06-16 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 8730000.00, 20000.00, 0.00, 875000.00, 9625000.00, 0.00, NULL, 'KH011', 'NV015', 'TienMat', 'ChuaThanhToan', 'DP041'),
-('HD042', '2026-06-18 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 21240000.00, 330000.00, 0.00, 2157000.00, 23727000.00, 0.00, NULL, 'KH012', 'NV016', 'ChuyenKhoan', 'ChuaThanhToan', 'DP042'),
-('HD043', '2026-06-17 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 7980000.00, 250000.00, 300000.00, 793000.00, 8723000.00, 0.00, 'KM010', 'KH013', 'NV017', 'TienMat', 'ChuaThanhToan', 'DP043'),
-('HD044', '2026-06-19 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 9990000.00, 310000.00, 0.00, 1030000.00, 11330000.00, 0.00, NULL, 'KH014', 'NV018', 'ChuyenKhoan', 'ChuaThanhToan', 'DP044'),
-('HD045', '2026-06-21 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 5880000.00, 70000.00, 0.00, 595000.00, 6545000.00, 0.00, NULL, 'KH015', 'NV019', 'TienMat', 'ChuaThanhToan', 'DP045'),
-('HD046', '2026-06-20 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 6300000.00, 70000.00, 0.00, 637000.00, 7007000.00, 0.00, NULL, 'KH016', 'NV020', 'ChuyenKhoan', 'ChuaThanhToan', 'DP046'),
-('HD047', '2026-06-22 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 7650000.00, 40000.00, 300000.00, 739000.00, 8129000.00, 0.00, 'KM010', 'KH017', 'NV001', 'TienMat', 'ChuaThanhToan', 'DP047'),
-('HD048', '2026-06-24 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 19080000.00, 620000.00, 0.00, 1970000.00, 21670000.00, 0.00, NULL, 'KH018', 'NV002', 'ChuyenKhoan', 'ChuaThanhToan', 'DP048'),
-('HD049', '2026-06-23 14:00:00', NULL, N'Bo sung mau hoa don 2 phong', 4, 7260000.00, 120000.00, 0.00, 738000.00, 8118000.00, 0.00, NULL, 'KH019', 'NV003', 'TienMat', 'ChuaThanhToan', 'DP049'),
-('HD050', '2026-06-25 14:00:00', NULL, N'Bo sung mau hoa don 3 phong', 7, 19170000.00, 125000.00, 0.00, 1929500.00, 21224500.00, 0.00, NULL, 'KH020', 'NV004', 'ChuyenKhoan', 'ChuaThanhToan', 'DP050');
+-- DP001: 3 dem * 500k = 1.5tr + DV 120k - KM 0 + thue 162k = 1.782tr
+('HD001', '2026-04-10 09:00', '2026-04-18 12:30', N'Hoan tat',
+ 2, 1500000.00, 120000.00,      0.00, 162000.00, 1782000.00, 0.00, NULL,    'KH001', 'NV002', 'TienMat',     'DaThanhToan',   'DP001'),
+-- DP002: (3*750+3*1000)=5.25tr + DV 60k - KM 300k = 5.01 -> thue 501k
+('HD002', '2026-04-12 10:00', '2026-04-20 12:30', N'Hoan tat 2 phong',
+ 5, 5250000.00,  60000.00, 300000.00, 501000.00, 5511000.00, 0.00, 'KM002', 'KH002', 'NV003', 'ChuyenKhoan', 'DaThanhToan',   'DP002'),
+-- DP003: 2 dem * 1000 = 2tr + DV 80k = 2.08, thue 208k -> 2.288tr
+('HD003', '2026-04-18 09:00', NULL,                 N'Cho thanh toan phan con lai',
+ 2, 2000000.00,  80000.00,      0.00, 208000.00, 2288000.00, 0.00, NULL,    'KH004', 'NV004', 'TienMat',     'ChuaThanhToan', 'DP003'),
+-- DP004: 4 dem * 1000 = 4tr (chua dung dich vu)
+('HD004', '2026-04-20 11:00', NULL,                 N'Khach dang luu tru',
+ 2, 4000000.00,      0.00,      0.00, 400000.00, 4400000.00, 0.00, NULL,    'KH005', 'NV002', 'TienMat',     'ChuaThanhToan', 'DP004'),
+-- DP005: 4 dem * 1500 = 6tr + DV 240k - KM 300k = 5.94 -> thue 594k
+('HD005', '2026-04-21 14:00', NULL,                 N'Khach gia dinh',
+ 4, 6000000.00, 240000.00, 300000.00, 594000.00, 6534000.00, 0.00, 'KM002', 'KH008', 'NV003', 'ChuyenKhoan', 'ChuaThanhToan', 'DP005'),
+-- DP006: 3 dem * 500 = 1.5tr -> thue 150k = 1.65tr
+('HD006', '2026-04-23 16:00', NULL,                 N'Da dat coc 30%',
+ 2, 1500000.00,      0.00,      0.00, 150000.00, 1650000.00, 0.00, NULL,    'KH003', 'NV004', 'ChuyenKhoan', 'ChuaThanhToan', 'DP006'),
+-- DP007: 4 dem * 3500 = 14tr - KM 600k = 13.4 -> thue 1.34tr
+('HD007', '2026-04-24 09:00', NULL,                 N'Da dat coc - VIP',
+ 4, 14000000.00,     0.00, 600000.00, 1340000.00, 14740000.00, 0.00, 'KM002', 'KH006', 'NV002', 'ChuyenKhoan', 'ChuaThanhToan', 'DP007'),
+-- DP008: 3 dem * 2200 = 6.6tr - KM 600k = 6 -> thue 600k = 6.6tr
+('HD008', '2026-04-25 10:00', NULL,                 N'Da dat coc - le',
+ 3, 6600000.00,      0.00, 600000.00, 600000.00, 6600000.00, 0.00, 'KM002', 'KH007', 'NV005', 'TienMat',     'ChuaThanhToan', 'DP008'),
+-- DP009: huy - tongTien giu so cu, trangThai = DaHuy
+('HD009', '2026-04-15 11:00', NULL,                 N'Da huy',
+ 2, 1500000.00,      0.00,      0.00, 150000.00, 1650000.00, 0.00, NULL,    'KH001', 'NV003', 'TienMat',     'DaHuy',         'DP009'),
+-- DP010: 2 dem * 750 = 1.5tr + DV 30k = 1.53 -> thue 153k
+('HD010', '2026-04-19 13:00', '2026-04-19 13:30', N'Walk-in tra full',
+ 2, 1500000.00,  30000.00,      0.00, 153000.00, 1683000.00, 0.00, NULL,    'KH004', 'NV002', 'TienMat',     'DaThanhToan',   'DP010');
 GO
 
+-- ----- ChiTietHoaDon (chi tao cho booking da check-in: DP001-DP005, DP010) -----
 INSERT INTO ChiTietHoaDon (maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) VALUES
-('HD031', 'P101', '2026-06-03 14:00:00', '2026-06-05 14:00:00', '2026-06-05 14:00:00', 2, 0.00, 1020000.00),
-('HD031', 'P102', '2026-06-03 14:00:00', '2026-06-05 14:00:00', '2026-06-05 14:00:00', 2, 0.00, 1200000.00),
-('HD032', 'P104', '2026-06-04 14:00:00', '2026-06-07 14:00:00', '2026-06-07 14:00:00', 3, 0.00, 2340000.00),
-('HD032', 'P105', '2026-06-04 14:00:00', '2026-06-07 14:00:00', '2026-06-07 14:00:00', 3, 0.00, 2610000.00),
-('HD032', 'P106', '2026-06-04 14:00:00', '2026-06-07 14:00:00', '2026-06-07 14:00:00', 3, 0.00, 2880000.00),
-('HD033', 'P107', '2026-06-05 14:00:00', '2026-06-09 14:00:00', '2026-06-09 14:00:00', 4, 0.00, 4200000.00),
-('HD033', 'P108', '2026-06-05 14:00:00', '2026-06-09 14:00:00', '2026-06-09 14:00:00', 4, 0.00, 4560000.00),
-('HD034', 'P201', '2026-06-06 14:00:00', '2026-06-08 14:00:00', '2026-06-08 14:00:00', 2, 0.00, 2640000.00),
-('HD034', 'P202', '2026-06-06 14:00:00', '2026-06-08 14:00:00', '2026-06-08 14:00:00', 2, 0.00, 2820000.00),
-('HD034', 'P203', '2026-06-06 14:00:00', '2026-06-08 14:00:00', '2026-06-08 14:00:00', 2, 0.00, 3000000.00),
-('HD035', 'P204', '2026-06-07 14:00:00', '2026-06-10 14:00:00', '2026-06-10 14:00:00', 3, 0.00, 4770000.00),
-('HD035', 'P205', '2026-06-07 14:00:00', '2026-06-10 14:00:00', '2026-06-10 14:00:00', 3, 0.00, 5040000.00),
-('HD036', 'P207', '2026-06-08 14:00:00', '2026-06-12 14:00:00', NULL, 4, 0.00, 7440000.00),
-('HD036', 'P301', '2026-06-08 14:00:00', '2026-06-12 14:00:00', NULL, 4, 0.00, 7800000.00),
-('HD036', 'P302', '2026-06-08 14:00:00', '2026-06-12 14:00:00', NULL, 4, 0.00, 8160000.00),
-('HD037', 'P303', '2026-06-09 14:00:00', '2026-06-11 14:00:00', NULL, 2, 0.00, 4260000.00),
-('HD037', 'P304', '2026-06-09 14:00:00', '2026-06-11 14:00:00', NULL, 2, 0.00, 4440000.00),
-('HD038', 'P102', '2026-06-10 14:00:00', '2026-06-13 14:00:00', NULL, 3, 0.00, 1800000.00),
-('HD038', 'P103', '2026-06-10 14:00:00', '2026-06-13 14:00:00', NULL, 3, 0.00, 2070000.00),
-('HD038', 'P104', '2026-06-10 14:00:00', '2026-06-13 14:00:00', NULL, 3, 0.00, 2340000.00),
-('HD039', 'P105', '2026-06-11 14:00:00', '2026-06-15 14:00:00', NULL, 4, 0.00, 3480000.00),
-('HD039', 'P106', '2026-06-11 14:00:00', '2026-06-15 14:00:00', NULL, 4, 0.00, 3840000.00),
-('HD040', 'P108', '2026-06-12 14:00:00', '2026-06-14 14:00:00', NULL, 2, 0.00, 2280000.00),
-('HD040', 'P109', '2026-06-12 14:00:00', '2026-06-14 14:00:00', NULL, 2, 0.00, 2460000.00),
-('HD040', 'P201', '2026-06-12 14:00:00', '2026-06-14 14:00:00', NULL, 2, 0.00, 2640000.00),
-('HD041', 'P202', '2026-06-13 14:00:00', '2026-06-16 14:00:00', NULL, 3, 0.00, 4230000.00),
-('HD041', 'P203', '2026-06-13 14:00:00', '2026-06-16 14:00:00', NULL, 3, 0.00, 4500000.00),
-('HD042', 'P205', '2026-06-14 14:00:00', '2026-06-18 14:00:00', NULL, 4, 0.00, 6720000.00),
-('HD042', 'P206', '2026-06-14 14:00:00', '2026-06-18 14:00:00', NULL, 4, 0.00, 7080000.00),
-('HD042', 'P207', '2026-06-14 14:00:00', '2026-06-18 14:00:00', NULL, 4, 0.00, 7440000.00),
-('HD043', 'P301', '2026-06-15 14:00:00', '2026-06-17 14:00:00', NULL, 2, 0.00, 3900000.00),
-('HD043', 'P302', '2026-06-15 14:00:00', '2026-06-17 14:00:00', NULL, 2, 0.00, 4080000.00),
-('HD044', 'P304', '2026-06-16 14:00:00', '2026-06-19 14:00:00', NULL, 3, 0.00, 6660000.00),
-('HD044', 'P101', '2026-06-16 14:00:00', '2026-06-19 14:00:00', NULL, 3, 0.00, 1530000.00),
-('HD044', 'P102', '2026-06-16 14:00:00', '2026-06-19 14:00:00', NULL, 3, 0.00, 1800000.00),
-('HD045', 'P103', '2026-06-17 14:00:00', '2026-06-21 14:00:00', NULL, 4, 0.00, 2760000.00),
-('HD045', 'P104', '2026-06-17 14:00:00', '2026-06-21 14:00:00', NULL, 4, 0.00, 3120000.00),
-('HD046', 'P106', '2026-06-18 14:00:00', '2026-06-20 14:00:00', NULL, 2, 0.00, 1920000.00),
-('HD046', 'P107', '2026-06-18 14:00:00', '2026-06-20 14:00:00', NULL, 2, 0.00, 2100000.00),
-('HD046', 'P108', '2026-06-18 14:00:00', '2026-06-20 14:00:00', NULL, 2, 0.00, 2280000.00),
-('HD047', 'P109', '2026-06-19 14:00:00', '2026-06-22 14:00:00', NULL, 3, 0.00, 3690000.00),
-('HD047', 'P201', '2026-06-19 14:00:00', '2026-06-22 14:00:00', NULL, 3, 0.00, 3960000.00),
-('HD048', 'P203', '2026-06-20 14:00:00', '2026-06-24 14:00:00', NULL, 4, 0.00, 6000000.00),
-('HD048', 'P204', '2026-06-20 14:00:00', '2026-06-24 14:00:00', NULL, 4, 0.00, 6360000.00),
-('HD048', 'P205', '2026-06-20 14:00:00', '2026-06-24 14:00:00', NULL, 4, 0.00, 6720000.00),
-('HD049', 'P206', '2026-06-21 14:00:00', '2026-06-23 14:00:00', NULL, 2, 0.00, 3540000.00),
-('HD049', 'P207', '2026-06-21 14:00:00', '2026-06-23 14:00:00', NULL, 2, 0.00, 3720000.00),
-('HD050', 'P302', '2026-06-22 14:00:00', '2026-06-25 14:00:00', NULL, 3, 0.00, 6120000.00),
-('HD050', 'P303', '2026-06-22 14:00:00', '2026-06-25 14:00:00', NULL, 3, 0.00, 6390000.00),
-('HD050', 'P304', '2026-06-22 14:00:00', '2026-06-25 14:00:00', NULL, 3, 0.00, 6660000.00);
+-- DP001 (da tra)
+('HD001', 'P101', '2026-04-15 14:30', '2026-04-18 12:00', '2026-04-18 11:45', 3, 0.00, 1500000.00),
+-- DP002 (da tra, 2 phong)
+('HD002', 'P103', '2026-04-17 14:00', '2026-04-20 12:00', '2026-04-20 11:30', 3, 0.00, 2250000.00),
+('HD002', 'P201', '2026-04-17 14:15', '2026-04-20 12:00', '2026-04-20 11:30', 3, 0.00, 3000000.00),
+-- DP003 (da tra, cho TT)
+('HD003', 'P202', '2026-04-22 14:00', '2026-04-24 12:00', '2026-04-24 11:50', 2, 0.00, 2000000.00),
+-- DP004 (dang o, ngayTraThucTe NULL)
+('HD004', 'P201', '2026-04-23 14:30', '2026-04-27 12:00', NULL,                4, 0.00, 4000000.00),
+-- DP005 (dang o)
+('HD005', 'P203', '2026-04-24 14:00', '2026-04-28 12:00', NULL,                4, 0.00, 6000000.00),
+-- DP010 (da tra)
+('HD010', 'P103', '2026-04-19 14:00', '2026-04-21 12:00', '2026-04-21 11:30', 2, 0.00, 1500000.00);
 GO
 
+-- ----- ChiTietDichVu (random - DP1, DP2, DP3, DP5, DP10) -----
 INSERT INTO ChiTietDichVu (maCTDV, maHD, maDV, soLuong, donGia, thanhTien, ghiChu) VALUES
-('CTDV042', 'HD031', 'DV001', 2, 10000.00, 20000.00, N'Nuoc suoi bo sung cho HD031'),
-('CTDV043', 'HD032', 'DV006', 2, 40000.00, 80000.00, N'Giat ui bo sung cho HD032'),
-('CTDV044', 'HD032', 'DV008', 1, 250000.00, 250000.00, N'Dua don san bay bo sung cho HD032'),
-('CTDV045', 'HD033', 'DV008', 1, 250000.00, 250000.00, N'Dua don san bay bo sung cho HD033'),
-('CTDV046', 'HD034', 'DV011', 2, 120000.00, 240000.00, N'Buffet sang bo sung cho HD034'),
-('CTDV047', 'HD034', 'DV016', 2, 35000.00, 70000.00, N'Cafe pha may bo sung cho HD034'),
-('CTDV048', 'HD035', 'DV016', 2, 35000.00, 70000.00, N'Cafe pha may bo sung cho HD035'),
-('CTDV049', 'HD036', 'DV001', 3, 10000.00, 30000.00, N'Nuoc suoi bo sung cho HD036'),
-('CTDV050', 'HD036', 'DV006', 1, 40000.00, 40000.00, N'Giat ui bo sung cho HD036'),
-('CTDV051', 'HD037', 'DV006', 1, 40000.00, 40000.00, N'Giat ui bo sung cho HD037'),
-('CTDV052', 'HD038', 'DV008', 2, 250000.00, 500000.00, N'Dua don san bay bo sung cho HD038'),
-('CTDV053', 'HD038', 'DV011', 1, 120000.00, 120000.00, N'Buffet sang bo sung cho HD038'),
-('CTDV054', 'HD039', 'DV011', 1, 120000.00, 120000.00, N'Buffet sang bo sung cho HD039'),
-('CTDV055', 'HD040', 'DV016', 3, 35000.00, 105000.00, N'Cafe pha may bo sung cho HD040'),
-('CTDV056', 'HD040', 'DV001', 2, 10000.00, 20000.00, N'Nuoc suoi bo sung cho HD040'),
-('CTDV057', 'HD041', 'DV001', 2, 10000.00, 20000.00, N'Nuoc suoi bo sung cho HD041'),
-('CTDV058', 'HD042', 'DV006', 2, 40000.00, 80000.00, N'Giat ui bo sung cho HD042'),
-('CTDV059', 'HD042', 'DV008', 1, 250000.00, 250000.00, N'Dua don san bay bo sung cho HD042'),
-('CTDV060', 'HD043', 'DV008', 1, 250000.00, 250000.00, N'Dua don san bay bo sung cho HD043'),
-('CTDV061', 'HD044', 'DV011', 2, 120000.00, 240000.00, N'Buffet sang bo sung cho HD044'),
-('CTDV062', 'HD044', 'DV016', 2, 35000.00, 70000.00, N'Cafe pha may bo sung cho HD044'),
-('CTDV063', 'HD045', 'DV016', 2, 35000.00, 70000.00, N'Cafe pha may bo sung cho HD045'),
-('CTDV064', 'HD046', 'DV001', 3, 10000.00, 30000.00, N'Nuoc suoi bo sung cho HD046'),
-('CTDV065', 'HD046', 'DV006', 1, 40000.00, 40000.00, N'Giat ui bo sung cho HD046'),
-('CTDV066', 'HD047', 'DV006', 1, 40000.00, 40000.00, N'Giat ui bo sung cho HD047'),
-('CTDV067', 'HD048', 'DV008', 2, 250000.00, 500000.00, N'Dua don san bay bo sung cho HD048'),
-('CTDV068', 'HD048', 'DV011', 1, 120000.00, 120000.00, N'Buffet sang bo sung cho HD048'),
-('CTDV069', 'HD049', 'DV011', 1, 120000.00, 120000.00, N'Buffet sang bo sung cho HD049'),
-('CTDV070', 'HD050', 'DV016', 3, 35000.00, 105000.00, N'Cafe pha may bo sung cho HD050'),
-('CTDV071', 'HD050', 'DV001', 2, 10000.00, 20000.00, N'Nuoc suoi bo sung cho HD050');
+('CTDV0001', 'HD001', 'DV001', 1, 120000.00, 120000.00, N'1 buffet sang'),
+('CTDV0002', 'HD002', 'DV002', 1,  60000.00,  60000.00, N'Giat ui mot lan'),
+('CTDV0003', 'HD003', 'DV003', 1,  80000.00,  80000.00, N'Don phong them'),
+('CTDV0004', 'HD005', 'DV001', 2, 120000.00, 240000.00, N'Buffet sang gia dinh'),
+('CTDV0005', 'HD010', 'DV004', 1,  30000.00,  30000.00, N'1 chai nuoc minibar');
 GO
 
-INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD) VALUES
-('TT031', '2026-06-05 15:15:00', 2134000.00, N'Thanh toan hoa don bo sung', 'TienMat', 'ThanhToanThanhCong', 'HD031'),
-('TT032', '2026-06-07 15:15:00', 8976000.00, N'Thanh toan hoa don bo sung', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD032'),
-('TT033', '2026-06-09 15:15:00', 9911000.00, N'Thanh toan hoa don bo sung', 'TienMat', 'ThanhToanThanhCong', 'HD033'),
-('TT034', '2026-06-08 15:15:00', 9647000.00, N'Thanh toan hoa don bo sung', 'ChuyenKhoan', 'ThanhToanThanhCong', 'HD034'),
-('TT035', '2026-06-10 15:15:00', 10538000.00, N'Thanh toan hoa don bo sung', 'TienMat', 'ThanhToanThanhCong', 'HD035'),
-('TT036', '2026-06-12 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD036'),
-('TT037', '2026-06-11 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD037'),
-('TT038', '2026-06-13 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD038'),
-('TT039', '2026-06-15 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD039'),
-('TT040', '2026-06-14 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD040'),
-('TT041', '2026-06-16 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD041'),
-('TT042', '2026-06-18 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD042'),
-('TT043', '2026-06-17 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD043'),
-('TT044', '2026-06-19 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD044'),
-('TT045', '2026-06-21 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD045'),
-('TT046', '2026-06-20 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD046'),
-('TT047', '2026-06-22 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD047'),
-('TT048', '2026-06-24 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD048'),
-('TT049', '2026-06-23 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'TienMat', 'ChoThanhToan', 'HD049'),
-('TT050', '2026-06-25 15:15:00', 0.00, N'Cho thanh toan hoa don bo sung', 'ChuyenKhoan', 'ChoThanhToan', 'HD050');
+-- ----- ThanhToan -----
+-- Quy tac: moi giao dich tien (coc / phan con lai / thanh toan full) tao 1 record.
+-- Booking huy van co record ThanhToan cua cọc da hoan tra (DaHuy).
+INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV) VALUES
+-- DP001: coc 30% (450k) + phan con lai (1.332tr)
+('TT001', '2026-04-10 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD001', NULL,    'NV002'),
+('TT002', '2026-04-18 12:25', 1332000.00, N'Thanh toan phan con lai','TienMat',   'ThanhToanThanhCong', 'HD001', 'PC001', 'NV002'),
+-- DP002: coc 30% + phan con lai
+('TT003', '2026-04-12 10:15',  675000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD002', NULL,    'NV003'),
+('TT004', '2026-04-20 12:25', 4836000.00, N'Thanh toan phan con lai','ChuyenKhoan','ThanhToanThanhCong', 'HD002', 'PC002', 'NV003'),
+-- DP003: chi co coc, chua tra phan con lai
+('TT005', '2026-04-18 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD003', NULL,    'NV004'),
+-- DP004: chi co coc
+('TT006', '2026-04-20 11:15',  900000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD004', NULL,    'NV002'),
+-- DP005: chi co coc
+('TT007', '2026-04-21 14:15', 1350000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD005', NULL,    'NV003'),
+-- DP006-DP008: coc cho future bookings
+('TT008', '2026-04-23 16:15',  450000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD006', 'PC002', 'NV004'),
+('TT009', '2026-04-24 09:15', 1500000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD007', 'PC003', 'NV002'),
+('TT010', '2026-04-25 10:15',  675000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD008', 'PC005', 'NV005'),
+-- DP009: coc da hoan tra (huy)
+('TT011', '2026-04-15 11:15',  300000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD009', NULL,    'NV003'),
+('TT012', '2026-04-22 09:00',  300000.00, N'Hoan tien coc do huy', 'TienMat',     'DaHuy',              'HD009', NULL,    'NV003'),
+-- DP010: thanh toan 100% ngay khi dat
+('TT013', '2026-04-19 13:25', 1683000.00, N'Thanh toan 100%',      'TienMat',     'ThanhToanThanhCong', 'HD010', NULL,    'NV002');
 GO
 
+-- =====================================================================
+-- 10. KIEM TRA NHANH (chay sau khi import)
+-- =====================================================================
+PRINT '--- So luong rows tung bang ---';
+SELECT 'TaiKhoan'        AS Bang, COUNT(*) AS SoDong FROM TaiKhoan
+UNION ALL SELECT 'NhanVien',         COUNT(*) FROM NhanVien
+UNION ALL SELECT 'KhachHang',        COUNT(*) FROM KhachHang
+UNION ALL SELECT 'CaLam',            COUNT(*) FROM CaLam
+UNION ALL SELECT 'PhanCongCa',       COUNT(*) FROM PhanCongCa
+UNION ALL SELECT 'LoaiPhong',        COUNT(*) FROM LoaiPhong
+UNION ALL SELECT 'Phong',            COUNT(*) FROM Phong
+UNION ALL SELECT 'DichVu',           COUNT(*) FROM DichVu
+UNION ALL SELECT 'KhuyenMai',        COUNT(*) FROM KhuyenMai
+UNION ALL SELECT 'DatPhong',         COUNT(*) FROM DatPhong
+UNION ALL SELECT 'ChiTietDatPhong',  COUNT(*) FROM ChiTietDatPhong
+UNION ALL SELECT 'HoaDon',           COUNT(*) FROM HoaDon
+UNION ALL SELECT 'ChiTietHoaDon',    COUNT(*) FROM ChiTietHoaDon
+UNION ALL SELECT 'ChiTietDichVu',    COUNT(*) FROM ChiTietDichVu
+UNION ALL SELECT 'ThanhToan',        COUNT(*) FROM ThanhToan;
 
+PRINT '--- Phan bo trang thai phong ---';
+SELECT trangThaiPhong, COUNT(*) AS SoPhong FROM Phong GROUP BY trangThaiPhong;
 
--- Kiem tra rieng 20 mau bo sung moi
-SELECT COUNT(*) AS SoHoaDonBoSungMoi FROM HoaDon WHERE maHD BETWEEN 'HD031' AND 'HD050';
-SELECT COUNT(*) AS SoHoaDonDaThanhToan_BoSungMoi FROM HoaDon WHERE maHD BETWEEN 'HD031' AND 'HD050' AND trangThai = 'DaThanhToan';
-SELECT COUNT(*) AS SoHoaDonChuaThanhToan_BoSungMoi FROM HoaDon WHERE maHD BETWEEN 'HD031' AND 'HD050' AND trangThai = 'ChuaThanhToan';
-GO
-
--- =========================================================
--- BO SUNG THEM 5 HOA DON MOI THUOC LOAI "DANG THANH TOAN"
--- CHEN BLOCK NAY TRUOC PHAN "Kiem tra nhanh so luong du lieu"
--- =========================================================
-
-INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES
-('DP081', '2026-07-21 09:00:00', '2026-07-23 14:00:00', '2026-07-26 12:00:00', 400000.00, N'Bo sung dang thanh toan 1', 'KH001', 'NV001'),
-('DP082', '2026-07-22 09:30:00', '2026-07-24 14:00:00', '2026-07-27 12:00:00', 500000.00, N'Bo sung dang thanh toan 2', 'KH002', 'NV002'),
-('DP083', '2026-07-23 10:00:00', '2026-07-25 14:00:00', '2026-07-28 12:00:00', 450000.00, N'Bo sung dang thanh toan 3', 'KH003', 'NV003'),
-('DP084', '2026-07-24 10:30:00', '2026-07-26 14:00:00', '2026-07-29 12:00:00', 550000.00, N'Bo sung dang thanh toan 4', 'KH004', 'NV004'),
-('DP085', '2026-07-25 11:00:00', '2026-07-27 14:00:00', '2026-07-30 12:00:00', 600000.00, N'Bo sung dang thanh toan 5', 'KH005', 'NV005');
-GO
-
-INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES
-('DP081', 'P201', '2026-07-23 14:00:00', '2026-07-26 12:00:00', 1320000.00, 2, N'Phong 1'),
-('DP081', 'P202', '2026-07-23 14:00:00', '2026-07-26 12:00:00', 1410000.00, 2, N'Phong 2'),
-
-('DP082', 'P203', '2026-07-24 14:00:00', '2026-07-27 12:00:00', 1500000.00, 2, N'Phong 1'),
-('DP082', 'P204', '2026-07-24 14:00:00', '2026-07-27 12:00:00', 1590000.00, 2, N'Phong 2'),
-('DP082', 'P205', '2026-07-24 14:00:00', '2026-07-27 12:00:00', 1680000.00, 3, N'Phong 3'),
-
-('DP083', 'P206', '2026-07-25 14:00:00', '2026-07-28 12:00:00', 1770000.00, 2, N'Phong 1'),
-('DP083', 'P207', '2026-07-25 14:00:00', '2026-07-28 12:00:00', 1860000.00, 2, N'Phong 2'),
-
-('DP084', 'P301', '2026-07-26 14:00:00', '2026-07-29 12:00:00', 1950000.00, 2, N'Phong 1'),
-('DP084', 'P302', '2026-07-26 14:00:00', '2026-07-29 12:00:00', 2040000.00, 2, N'Phong 2'),
-('DP084', 'P303', '2026-07-26 14:00:00', '2026-07-29 12:00:00', 2130000.00, 3, N'Phong 3'),
-
-('DP085', 'P304', '2026-07-27 14:00:00', '2026-07-30 12:00:00', 2220000.00, 2, N'Phong 1'),
-('DP085', 'P101', '2026-07-27 14:00:00', '2026-07-30 12:00:00', 510000.00, 2, N'Phong 2');
-GO
-
-INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) VALUES
-('HD081', '2026-07-26 12:00:00', NULL, N'Hoa don dang thanh toan 1', 4, 2730000.00, 40000.00, 0.00, 277000.00, 3047000.00, 0.00, NULL, 'KH001', 'NV001', 'TienMat', 'ChuaThanhToan', 'DP081'),
-('HD082', '2026-07-27 12:00:00', NULL, N'Hoa don dang thanh toan 2', 7, 4770000.00, 90000.00, 200000.00, 486000.00, 5146000.00, 0.00, 'KM006', 'KH002', 'NV002', 'ChuyenKhoan', 'ChuaThanhToan', 'DP082'),
-('HD083', '2026-07-28 12:00:00', NULL, N'Hoa don dang thanh toan 3', 4, 3630000.00, 30000.00, 0.00, 366000.00, 4026000.00, 0.00, NULL, 'KH003', 'NV003', 'TienMat', 'ChuaThanhToan', 'DP083'),
-('HD084', '2026-07-29 12:00:00', NULL, N'Hoa don dang thanh toan 4', 7, 6120000.00, 70000.00, 0.00, 619000.00, 6809000.00, 0.00, NULL, 'KH004', 'NV004', 'ChuyenKhoan', 'ChuaThanhToan', 'DP084'),
-('HD085', '2026-07-30 12:00:00', NULL, N'Hoa don dang thanh toan 5', 4, 2730000.00, 50000.00, 0.00, 278000.00, 3058000.00, 0.00, NULL, 'KH005', 'NV005', 'TienMat', 'ChuaThanhToan', 'DP085');
-GO
-
-INSERT INTO ChiTietHoaDon (maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) VALUES
-('HD081', 'P201', '2026-07-23 14:00:00', '2026-07-26 12:00:00', '2026-07-25 10:00:00', 2, 0.00, 1320000.00),
-('HD081', 'P202', '2026-07-23 14:00:00', '2026-07-26 12:00:00', NULL, 3, 0.00, 1410000.00),
-
-('HD082', 'P203', '2026-07-24 14:00:00', '2026-07-27 12:00:00', '2026-07-26 09:30:00', 2, 0.00, 1500000.00),
-('HD082', 'P204', '2026-07-24 14:00:00', '2026-07-27 12:00:00', NULL, 3, 0.00, 1590000.00),
-('HD082', 'P205', '2026-07-24 14:00:00', '2026-07-27 12:00:00', NULL, 3, 0.00, 1680000.00),
-
-('HD083', 'P206', '2026-07-25 14:00:00', '2026-07-28 12:00:00', '2026-07-27 08:45:00', 2, 0.00, 1770000.00),
-('HD083', 'P207', '2026-07-25 14:00:00', '2026-07-28 12:00:00', NULL, 3, 0.00, 1860000.00),
-
-('HD084', 'P301', '2026-07-26 14:00:00', '2026-07-29 12:00:00', '2026-07-28 10:15:00', 2, 0.00, 1950000.00),
-('HD084', 'P302', '2026-07-26 14:00:00', '2026-07-29 12:00:00', NULL, 3, 0.00, 2040000.00),
-('HD084', 'P303', '2026-07-26 14:00:00', '2026-07-29 12:00:00', NULL, 3, 0.00, 2130000.00),
-
-('HD085', 'P304', '2026-07-27 14:00:00', '2026-07-30 12:00:00', '2026-07-29 09:00:00', 2, 0.00, 2220000.00),
-('HD085', 'P101', '2026-07-27 14:00:00', '2026-07-30 12:00:00', NULL, 3, 0.00, 510000.00);
-GO
-
-INSERT INTO ChiTietDichVu (maCTDV, maHD, maDV, soLuong, donGia, thanhTien, ghiChu) VALUES
-('CTDV101', 'HD081', 'DV001', 2, 10000.00, 20000.00, N'Bo sung'),
-('CTDV102', 'HD081', 'DV019', 1, 20000.00, 20000.00, N'Bo sung'),
-('CTDV103', 'HD082', 'DV015', 1, 90000.00, 90000.00, N'Bo sung'),
-('CTDV104', 'HD083', 'DV001', 3, 10000.00, 30000.00, N'Bo sung'),
-('CTDV105', 'HD084', 'DV006', 1, 40000.00, 40000.00, N'Bo sung'),
-('CTDV106', 'HD084', 'DV019', 1, 30000.00, 30000.00, N'Bo sung'),
-('CTDV107', 'HD085', 'DV005', 1, 50000.00, 50000.00, N'Bo sung');
-GO
-
-INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD) VALUES
-('TT081', '2026-07-26 12:30:00', 0.00, N'Dang thanh toan', 'TienMat', 'ChoThanhToan', 'HD081'),
-('TT082', '2026-07-27 12:30:00', 0.00, N'Dang thanh toan', 'ChuyenKhoan', 'ChoThanhToan', 'HD082'),
-('TT083', '2026-07-28 12:30:00', 0.00, N'Dang thanh toan', 'TienMat', 'ChoThanhToan', 'HD083'),
-('TT084', '2026-07-29 12:30:00', 0.00, N'Dang thanh toan', 'ChuyenKhoan', 'ChoThanhToan', 'HD084'),
-('TT085', '2026-07-30 12:30:00', 0.00, N'Dang thanh toan', 'TienMat', 'ChoThanhToan', 'HD085');
-GO
-
--- KIEM TRA RIENG 5 HOA DON DANG THANH TOAN MOI
-SELECT 
-    maHD,
-    COUNT(*) AS TongPhong,
-    SUM(CASE WHEN ngayTraThucTe IS NOT NULL THEN 1 ELSE 0 END) AS SoPhongDaTra,
-    SUM(CASE WHEN ngayTraThucTe IS NULL THEN 1 ELSE 0 END) AS SoPhongChuaTra
-FROM ChiTietHoaDon
-WHERE maHD BETWEEN 'HD081' AND 'HD085'
-GROUP BY maHD
-ORDER BY maHD;
-GO
-
--- Kiem tra nhanh so luong du lieu
-SELECT 'TaiKhoan' AS TenBang, COUNT(*) AS SoDong FROM TaiKhoan;
-SELECT 'NhanVien' AS TenBang, COUNT(*) AS SoDong FROM NhanVien;
-SELECT 'KhachHang' AS TenBang, COUNT(*) AS SoDong FROM KhachHang;
-SELECT 'CaLam' AS TenBang, COUNT(*) AS SoDong FROM CaLam;
-SELECT 'PhanCongCa' AS TenBang, COUNT(*) AS SoDong FROM PhanCongCa;
-SELECT 'LoaiPhong' AS TenBang, COUNT(*) AS SoDong FROM LoaiPhong;
-SELECT 'Phong' AS TenBang, COUNT(*) AS SoDong FROM Phong;
-SELECT 'DichVu' AS TenBang, COUNT(*) AS SoDong FROM DichVu;
-SELECT 'KhuyenMai' AS TenBang, COUNT(*) AS SoDong FROM KhuyenMai;
-SELECT 'DatPhong' AS TenBang, COUNT(*) AS SoDong FROM DatPhong;
-SELECT 'ChiTietDatPhong' AS TenBang, COUNT(*) AS SoDong FROM ChiTietDatPhong;
-SELECT 'HoaDon' AS TenBang, COUNT(*) AS SoDong FROM HoaDon;
-SELECT 'ChiTietHoaDon' AS TenBang, COUNT(*) AS SoDong FROM ChiTietHoaDon;
-SELECT 'ChiTietDichVu' AS TenBang, COUNT(*) AS SoDong FROM ChiTietDichVu;
-SELECT 'ThanhToan' AS TenBang, COUNT(*) AS SoDong FROM ThanhToan;
+PRINT '--- Pipeline booking theo trang thai HoaDon ---';
+SELECT trangThai, COUNT(*) AS SoHoaDon FROM HoaDon GROUP BY trangThai;
 GO

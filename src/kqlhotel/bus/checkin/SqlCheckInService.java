@@ -202,7 +202,7 @@ public class SqlCheckInService implements CheckInService {
 
             // 5. Mark rooms as in-use
             try (PreparedStatement ps = con.prepareStatement(
-                    "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?")) {
+                    "UPDATE Phong SET trangThaiPhong = 'DangSuDung' WHERE maPhong = ?")) {
                 for (Object[] row : ctdpRows) {
                     ps.setString(1, (String) row[0]);
                     ps.addBatch();

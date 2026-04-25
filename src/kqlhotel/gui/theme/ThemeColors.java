@@ -60,8 +60,10 @@ public final class ThemeColors {
     public static final Color DEMO_TEXT       = PRIMARY_DARK;
 
     /**
-     * Chuẩn hoá trạng thái phòng về SQL code (DaDat/Trong/DangDon/BaoTri).
-     * Chấp nhận cả mã SQL và nhãn hiển thị tiếng Việt ("Đã đặt", "Trống"...).
+     * Chuẩn hoá trạng thái phòng về SQL code (Trong / DangSuDung / BaoTri).
+     * Chấp nhận cả mã SQL và nhãn hiển thị tiếng Việt.
+     * Backward-compat: "DaDat" / "Đã đặt" / "DangDon" / "Đang dọn" được map về
+     * "DangSuDung" để dữ liệu cũ vẫn render được.
      */
     public static String normalizeStatus(String status) {
         if (status == null) return null;
@@ -70,12 +72,13 @@ public final class ThemeColors {
             case "Trong":
             case "Trống":
                 return "Trong";
+            case "DangSuDung":
+            case "Đang sử dụng":
             case "DaDat":
             case "Đã đặt":
-                return "DaDat";
             case "DangDon":
             case "Đang dọn":
-                return "DangDon";
+                return "DangSuDung";
             case "BaoTri":
             case "Bảo trì":
                 return "BaoTri";
@@ -86,17 +89,15 @@ public final class ThemeColors {
 
     /**
      * Trả màu chữ chính cho trạng thái phòng (dùng đồng bộ toàn app).
-     * Chấp nhận cả mã SQL ("DaDat") và nhãn hiển thị ("Đã đặt").
      */
     public static Color statusColor(String status) {
         String code = normalizeStatus(status);
         if (code == null) return TEXT_MUTED;
         switch (code) {
-            case "Trong":   return SUCCESS;
-            case "DaDat":   return DANGER;
-            case "DangDon": return INFO;
-            case "BaoTri":  return WARNING;
-            default:        return TEXT_MUTED;
+            case "Trong":      return SUCCESS;
+            case "DangSuDung": return DANGER;
+            case "BaoTri":     return WARNING;
+            default:           return TEXT_MUTED;
         }
     }
 
@@ -107,11 +108,10 @@ public final class ThemeColors {
         String code = normalizeStatus(status);
         if (code == null) return BG_SECONDARY;
         switch (code) {
-            case "Trong":   return SUCCESS_SOFT;
-            case "DaDat":   return DANGER_SOFT;
-            case "DangDon": return INFO_SOFT;
-            case "BaoTri":  return WARNING_SOFT;
-            default:        return BG_SECONDARY;
+            case "Trong":      return SUCCESS_SOFT;
+            case "DangSuDung": return DANGER_SOFT;
+            case "BaoTri":     return WARNING_SOFT;
+            default:           return BG_SECONDARY;
         }
     }
 
@@ -122,11 +122,10 @@ public final class ThemeColors {
         String code = normalizeStatus(status);
         if (code == null) return "";
         switch (code) {
-            case "Trong":   return "Trống";
-            case "DaDat":   return "Đã đặt";
-            case "DangDon": return "Đang dọn";
-            case "BaoTri":  return "Bảo trì";
-            default:        return code;
+            case "Trong":      return "Trống";
+            case "DangSuDung": return "Đang sử dụng";
+            case "BaoTri":     return "Bảo trì";
+            default:           return code;
         }
     }
 

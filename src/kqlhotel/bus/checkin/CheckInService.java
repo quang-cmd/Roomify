@@ -23,7 +23,7 @@ public interface CheckInService {
      * Confirm physical arrival of guests for the given booking.
      * Side-effects (in one transaction):
      *   - INSERT ChiTietHoaDon for every ChiTietDatPhong row
-     *   - UPDATE Phong.trangThaiPhong = 'DaDat' for those rooms
+     *   - UPDATE Phong.trangThaiPhong = 'DangSuDung' for those rooms
      */
     CheckInResult confirmCheckIn(String maDatPhong);
 }
