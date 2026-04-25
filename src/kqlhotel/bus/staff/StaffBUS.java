@@ -1,7 +1,7 @@
 package kqlhotel.bus.staff;
 
 import kqlhotel.dao.Staff.StaffDAO;
-import kqlhotel.dao.Account.AccountDAO;
+import kqlhotel.dao.account.AccountDAO;
 import kqlhotel.entity.Staff;
 import kqlhotel.entity.Account;
 import java.util.ArrayList;

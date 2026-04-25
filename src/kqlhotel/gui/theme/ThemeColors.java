@@ -2,24 +2,138 @@ package kqlhotel.gui.theme;
 
 import java.awt.Color;
 
+/**
+ * Calm Slate palette - tối ưu cho dashboard nội bộ, dùng lâu không mỏi mắt.
+ * Tokens được tổ chức theo nhóm: surface / text / brand / status / sidebar.
+ */
 public final class ThemeColors {
     private ThemeColors() {
     }
-    public static final Color PRIMARY = new Color(49, 130 , 206); // #F8F9FA
-    public static final Color BG_PRIMARY = new Color(248, 249, 250); // #F8F9FA
-    public static final Color BG_SECONDARY = new Color(241, 245, 249);
-    public static final Color SURFACE = new Color(255, 255, 255); // #FFFFFF
-    public static final Color SURFACE_LIGHT = new Color(247, 250, 252); // #F7FAFC
-    public static final Color TEXT_PRIMARY = new Color(26, 32, 44); // #1A202C
-    public static final Color TEXT_MUTED = new Color(113, 128, 150); // #718096
-    public static final Color TEXT_PLACEHOLDER = new Color(160, 174, 192); // #A0AEC0
-    public static final Color ACCENT = new Color(237, 137, 54); // #ED8936
-    public static final Color DEMO_BG = new Color(235, 248, 255); // #EBF8FF
-    public static final Color DEMO_BORDER = new Color(190, 227, 248); // #BEE3F8
-    public static final Color DEMO_TEXT = new Color(43, 108, 176); // #2B6CB0
-    public static final Color SUCCESS = new Color(56, 161, 105);
-    public static final Color BORDER = new Color(226, 232, 240); // #E2E8F0
-    public static final Color BORDER_SOFT = new Color(237, 242, 247); // #EDF2F7
 
+    // ===== Surfaces =====
+    public static final Color BG_PRIMARY      = new Color(0xF1F5F9); // slate-100, nền chính
+    public static final Color BG_SECONDARY    = new Color(0xE2E8F0); // slate-200
+    public static final Color SURFACE         = new Color(0xFFFFFF); // card / panel
+    public static final Color SURFACE_LIGHT   = new Color(0xF8FAFC); // input / zebra row
+    public static final Color SURFACE_HOVER   = new Color(0xEFF4FA); // hover row / button
 
+    // ===== Borders =====
+    public static final Color BORDER          = new Color(0xCBD5E1); // slate-300
+    public static final Color BORDER_SOFT     = new Color(0xE2E8F0); // slate-200
+
+    // ===== Text =====
+    public static final Color TEXT_PRIMARY    = new Color(0x0F172A); // slate-900
+    public static final Color TEXT_SECONDARY  = new Color(0x334155); // slate-700
+    public static final Color TEXT_MUTED      = new Color(0x64748B); // slate-500
+    public static final Color TEXT_PLACEHOLDER= new Color(0x94A3B8); // slate-400
+    public static final Color TEXT_ON_DARK    = new Color(0xF8FAFC);
+
+    // ===== Brand =====
+    public static final Color PRIMARY         = new Color(0x2563EB); // indigo-blue 600
+    public static final Color PRIMARY_DARK    = new Color(0x1D4ED8); // hover
+    public static final Color PRIMARY_SOFT    = new Color(0xDBEAFE); // tag bg
+    public static final Color ACCENT          = new Color(0xF59E0B); // amber-500 (CTA)
+    public static final Color ACCENT_DARK     = new Color(0xD97706); // hover
+    public static final Color ACCENT_SOFT     = new Color(0xFEF3C7);
+
+    // ===== Semantic =====
+    public static final Color SUCCESS         = new Color(0x16A34A);
+    public static final Color SUCCESS_SOFT    = new Color(0xDCFCE7);
+    public static final Color DANGER          = new Color(0xDC2626);
+    public static final Color DANGER_SOFT     = new Color(0xFEE2E2);
+    public static final Color WARNING         = new Color(0xF59E0B);
+    public static final Color WARNING_SOFT    = new Color(0xFEF3C7);
+    public static final Color INFO            = new Color(0x0EA5E9);
+    public static final Color INFO_SOFT       = new Color(0xE0F2FE);
+
+    // ===== Sidebar =====
+    public static final Color SIDEBAR_BG      = new Color(0x1E293B); // slate-800
+    public static final Color SIDEBAR_ITEM    = new Color(0x334155); // slate-700
+    public static final Color SIDEBAR_ITEM_HOVER = new Color(0x475569); // slate-600
+    public static final Color SIDEBAR_DIVIDER = new Color(0x0F172A);
+    public static final Color SIDEBAR_TEXT    = new Color(0xCBD5E1);
+    public static final Color SIDEBAR_TEXT_MUTED = new Color(0x94A3B8);
+
+    // ===== Legacy aliases (giữ tương thích các panel cũ) =====
+    public static final Color DEMO_BG         = PRIMARY_SOFT;
+    public static final Color DEMO_BORDER     = new Color(0xBFDBFE);
+    public static final Color DEMO_TEXT       = PRIMARY_DARK;
+
+    /**
+     * Chuẩn hoá trạng thái phòng về SQL code (DaDat/Trong/DangDon/BaoTri).
+     * Chấp nhận cả mã SQL và nhãn hiển thị tiếng Việt ("Đã đặt", "Trống"...).
+     */
+    public static String normalizeStatus(String status) {
+        if (status == null) return null;
+        String s = status.trim();
+        switch (s) {
+            case "Trong":
+            case "Trống":
+                return "Trong";
+            case "DaDat":
+            case "Đã đặt":
+                return "DaDat";
+            case "DangDon":
+            case "Đang dọn":
+                return "DangDon";
+            case "BaoTri":
+            case "Bảo trì":
+                return "BaoTri";
+            default:
+                return s;
+        }
+    }
+
+    /**
+     * Trả màu chữ chính cho trạng thái phòng (dùng đồng bộ toàn app).
+     * Chấp nhận cả mã SQL ("DaDat") và nhãn hiển thị ("Đã đặt").
+     */
+    public static Color statusColor(String status) {
+        String code = normalizeStatus(status);
+        if (code == null) return TEXT_MUTED;
+        switch (code) {
+            case "Trong":   return SUCCESS;
+            case "DaDat":   return DANGER;
+            case "DangDon": return INFO;
+            case "BaoTri":  return WARNING;
+            default:        return TEXT_MUTED;
+        }
+    }
+
+    /**
+     * Trả màu nền nhạt tương ứng cho badge trạng thái phòng.
+     */
+    public static Color statusBackground(String status) {
+        String code = normalizeStatus(status);
+        if (code == null) return BG_SECONDARY;
+        switch (code) {
+            case "Trong":   return SUCCESS_SOFT;
+            case "DaDat":   return DANGER_SOFT;
+            case "DangDon": return INFO_SOFT;
+            case "BaoTri":  return WARNING_SOFT;
+            default:        return BG_SECONDARY;
+        }
+    }
+
+    /**
+     * Nhãn tiếng Việt chuẩn cho trạng thái phòng.
+     */
+    public static String statusLabel(String status) {
+        String code = normalizeStatus(status);
+        if (code == null) return "";
+        switch (code) {
+            case "Trong":   return "Trống";
+            case "DaDat":   return "Đã đặt";
+            case "DangDon": return "Đang dọn";
+            case "BaoTri":  return "Bảo trì";
+            default:        return code;
+        }
+    }
+
+    /**
+     * Tạo màu accent kèm độ trong suốt (alpha 0-255).
+     */
+    public static Color withAlpha(Color base, int alpha) {
+        return new Color(base.getRed(), base.getGreen(), base.getBlue(), alpha);
+    }
 }

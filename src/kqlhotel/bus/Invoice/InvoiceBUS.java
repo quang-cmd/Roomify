@@ -1,4 +1,4 @@
-package kqlhotel.bus.invoice;
+package kqlhotel.bus.Invoice;
 
 import kqlhotel.dao.invoice.InvoiceDAO;
 import kqlhotel.entity.Invoice;

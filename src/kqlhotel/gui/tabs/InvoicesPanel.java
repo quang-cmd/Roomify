@@ -4,7 +4,7 @@ import java.awt.*;
 import java.net.URL;
 import java.util.List;
 import javax.swing.*;
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
