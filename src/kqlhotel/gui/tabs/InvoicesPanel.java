@@ -428,6 +428,14 @@ public class InvoicesPanel extends JPanel {
                 hd.getMaDatPhong() != null ? "Mã đặt: " + hd.getMaDatPhong() : "Không có mã đặt"
         ));
 
+        String staffName = invoicesBUS.getStaffName(hd.getMaNhanVien());
+
+        infoRow.add(createBox(
+                "NHÂN VIÊN",
+                staffName != null ? staffName : hd.getMaNhanVien(),
+                hd.getMaNhanVien() != null ? "Mã NV: " + hd.getMaNhanVien() : "Chưa có nhân viên"
+        ));
+
         JLabel tTitle = new JLabel("CHI TIẾT HÓA ĐƠN");
         tTitle.setForeground(new Color(130, 145, 165));
         tTitle.setFont(tTitle.getFont().deriveFont(Font.BOLD, 12f));

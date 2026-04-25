@@ -28,6 +28,11 @@ public class CheckoutBUS {
 
     public Invoice getInvoiceForCheckout(String maPhong) {
         Invoice hd = invoiceDAO.getActiveByRoom(maPhong);
+
+        if (hd == null) {
+            hd = getActiveByRoomFromBooking(maPhong);
+        }
+
         if (hd == null) {
             return null;
         }
@@ -79,20 +84,32 @@ public class CheckoutBUS {
         }
 
         LocalDateTime now = LocalDateTime.now();
+
+        // 1. Nếu chưa có ChiTietHoaDon thì tạo từ ChiTietDatPhong
+        invoiceDetailDAO.createFromBookingIfMissing(
+                hd.getMaHD(),
+                hd.getMaDatPhong(),
+                roomCodes
+        );
+
+        // 2. BẮT BUỘC load lại sau khi tạo
         List<InvoiceDetail> chiTietRooms = invoiceDetailDAO.getByInvoice(hd.getMaHD());
 
+        if (chiTietRooms == null || chiTietRooms.isEmpty()) {
+            return false;
+        }
+
         boolean allUpdated = true;
+        boolean hasTargetRoom = false;
+
         for (InvoiceDetail ct : chiTietRooms) {
             if (!roomCodes.contains(ct.getMaPhong())) {
                 continue;
             }
 
-            if (ct.getNgayTraThucTe() != null) {
-                continue;
-            }
+            hasTargetRoom = true;
 
-            if (now.isBefore(ct.getNgayNhanPhong()) || now.isEqual(ct.getNgayNhanPhong())) {
-                allUpdated = false;
+            if (ct.getNgayTraThucTe() != null) {
                 continue;
             }
 
@@ -123,16 +140,25 @@ public class CheckoutBUS {
                     fee
             );
 
-            boolean updateRoom = roomDAO.updateStatus(ct.getMaPhong(), normalizeRoomStatus(nextRoomStatus));
+            boolean updateRoom = roomDAO.updateStatus(
+                    ct.getMaPhong(),
+                    normalizeRoomStatus(nextRoomStatus)
+            );
 
             if (!updateDetail || !updateRoom) {
                 allUpdated = false;
             }
         }
 
+        if (!hasTargetRoom) {
+            return false;
+        }
+
+        // 3. Load lại sau khi update checkout
         recalculateInvoiceTotals(hd, maKM);
 
         List<InvoiceDetail> updatedRoomDetails = invoiceDetailDAO.getByInvoice(hd.getMaHD());
+
         int paidRooms = 0;
         for (InvoiceDetail ct : updatedRoomDetails) {
             if (ct.getNgayTraThucTe() != null) {
@@ -149,16 +175,24 @@ public class CheckoutBUS {
         }
 
         boolean updateHD = invoiceDAO.update(hd);
+
         return allUpdated && updateHD;
     }
 
     private void recalculateInvoiceTotals(Invoice hd, String maKM) {
         List<InvoiceDetail> chiTietRooms = invoiceDetailDAO.getByInvoice(hd.getMaHD());
-        double totalRoomFee = 0;
 
+        if ((chiTietRooms == null || chiTietRooms.isEmpty())
+                && hd.getMaDatPhong() != null
+                && !hd.getMaDatPhong().isBlank()) {
+            chiTietRooms = invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
+        }
+
+        double totalRoomFee = 0;
         for (InvoiceDetail ct : chiTietRooms) {
             totalRoomFee += ct.getThanhTien();
         }
+
         hd.setTienPhong(totalRoomFee);
 
         List<ServiceDetail> chiTietServices = serviceDetailDAO.getByInvoice(hd.getMaHD());
@@ -211,18 +245,24 @@ public class CheckoutBUS {
 
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> searchCheckoutData(String roomCode, String cusId, String cusName) {
         List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new ArrayList<>();
+
         try {
             java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+
             StringBuilder sql = new StringBuilder(
                     "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, " +
-                            "cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong, cthd.ngayTraThucTe " +
+                            "COALESCE(cthd.ngayNhanPhong, ctdp.ngayNhanDuKien) AS ngayNhanPhong, " +
+                            "COALESCE(cthd.ngayTraPhong, ctdp.ngayTraDuKien) AS ngayTraPhong, " +
+                            "lp.giaPhong, cthd.ngayTraThucTe " +
                             "FROM HoaDon hd " +
-                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                            "JOIN Phong p ON cthd.maPhong = p.maPhong " +
+                            "JOIN DatPhong dp ON hd.maDatPhong = dp.maDatPhong " +
+                            "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
+                            "LEFT JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
+                            "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
-                            "WHERE hd.trangThai IN (N'ChuaThanhToan', N'DaThanhToan') " +
-                            "AND cthd.ngayTraThucTe IS NULL "
+                            "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                            "AND (cthd.ngayTraThucTe IS NULL) "
             );
 
             if (roomCode != null && !roomCode.isEmpty()) {
@@ -235,7 +275,7 @@ public class CheckoutBUS {
                 sql.append("AND kh.hoTenKH LIKE ? ");
             }
 
-            sql.append("ORDER BY cthd.ngayTraPhong ASC, hd.maHD ASC");
+            sql.append("ORDER BY ngayTraPhong ASC, hd.maHD ASC");
 
             java.sql.PreparedStatement pstmt = con.prepareStatement(sql.toString());
             int idx = 1;
@@ -271,6 +311,7 @@ public class CheckoutBUS {
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
         }
+
         return list;
     }
 
@@ -314,5 +355,30 @@ public class CheckoutBUS {
             e.printStackTrace();
         }
         return list;
+    }
+    private Invoice getActiveByRoomFromBooking(String maPhong) {
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+
+            String sql =
+                    "SELECT TOP 1 hd.* " +
+                            "FROM HoaDon hd " +
+                            "JOIN ChiTietDatPhong ctdp ON hd.maDatPhong = ctdp.maDatPhong " +
+                            "WHERE ctdp.maPhong = ? " +
+                            "AND hd.trangThai = 'ChuaThanhToan' " +
+                            "ORDER BY hd.ngayLapHD DESC";
+
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maPhong);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return invoiceDAO.getById(rs.getString("maHD"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

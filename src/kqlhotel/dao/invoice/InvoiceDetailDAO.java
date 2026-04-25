@@ -98,4 +98,112 @@ public class InvoiceDetailDAO {
             return false;
         }
     }
+    public List<InvoiceDetail> getByBooking(String maHD, String maDatPhong) {
+        List<InvoiceDetail> list = new ArrayList<>();
+
+        if (maDatPhong == null || maDatPhong.isBlank()) {
+            return list;
+        }
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = """
+            SELECT maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat
+            FROM ChiTietDatPhong
+            WHERE maDatPhong = ?
+            ORDER BY maPhong
+        """;
+
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, maDatPhong);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                InvoiceDetail ct = new InvoiceDetail();
+
+                ct.setMaHD(maHD);
+                ct.setMaPhong(rs.getString("maPhong"));
+
+                Timestamp ngayNhan = rs.getTimestamp("ngayNhanDuKien");
+                Timestamp ngayTra = rs.getTimestamp("ngayTraDuKien");
+
+                if (ngayNhan != null) {
+                    ct.setNgayNhanPhong(ngayNhan.toLocalDateTime());
+                }
+
+                if (ngayTra != null) {
+                    ct.setNgayTraPhong(ngayTra.toLocalDateTime());
+                }
+
+                int soDem = 1;
+                if (ct.getNgayNhanPhong() != null && ct.getNgayTraPhong() != null) {
+                    soDem = (int) Math.max(
+                            1,
+                            java.time.temporal.ChronoUnit.DAYS.between(
+                                    ct.getNgayNhanPhong().toLocalDate(),
+                                    ct.getNgayTraPhong().toLocalDate()
+                            )
+                    );
+                }
+
+                double donGia = rs.getDouble("donGiaDat");
+
+                ct.setNgayTraThucTe(null);
+                ct.setSoDem(soDem);
+                ct.setPhuThu(0);
+                ct.setThanhTien(donGia * soDem);
+
+                list.add(ct);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+    public boolean createFromBookingIfMissing(String maHD, String maDatPhong, List<String> roomCodes) {
+        if (maHD == null || maDatPhong == null || roomCodes == null || roomCodes.isEmpty()) {
+            return false;
+        }
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+
+            String sql =
+                    "INSERT INTO ChiTietHoaDon " +
+                            "(maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) " +
+                            "SELECT ?, ctdp.maPhong, GETDATE(), ctdp.ngayTraDuKien, NULL, " +
+                            "CASE WHEN DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) <= 0 " +
+                            "THEN 1 ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) END, " +
+                            "0, " +
+                            "ctdp.donGiaDat * " +
+                            "CASE WHEN DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) <= 0 " +
+                            "THEN 1 ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) END " +
+                            "FROM ChiTietDatPhong ctdp " +
+                            "WHERE ctdp.maDatPhong = ? " +
+                            "AND ctdp.maPhong = ? " +
+                            "AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon WHERE maHD = ? AND maPhong = ?)";
+
+            boolean ok = true;
+
+            for (String roomCode : roomCodes) {
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, maHD);
+                    ps.setString(2, maDatPhong);
+                    ps.setString(3, roomCode);
+                    ps.setString(4, maHD);
+                    ps.setString(5, roomCode);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    ok = false;
+                }
+            }
+
+            return ok;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

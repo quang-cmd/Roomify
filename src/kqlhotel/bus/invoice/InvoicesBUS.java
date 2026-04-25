@@ -1,4 +1,4 @@
-package kqlhotel.bus.Invoice;
+package kqlhotel.bus.invoice;
 
 import kqlhotel.dao.customer.CustomerDAO;
 import kqlhotel.dao.invoice.InvoiceDAO;
@@ -31,7 +31,18 @@ public class InvoicesBUS {
     }
 
     public List<InvoiceDetail> getRoomDetails(String maHD) {
-        return invoiceDetailDAO.getByInvoice(maHD);
+        List<InvoiceDetail> details = invoiceDetailDAO.getByInvoice(maHD);
+
+        if (details != null && !details.isEmpty()) {
+            return details;
+        }
+
+        Invoice hd = invoiceDAO.getById(maHD);
+        if (hd == null || hd.getMaDatPhong() == null || hd.getMaDatPhong().isBlank()) {
+            return details;
+        }
+
+        return invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
     }
 
     public List<ServiceDetail> getServiceDetails(String maHD) {
@@ -90,5 +101,8 @@ public class InvoicesBUS {
         boolean updatedDetails = invoiceDetailDAO.markAllRemainingRoomsCheckedOut(maHD, LocalDateTime.now());
         boolean updatedInvoice = invoiceDAO.updateStatus(maHD, "DaThanhToan");
         return updatedDetails && updatedInvoice;
+    }
+    public String getStaffName(String maNV) {
+        return invoiceDAO.getStaffName(maNV);
     }
 }

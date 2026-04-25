@@ -265,6 +265,28 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         return 0;
     }
 
+    public String getStaffName(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return null;
+        }
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT hoTenNV FROM NhanVien WHERE maNV = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, maNV);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("hoTenNV");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     @Override
     public boolean create(Invoice t) {
         return false;
