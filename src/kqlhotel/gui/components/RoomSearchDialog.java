@@ -318,9 +318,8 @@ public class RoomSearchDialog extends JDialog {
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         midRow.setOpaque(false);
         
-        Color badgeBg = new Color(data.statusColor.getRed(), data.statusColor.getGreen(), data.statusColor.getBlue(), 25);
-        JPanel typeBadge = makeBadge(data.roomType, new Color(240, 244, 255), new Color(80, 120, 200));
-        JPanel statusBadge = makeBadge("• " + data.status, badgeBg, data.statusColor);
+        JPanel typeBadge = makeBadge(data.roomType, ThemeColors.PRIMARY_SOFT, ThemeColors.PRIMARY);
+        JPanel statusBadge = makeBadge("• " + data.status, ThemeColors.statusBackground(data.status), ThemeColors.statusColor(data.status));
         
         midRow.add(typeBadge, "left");
         midRow.add(statusBadge, "right");

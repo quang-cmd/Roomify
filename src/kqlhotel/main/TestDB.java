@@ -2,7 +2,7 @@ package kqlhotel.main;
 // hahahah
 
 import kqlhotel.dao.ConnectDB;
-import kqlhotel.dao.Account.AccountDAO;
+import kqlhotel.dao.account.AccountDAO;
 import kqlhotel.dao.Staff.StaffDAO;
 import kqlhotel.entity.Account;
 import kqlhotel.entity.Staff;
