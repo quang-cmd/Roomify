@@ -156,44 +156,8 @@ public class SqlBookingService implements BookingService {
                 ngayDat = checkInTs;
             }
 
-            String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
-            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
-                ps.setString(1, maDatPhong);
-                ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
-                ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
-                ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
-                ps.setString(5, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
-                ps.setString(6, leadCustomerId);
-                ps.setString(7, maNV);
-                ps.executeUpdate();
-            }
-
-            // 5. Insert ChiTietDatPhong for each allocated room
+            // Pre-compute totals so we can persist tienCoc on DatPhong
             int nights = Math.max(1, (int) ChronoUnit.DAYS.between(command.getCheckInDate(), command.getCheckOutDate()));
-            int numRooms = allocatedRoomIds.size();
-            int guestsPerRoom = Math.max(1, (int) Math.ceil((double) command.getTotalGuests() / numRooms));
-
-            String insertCtdp = "INSERT INTO ChiTietDatPhong (maCTDP, maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            int seq = nextSequence(con, "ChiTietDatPhong", "maCTDP", "CTDP");
-            for (int i = 0; i < allocatedRoomIds.size(); i++) {
-                String roomId = allocatedRoomIds.get(i);
-                long unitPrice = command.getSelectedRooms().get(i).getNightlyPrice();
-                String maCTDP = String.format("CTDP%04d", seq++);
-                try (PreparedStatement ps = con.prepareStatement(insertCtdp)) {
-                    ps.setString(1, maCTDP);
-                    ps.setString(2, maDatPhong);
-                    ps.setString(3, roomId);
-                    ps.setTimestamp(4, Timestamp.valueOf(checkInTs));
-                    ps.setTimestamp(5, Timestamp.valueOf(checkOutTs));
-                    ps.setBigDecimal(6, java.math.BigDecimal.valueOf(unitPrice));
-                    ps.setInt(7, Math.min(guestsPerRoom, Math.max(1, command.getTotalGuests())));
-                    ps.setString(8, "");
-                    ps.executeUpdate();
-                }
-            }
-
-            // 6. Insert HoaDon
             long tienPhong = command.getTotalAmount();
             if (tienPhong <= 0) {
                 long perNight = 0;
@@ -201,8 +165,46 @@ public class SqlBookingService implements BookingService {
                 tienPhong = perNight * nights;
             }
             long tongTien = tienPhong; // no service / promo / tax for now
+            long paidAmount = Math.round(tienPhong * command.getPaymentRatio());
+            // Deposit recorded on the booking itself (0 when fully paid up-front, otherwise = paidAmount)
+            long tienCocBooking = command.isFullyPaid() ? 0L : paidAmount;
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
+            String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
+            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
+                ps.setString(1, maDatPhong);
+                ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
+                ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
+                ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
+                ps.setBigDecimal(5, java.math.BigDecimal.valueOf(tienCocBooking));
+                ps.setString(6, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
+                ps.setString(7, leadCustomerId);
+                ps.setString(8, maNV);
+                ps.executeUpdate();
+            }
+
+            // 5. Insert ChiTietDatPhong for each allocated room (composite PK, no maCTDP column)
+            int numRooms = allocatedRoomIds.size();
+            int guestsPerRoom = Math.max(1, (int) Math.ceil((double) command.getTotalGuests() / numRooms));
+
+            String insertCtdp = "INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            for (int i = 0; i < allocatedRoomIds.size(); i++) {
+                String roomId = allocatedRoomIds.get(i);
+                long unitPrice = command.getSelectedRooms().get(i).getNightlyPrice();
+                try (PreparedStatement ps = con.prepareStatement(insertCtdp)) {
+                    ps.setString(1, maDatPhong);
+                    ps.setString(2, roomId);
+                    ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
+                    ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
+                    ps.setBigDecimal(5, java.math.BigDecimal.valueOf(unitPrice));
+                    ps.setInt(6, Math.min(guestsPerRoom, Math.max(1, command.getTotalGuests())));
+                    ps.setString(7, "");
+                    ps.executeUpdate();
+                }
+            }
+
+            // 6. Insert HoaDon
             String maHD = nextId(con, "HoaDon", "maHD", "HD", 5);
             String insertHoaDon = "INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) " +
                 "VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, 0, NULL, ?, ?, ?, ?, ?)";
@@ -227,7 +229,6 @@ public class SqlBookingService implements BookingService {
             }
 
             // 7. Insert ThanhToan record (for the actual collected amount)
-            long paidAmount = Math.round(tienPhong * command.getPaymentRatio());
             String maTT = nextId(con, "ThanhToan", "maTT", "TT", 5);
             String insertTT = "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(insertTT)) {
@@ -243,16 +244,6 @@ public class SqlBookingService implements BookingService {
                 ps.setString(6, "ThanhToanThanhCong");
                 ps.setString(7, maHD);
                 ps.executeUpdate();
-            }
-
-            // 8. Update Phong status to DaDat for allocated rooms
-            String updatePhong = "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?";
-            try (PreparedStatement ps = con.prepareStatement(updatePhong)) {
-                for (String roomId : allocatedRoomIds) {
-                    ps.setString(1, roomId);
-                    ps.addBatch();
-                }
-                ps.executeBatch();
             }
 
             con.commit();
@@ -275,7 +266,7 @@ public class SqlBookingService implements BookingService {
         String sql = "SELECT TOP 1 p.maPhong FROM Phong p " +
             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
             "WHERE lp.tenLoaiPhong = ? " +
-            "AND p.trangThaiPhong IN ('Trong', 'DangDon') " +
+            "AND p.trangThaiPhong <> 'BaoTri' " +
             "AND NOT EXISTS (" +
             "  SELECT 1 FROM ChiTietDatPhong ctdp WHERE ctdp.maPhong = p.maPhong " +
             "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
@@ -298,7 +289,7 @@ public class SqlBookingService implements BookingService {
         String sqlAll = "SELECT p.maPhong FROM Phong p " +
             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
             "WHERE lp.tenLoaiPhong = ? " +
-            "AND p.trangThaiPhong IN ('Trong', 'DangDon') " +
+            "AND p.trangThaiPhong <> 'BaoTri' " +
             "AND NOT EXISTS (" +
             "  SELECT 1 FROM ChiTietDatPhong ctdp WHERE ctdp.maPhong = p.maPhong " +
             "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
