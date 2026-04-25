@@ -1,4 +1,4 @@
-package kqlhotel.bus.invoice;
+package kqlhotel.bus.Invoice;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.invoice.*;

@@ -1,11 +1,11 @@
 package kqlhotel.gui.tabs;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Insets;
-import java.awt.RenderingHints;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.text.NumberFormat;
@@ -13,15 +13,17 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
-import javax.swing.JOptionPane;
-import javax.swing.JTextArea;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JSpinner;
 import javax.swing.JScrollPane;
-import javax.swing.SwingConstants;
+import javax.swing.JSpinner;
+import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
@@ -30,147 +32,152 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
-import kqlhotel.gui.components.LoginBackgroundPanel;
+import kqlhotel.gui.components.BackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
-public class ShiftOpeningPanel extends LoginBackgroundPanel {
-    private static final Color OVERLAY = new Color(32, 41, 58, 205); // #20293A + alpha
-    private static final Color GROUP_BG = new Color(45, 55, 72, 220); // #2D3748 + alpha
-    private static final Color PRIMARY_BUTTON = new Color(255, 138, 61); // #FF8A3D
-    private static final Color TEXT_MAIN = new Color(255, 255, 255);
-    private static final Color TEXT_MUTED = new Color(160, 174, 192); // #A0AEC0
-    private static final String NOTE_PLACEHOLDER = "Ghi chú (tùy chọn)...";
+public class ShiftOpeningPanel extends BackgroundPanel {
+    private static final int[] DENOMINATIONS = {10_000, 20_000, 50_000, 100_000, 200_000, 500_000};
 
     private final Map<Integer, JSpinner> denominationSpinners = new LinkedHashMap<>();
-    private final JLabel totalLabel = new JLabel("0đ");
+    private final Map<Integer, JLabel> denominationSubtotals = new LinkedHashMap<>();
+    private final Map<Integer, JLabel> breakdownLabels = new LinkedHashMap<>();
+    private final JLabel totalLabel = new JLabel();
     private final NumberFormat moneyFormat = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
     private final Runnable onShiftConfirmed;
-    private final GlowPrimaryButton confirmButton;
-    private final JTextArea noteArea = new JTextArea();
-    private final JScrollPane noteScroll;
-    private final PrimaryButton noteToggleButton = new PrimaryButton("Thêm ghi chú");
-    private boolean noteExpanded;
+    private final PrimaryButton confirmButton = new PrimaryButton("Xác nhận & Vào ca");
+    private final JTextArea noteArea = new JTextArea(3, 20);
 
     public ShiftOpeningPanel(Runnable onShiftConfirmed) {
         this.onShiftConfirmed = onShiftConfirmed;
         setOpaque(true);
-        setLayout(new MigLayout("insets 24,gap 16", "[grow,fill][360!,fill]", "[]"));
+        setLayout(new MigLayout("insets 32 40,gap 24", "[grow,fill][380!,fill]", "[grow,fill]"));
 
-        RoundedPanel left = new RoundedPanel(24, OVERLAY, new Color(91, 107, 131, 120), 1f);
-        left.setLayout(new MigLayout("wrap 2,insets 20,gap 16", "[grow,fill][grow,fill]", "[]"));
-
-        JLabel title = new JLabel("Kiểm kê tiền đầu ca");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 28f));
-        title.setForeground(TEXT_MAIN);
-        JLabel hint = new JLabel("Nhập số tờ đồng cho từng mệnh giá để xác nhận tiền đầu ca.");
-        hint.setForeground(TEXT_MUTED);
-
-        JPanel titleWrap = new JPanel(new MigLayout("insets 0,wrap 1", "[grow,fill]", "[]"));
-        titleWrap.setOpaque(false);
-        titleWrap.add(title);
-        titleWrap.add(hint);
-
-        left.add(titleWrap, "span 2,gapy 0 10");
-
-        addDenomination(left, 10_000);
-        addDenomination(left, 20_000);
-        addDenomination(left, 50_000);
-        addDenomination(left, 100_000);
-        addDenomination(left, 200_000);
-        addDenomination(left, 500_000);
-
-        RoundedPanel right = new RoundedPanel(24, OVERLAY, new Color(91, 107, 131, 120), 1f);
-        right.setLayout(new MigLayout("wrap 1,insets 20,gap 14", "[grow,fill]", "[]"));
-
-        JLabel totalCaption = new JLabel("Tổng tiền đầu ca");
-        totalCaption.setForeground(TEXT_MUTED);
-        totalLabel.setForeground(TEXT_MAIN);
-        totalLabel.setFont(totalLabel.getFont().deriveFont(Font.BOLD, 40f));
-        totalLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        totalLabel.setText("<html>999.999.999<span style='font-size:20px;'>đ</span></html>");
-
-        confirmButton = new GlowPrimaryButton("Xác nhận & Vào ca");
-        confirmButton.setBackground(PRIMARY_BUTTON);
-        confirmButton.setForeground(TEXT_MAIN);
-        confirmButton.addActionListener(e -> confirmShift());
-
-        right.add(totalCaption);
-        right.add(totalLabel);
-        JLabel detail = new JLabel("Chi tiết mệnh giá sẽ cập nhật theo số lượng.");
-        detail.setForeground(TEXT_MUTED);
-        right.add(detail);
-
-        noteArea.setBackground(new Color(39, 48, 64));
-        noteArea.setForeground(TEXT_MAIN);
-        noteArea.setCaretColor(TEXT_MAIN);
-        noteArea.setEditable(true);
-        noteArea.setLineWrap(true);
-        noteArea.setWrapStyleWord(true);
-        noteArea.setMargin(new Insets(12, 12, 12, 12));
-        noteArea.setFont(noteArea.getFont().deriveFont(Font.PLAIN, 13f));
-        noteArea.setOpaque(true);
-        noteArea.setText("");
-
-        noteScroll = new JScrollPane(noteArea);
-        noteScroll.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(90, 107, 132, 140), 1),
-            BorderFactory.createEmptyBorder(2, 2, 2, 2)
-        ));
-        noteScroll.getViewport().setBackground(new Color(39, 48, 64));
-        noteScroll.getViewport().setOpaque(true);
-        noteScroll.setOpaque(true);
-        noteScroll.setBackground(new Color(39, 48, 64));
-        noteScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        noteScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        noteScroll.setVisible(false);
-
-        RoundedPanel noteCard = new RoundedPanel(14, new Color(39, 48, 64), new Color(90, 107, 132, 140), 1f);
-        noteCard.setLayout(new MigLayout("wrap 1,insets 12,gap 8", "[grow,fill]", "[]"));
-
-        JPanel noteHeader = new JPanel(new MigLayout("insets 0,gap 8", "[grow,fill][]", "[]"));
-        noteHeader.setOpaque(false);
-        JLabel noteTitle = new JLabel("Ghi chú");
-        noteTitle.setForeground(TEXT_MAIN);
-        noteTitle.setFont(noteTitle.getFont().deriveFont(Font.BOLD, 13f));
-        JLabel noteHint = new JLabel("Tùy chọn");
-        noteHint.setForeground(TEXT_MUTED);
-        noteHeader.add(noteTitle);
-        noteHeader.add(noteHint);
-
-        noteToggleButton.setBackground(new Color(58, 119, 246));
-        noteToggleButton.setForeground(TEXT_MAIN);
-        noteToggleButton.addActionListener(e -> toggleNoteArea());
-
-        noteCard.add(noteHeader);
-        noteCard.add(noteToggleButton, "w 120!,h 34!,alignx right");
-        noteCard.add(noteScroll, "growx,h 96");
-
-        right.add(noteCard, "growx");
-        right.add(confirmButton, "h 44");
-
-        add(left, "grow");
-        add(right, "growy,w 360!");
+        add(buildLeftCard(), "grow");
+        add(buildRightCard(), "growy,w 380!");
 
         recalculateTotal();
     }
 
-    private void addDenomination(JPanel parent, int value) {
-        RoundedPanel row = new RoundedPanel(14, tagBackgroundFor(value), new Color(255, 255, 255, 80), 1f);
-        row.setLayout(new MigLayout("insets 12,gap 10", "[right,90!][grow,fill]", "[]"));
+    private RoundedPanel buildLeftCard() {
+        RoundedPanel left = new RoundedPanel(20, ThemeColors.SURFACE, ThemeColors.BORDER, 1f,
+            ThemeColors.withAlpha(new Color(0x0F172A), 18), 4);
+        left.setLayout(new MigLayout("wrap 1,insets 28 28 24 28,gap 12", "[grow,fill]", "[]"));
 
-        JLabel money = new JLabel(moneyFormat.format(value) + "d");
-        money.setForeground(new Color(56, 66, 87));
-        money.setFont(money.getFont().deriveFont(Font.BOLD));
-        money.setHorizontalAlignment(SwingConstants.RIGHT);
+        JLabel title = new JLabel("Kiểm kê tiền đầu ca");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
+        title.setForeground(ThemeColors.TEXT_PRIMARY);
 
+        JLabel hint = new JLabel("Nhập số tờ cho từng mệnh giá. Tổng sẽ tự cập nhật theo thời gian thực.");
+        hint.setForeground(ThemeColors.TEXT_MUTED);
+        hint.setFont(hint.getFont().deriveFont(13f));
+
+        left.add(title);
+        left.add(hint, "gapy 0 12");
+
+        for (int value : DENOMINATIONS) {
+            left.add(buildDenominationRow(value), "growx,h 64!");
+        }
+        return left;
+    }
+
+    private RoundedPanel buildRightCard() {
+        RoundedPanel right = new RoundedPanel(20, ThemeColors.SURFACE, ThemeColors.BORDER, 1f,
+            ThemeColors.withAlpha(new Color(0x0F172A), 18), 4);
+        right.setLayout(new MigLayout("wrap 1,insets 24,gap 12", "[grow,fill]", "[][][grow,fill][][]"));
+
+        // Section: total summary
+        JLabel totalCaption = new JLabel("TỔNG TIỀN ĐẦU CA");
+        totalCaption.setForeground(ThemeColors.TEXT_MUTED);
+        totalCaption.setFont(totalCaption.getFont().deriveFont(Font.BOLD, 11f));
+
+        totalLabel.setForeground(ThemeColors.TEXT_PRIMARY);
+        totalLabel.setFont(totalLabel.getFont().deriveFont(Font.BOLD, 36f));
+        totalLabel.setHorizontalAlignment(SwingConstants.LEFT);
+
+        JPanel totalWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 4", "[grow,fill]", "[]"));
+        totalWrap.setOpaque(false);
+        totalWrap.add(totalCaption);
+        totalWrap.add(totalLabel);
+
+        // Section: breakdown list
+        JPanel breakdown = new JPanel(new MigLayout("wrap 1,insets 0,gap 4", "[grow,fill]", "[]"));
+        breakdown.setOpaque(false);
+        for (int value : DENOMINATIONS) {
+            JLabel line = new JLabel();
+            line.setForeground(ThemeColors.TEXT_MUTED);
+            line.setFont(line.getFont().deriveFont(12f));
+            breakdownLabels.put(value, line);
+            breakdown.add(line);
+        }
+
+        RoundedPanel breakdownCard = new RoundedPanel(14, ThemeColors.SURFACE_LIGHT, ThemeColors.BORDER_SOFT, 1f);
+        breakdownCard.setLayout(new MigLayout("insets 12 16,gap 4", "[grow,fill]", "[]"));
+        breakdownCard.add(breakdown, "growx");
+
+        // Section: note
+        JLabel noteTitle = new JLabel("Ghi chú (tùy chọn)");
+        noteTitle.setForeground(ThemeColors.TEXT_SECONDARY);
+        noteTitle.setFont(noteTitle.getFont().deriveFont(Font.BOLD, 12f));
+
+        noteArea.setLineWrap(true);
+        noteArea.setWrapStyleWord(true);
+        noteArea.setMargin(new Insets(10, 12, 10, 12));
+        noteArea.setFont(noteArea.getFont().deriveFont(Font.PLAIN, 13f));
+        noteArea.setBackground(ThemeColors.SURFACE_LIGHT);
+        noteArea.setForeground(ThemeColors.TEXT_PRIMARY);
+        noteArea.setCaretColor(ThemeColors.PRIMARY);
+
+        JScrollPane noteScroll = new JScrollPane(noteArea);
+        noteScroll.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true));
+        noteScroll.getViewport().setBackground(ThemeColors.SURFACE_LIGHT);
+        noteScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        noteScroll.setPreferredSize(new Dimension(0, 80));
+
+        // Section: CTA
+        confirmButton.setBackground(ThemeColors.ACCENT);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setFont(confirmButton.getFont().deriveFont(Font.BOLD, 14f));
+        confirmButton.addActionListener(e -> confirmShift());
+
+        right.add(totalWrap);
+        right.add(breakdownCard, "growx,gapy 4 4");
+        right.add(new JPanel() {{ setOpaque(false); }}, "growy"); // spacer
+        right.add(noteTitle, "gapy 4 2");
+        right.add(noteScroll, "growx,h 84!");
+        right.add(confirmButton, "growx,h 48!,gapy 12 0");
+        return right;
+    }
+
+    private RoundedPanel buildDenominationRow(int value) {
+        Color stripeColor = stripeColorFor(value);
+        RoundedPanel row = new RoundedPanel(12, ThemeColors.SURFACE_LIGHT, ThemeColors.BORDER_SOFT, 1f);
+        row.setLayout(new MigLayout("insets 0,gap 0", "[6!][140!][grow,fill][120!][140!]", "[grow,fill]"));
+
+        // Colored stripe (left)
+        JPanel stripe = new JPanel();
+        stripe.setBackground(stripeColor);
+        stripe.setOpaque(true);
+
+        // Denomination label
+        JLabel money = new JLabel(moneyFormat.format(value) + " đ");
+        money.setForeground(ThemeColors.TEXT_PRIMARY);
+        money.setFont(money.getFont().deriveFont(Font.BOLD, 16f));
+        money.setBorder(BorderFactory.createEmptyBorder(0, 16, 0, 0));
+
+        // Spinner with +/- buttons
         JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, 10_000, 1));
-        spinner.putClientProperty("FlatLaf.style", "arc:14;background:#2D3748;foreground:#FFFFFF;borderColor:#4A5568;buttonBackground:#334155;buttonArrowColor:#E2E8F0");
         JFormattedTextField spinnerField = ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField();
-        spinnerField.setBackground(new Color(45, 55, 72));
-        spinnerField.setForeground(TEXT_MAIN);
-        spinnerField.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        spinnerField.setHorizontalAlignment(SwingConstants.CENTER);
+        spinnerField.setFont(spinnerField.getFont().deriveFont(Font.BOLD, 14f));
+        spinnerField.setBackground(ThemeColors.SURFACE);
+        spinnerField.setForeground(ThemeColors.TEXT_PRIMARY);
+        spinnerField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
         spinnerField.setFocusLostBehavior(JFormattedTextField.COMMIT_OR_REVERT);
         if (spinnerField.getDocument() instanceof AbstractDocument) {
             ((AbstractDocument) spinnerField.getDocument()).setDocumentFilter(new DigitOnlyFilter());
@@ -178,9 +185,8 @@ public class ShiftOpeningPanel extends LoginBackgroundPanel {
         spinnerField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                javax.swing.SwingUtilities.invokeLater(spinnerField::selectAll);
+                SwingUtilities.invokeLater(spinnerField::selectAll);
             }
-
             @Override
             public void focusLost(FocusEvent e) {
                 String text = spinnerField.getText() == null ? "" : spinnerField.getText().trim();
@@ -190,45 +196,102 @@ public class ShiftOpeningPanel extends LoginBackgroundPanel {
                 }
             }
         });
-
         spinner.addChangeListener(new ChangeListener() {
             @Override
-            public void stateChanged(ChangeEvent e) {
-                recalculateTotal();
-            }
+            public void stateChanged(ChangeEvent e) { recalculateTotal(); }
         });
-
         spinnerField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                recalculateTotal();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                recalculateTotal();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                recalculateTotal();
-            }
+            @Override public void insertUpdate(DocumentEvent e)  { recalculateTotal(); }
+            @Override public void removeUpdate(DocumentEvent e)  { recalculateTotal(); }
+            @Override public void changedUpdate(DocumentEvent e) { recalculateTotal(); }
         });
+
+        JButton minus = makeStepButton("−", () -> stepSpinner(spinner, -1));
+        JButton plus  = makeStepButton("+",   () -> stepSpinner(spinner, +1));
+
+        JPanel spinnerWrap = new JPanel(new MigLayout("insets 0,gap 6", "[36!][grow,fill][36!]", "[grow,fill]"));
+        spinnerWrap.setOpaque(false);
+        spinnerWrap.add(minus, "growy");
+        spinnerWrap.add(spinner, "grow");
+        spinnerWrap.add(plus, "growy");
+
+        // Subtotal label (right)
+        JLabel subtotal = new JLabel("= 0 đ");
+        subtotal.setForeground(ThemeColors.TEXT_SECONDARY);
+        subtotal.setFont(subtotal.getFont().deriveFont(Font.BOLD, 13f));
+        subtotal.setHorizontalAlignment(SwingConstants.RIGHT);
+        subtotal.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 16));
+
+        // Quantity hint (between stripe and money)
+        JLabel qtyHint = new JLabel();
+        qtyHint.setForeground(ThemeColors.TEXT_MUTED);
+        qtyHint.setFont(qtyHint.getFont().deriveFont(11f));
+        qtyHint.setHorizontalAlignment(SwingConstants.RIGHT);
+        qtyHint.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+
+        // Compose money + qty hint vertically
+        JPanel moneyWrap = new JPanel(new BorderLayout());
+        moneyWrap.setOpaque(false);
+        moneyWrap.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 0));
+        moneyWrap.add(money, BorderLayout.CENTER);
+        moneyWrap.add(qtyHint, BorderLayout.SOUTH);
 
         denominationSpinners.put(value, spinner);
-        row.add(money, "growx");
-        row.add(spinner, "w 100!");
+        denominationSubtotals.put(value, subtotal);
 
-        parent.add(row, "growx");
+        row.add(stripe, "growy");
+        row.add(moneyWrap, "grow");
+        row.add(spinnerWrap, "grow,gap 8 8 10 10");
+        row.add(new JLabel(), ""); // spacer
+        row.add(subtotal, "grow");
+        return row;
+    }
+
+    private JButton makeStepButton(String label, Runnable action) {
+        JButton btn = new JButton(label);
+        btn.setFocusPainted(false);
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 14f));
+        btn.setForeground(ThemeColors.PRIMARY);
+        btn.setBackground(ThemeColors.SURFACE);
+        btn.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setMargin(new Insets(0, 0, 0, 0));
+        btn.addActionListener(e -> action.run());
+        return btn;
+    }
+
+    private void stepSpinner(JSpinner spinner, int delta) {
+        int current = getSpinnerCount(spinner);
+        int next = Math.max(0, Math.min(10_000, current + delta));
+        spinner.setValue(next);
     }
 
     private void recalculateTotal() {
         long total = 0L;
         for (Map.Entry<Integer, JSpinner> item : denominationSpinners.entrySet()) {
-            total += (long) item.getKey() * getSpinnerCount(item.getValue());
+            int value = item.getKey();
+            int count = getSpinnerCount(item.getValue());
+            long subtotal = (long) value * count;
+            total += subtotal;
+
+            JLabel sub = denominationSubtotals.get(value);
+            if (sub != null) {
+                sub.setText("= " + moneyFormat.format(subtotal) + " đ");
+                sub.setForeground(count > 0 ? ThemeColors.SUCCESS : ThemeColors.TEXT_MUTED);
+            }
+            JLabel line = breakdownLabels.get(value);
+            if (line != null) {
+                line.setText(count + " tờ × " + moneyFormat.format(value) + " đ  =  " + moneyFormat.format(subtotal) + " đ");
+                line.setForeground(count > 0 ? ThemeColors.TEXT_PRIMARY : ThemeColors.TEXT_MUTED);
+            }
         }
-        totalLabel.setText("<html>" + moneyFormat.format(total) + "<span style='font-size:20px;'>đ</span></html>");
-        confirmButton.setEnabled(true);
+        totalLabel.setText("<html>" + moneyFormat.format(total) + "<span style='font-size:18px;color:#64748B;'> đ</span></html>");
+
+        boolean hasMoney = total > 0;
+        confirmButton.setEnabled(hasMoney);
+        confirmButton.setBackground(hasMoney ? ThemeColors.ACCENT : ThemeColors.BG_SECONDARY);
+        confirmButton.setForeground(hasMoney ? Color.WHITE : ThemeColors.TEXT_PLACEHOLDER);
+        confirmButton.setToolTipText(hasMoney ? null : "Vui lòng nhập số tờ cho ít nhất 1 mệnh giá.");
     }
 
     private void confirmShift() {
@@ -252,15 +315,18 @@ public class ShiftOpeningPanel extends LoginBackgroundPanel {
         }
     }
 
-    private void toggleNoteArea() {
-        noteExpanded = !noteExpanded;
-        noteScroll.setVisible(noteExpanded);
-        noteToggleButton.setText(noteExpanded ? "Ẩn ghi chú" : "Thêm ghi chú");
-        if (noteExpanded) {
-            noteArea.requestFocusInWindow();
+    /** Trả ghi chú hiện tại (caller có thể dùng để lưu vào bảng PhanCongCa). */
+    public String getNote() {
+        return noteArea.getText();
+    }
+
+    /** Trả tổng tiền mở ca đã kiểm kê. */
+    public long getTotal() {
+        long total = 0L;
+        for (Map.Entry<Integer, JSpinner> item : denominationSpinners.entrySet()) {
+            total += (long) item.getKey() * getSpinnerCount(item.getValue());
         }
-        revalidate();
-        repaint();
+        return total;
     }
 
     private int getSpinnerCount(JSpinner spinner) {
@@ -326,44 +392,16 @@ public class ShiftOpeningPanel extends LoginBackgroundPanel {
         }
     }
 
-    private Color tagBackgroundFor(int value) {
-        if (value == 10_000) {
-            return new Color(253, 226, 226); // #FDE2E2
-        }
-        if (value == 20_000) {
-            return new Color(225, 239, 254); // #E1EFFE
-        }
-        if (value == 50_000) {
-            return new Color(253, 247, 236); // #FDF7EC
-        }
-        if (value == 100_000) {
-            return new Color(254, 243, 199); // #FEF3C7
-        }
-        if (value == 200_000) {
-            return new Color(255, 237, 213); // #FFEDD5
-        }
-        if (value == 500_000) {
-            return new Color(252, 232, 243); // #FCE8F3
-        }
-        return new Color(255, 255, 255);
-    }
-
-    private static final class GlowPrimaryButton extends PrimaryButton {
-        private GlowPrimaryButton(String text) {
-            super(text);
-            setOpaque(false);
-            setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(new Color(255, 138, 61, 70));
-            g2.fillRoundRect(4, 8, getWidth() - 8, getHeight() - 10, 16, 16);
-            g2.dispose();
-            super.paintComponent(g);
+    /** Màu stripe theo mệnh giá — dùng cho thanh accent bên trái row. */
+    private Color stripeColorFor(int value) {
+        switch (value) {
+            case 10_000:  return ThemeColors.DANGER;   // đỏ - nhạt nhất, dễ nhận
+            case 20_000:  return ThemeColors.PRIMARY;  // xanh
+            case 50_000:  return ThemeColors.WARNING;  // amber
+            case 100_000: return ThemeColors.ACCENT;   // cam sẫm
+            case 200_000: return ThemeColors.SUCCESS;  // xanh lá
+            case 500_000: return new Color(0xA855F7);  // tím cho bản cao nhất
+            default:      return ThemeColors.TEXT_MUTED;
         }
     }
-
 }
