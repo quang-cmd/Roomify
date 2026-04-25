@@ -42,7 +42,7 @@ public class PhongDAO {
 
                 Phong p = new Phong(
                     rs.getString("maPhong"),
-                    rs.getDouble("tienCoc"),
+                    0.0, // Phong table doesn't have tienCoc
                     lp,
                     rs.getInt("tang"),
                     rs.getString("trangThaiPhong")
@@ -108,7 +108,7 @@ public class PhongDAO {
 
                     Phong p = new Phong(
                         rs.getString("maPhong"),
-                        rs.getDouble("tienCoc"),
+                        0.0, // Phong table doesn't have tienCoc
                         lp,
                         rs.getInt("tang"),
                         rs.getString("trangThaiPhong")
@@ -122,16 +122,15 @@ public class PhongDAO {
         return list;
     }
     public boolean create(Phong p) {
-        String sql = "INSERT INTO Phong (maPhong, tienCoc, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?)";
         try {
             ConnectDB.getInstance().connect();
             Connection con = ConnectDB.getInstance().getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, p.getMaPhong());
-                pstmt.setDouble(2, p.getTienCoc() != null ? p.getTienCoc() : 0.0);
-                pstmt.setString(3, p.getLoaiPhong().getMaLoaiPhong());
-                pstmt.setInt(4, p.getTang());
-                pstmt.setString(5, p.getTrangThaiPhong());
+                pstmt.setString(2, p.getLoaiPhong().getMaLoaiPhong());
+                pstmt.setInt(3, p.getTang());
+                pstmt.setString(4, p.getTrangThaiPhong());
                 return pstmt.executeUpdate() > 0;
             }
         } catch (SQLException | ClassNotFoundException e) {
@@ -141,16 +140,15 @@ public class PhongDAO {
     }
 
     public boolean update(Phong p) {
-        String sql = "UPDATE Phong SET tienCoc = ?, maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
+        String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
         try {
             ConnectDB.getInstance().connect();
             Connection con = ConnectDB.getInstance().getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
-                pstmt.setDouble(1, p.getTienCoc() != null ? p.getTienCoc() : 0.0);
-                pstmt.setString(2, p.getLoaiPhong().getMaLoaiPhong());
-                pstmt.setInt(3, p.getTang());
-                pstmt.setString(4, p.getTrangThaiPhong());
-                pstmt.setString(5, p.getMaPhong());
+                pstmt.setString(1, p.getLoaiPhong().getMaLoaiPhong());
+                pstmt.setInt(2, p.getTang());
+                pstmt.setString(3, p.getTrangThaiPhong());
+                pstmt.setString(4, p.getMaPhong());
                 return pstmt.executeUpdate() > 0;
             }
         } catch (SQLException | ClassNotFoundException e) {
