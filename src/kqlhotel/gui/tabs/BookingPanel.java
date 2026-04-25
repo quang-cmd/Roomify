@@ -1018,7 +1018,7 @@ public class BookingPanel extends JPanel {
 
     private void submitBookingWithPayment(String paymentPlanLabel, double paymentRatio) {
         if (selectedRooms.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui long chon it nhat 1 phong truoc.", "Thieu thong tin", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             setStep(1);
             bookingCards.show(bookingContent, "select-room");
             return;
@@ -1028,39 +1028,70 @@ public class BookingPanel extends JPanel {
         if (guestInfos == null) {
             return;
         }
+        if (!validateGuestData(guestInfos)) {
+            return;
+        }
 
         LocalDate checkInDate = selectedCheckInDate;
         LocalDate checkOutDate = selectedCheckOutDate;
         if (checkInDate == null || checkOutDate == null) {
-            JOptionPane.showMessageDialog(this, "Vui long chon lai ngay nhan/tra phong hop le.", "Thieu thong tin", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lại ngày nhận/trả phòng hợp lệ.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        long totalAmount = 3000000L;
+        // Compute real total from selected rooms × nights
+        BookingSelectionSummary summary = bookingService.summarizeSelection(toSelectedRoomOptions(), getSummaryRequest());
+        long totalAmount = summary.getTotalAmount();
         long paymentAmount = Math.round(totalAmount * paymentRatio);
 
-        String[] paymentMethods = {"Tien mat", "Chuyen khoan"};
+        // Choose payment method
+        String[] paymentLabels = {"Tiền mặt", "Chuyển khoản"};
+        String[] paymentCodes = {"TienMat", "ChuyenKhoan"};
         int choice = JOptionPane.showOptionDialog(
             this,
-            "Chon phuong thuc thanh toan:",
-            "Phuong thuc thanh toan",
+            "<html>Phương án: <b>" + paymentPlanLabel + "</b><br>" +
+                "Tổng tiền phòng: <b>" + formatMoney(totalAmount) + "</b><br>" +
+                "Cần thu: <b>" + formatMoney(paymentAmount) + "</b><br><br>" +
+                "Chọn phương thức thanh toán:</html>",
+            "Phương thức thanh toán",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE,
             null,
-            paymentMethods,
-            paymentMethods[0]
+            paymentLabels,
+            paymentLabels[0]
         );
 
-        if (choice == -1) {
+        if (choice == JOptionPane.CLOSED_OPTION) {
             return;
         }
 
         String referenceNumber = "";
         if (choice == 1) {
-            referenceNumber = JOptionPane.showInputDialog(this, "Nhap so tham chieu chuyen khoan:", "");
+            referenceNumber = JOptionPane.showInputDialog(this, "Nhập số tham chiếu chuyển khoản:", "");
             if (referenceNumber == null) {
                 return;
             }
+            referenceNumber = referenceNumber.trim();
+            if (referenceNumber.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Số tham chiếu không được để trống khi chuyển khoản.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        // Final confirmation
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "<html>Xác nhận đặt phòng?<br>" +
+                "Khách: <b>" + guestInfos.get(0).getFullName() + "</b><br>" +
+                "Số phòng: <b>" + selectedRooms.size() + "</b> · " + summary.getNights() + " đêm<br>" +
+                "Phương thức: <b>" + paymentLabels[choice] + "</b><br>" +
+                "Số tiền thu: <b>" + formatMoney(paymentAmount) + "</b> / Tổng " + formatMoney(totalAmount) + "</html>",
+            "Xác nhận thanh toán",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
         }
 
         CreateBookingCommand command = new CreateBookingCommand(
@@ -1068,34 +1099,78 @@ public class BookingPanel extends JPanel {
             checkOutDate,
             guestCount,
             guestInfos,
-            toSelectedRoomOptions()
+            toSelectedRoomOptions(),
+            totalAmount,
+            paymentRatio,
+            paymentCodes[choice],
+            referenceNumber
         );
 
         BookingConfirmationResult result = bookingService.createBooking(command);
         if (!result.isSuccess()) {
-            JOptionPane.showMessageDialog(this, result.getMessage(), "Khong the dat phong", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, result.getMessage(), "Không thể đặt phòng", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         String leadGuestName = guestInfos.get(0).getFullName();
-        String paymentMethod = paymentMethods[choice];
-        String successMessage = "Dat phong thanh cong!\n\nKhach: " + leadGuestName + "\nCac phong: " + selectedRooms.size() + "\n" +
-            "Phuong thuc: " + paymentMethod + "\nSo tien: " + formatMoney(paymentAmount);
-
+        StringBuilder successMessage = new StringBuilder();
+        successMessage.append("Đặt phòng thành công!\n\n");
+        successMessage.append("Khách: ").append(leadGuestName).append("\n");
+        successMessage.append("Số phòng: ").append(selectedRooms.size()).append(" · ").append(summary.getNights()).append(" đêm\n");
+        successMessage.append("Phương thức: ").append(paymentLabels[choice]).append("\n");
+        successMessage.append("Đã thu (").append(paymentPlanLabel).append("): ").append(formatMoney(paymentAmount)).append("\n");
+        successMessage.append("Tổng hóa đơn: ").append(formatMoney(totalAmount)).append("\n");
         if (!referenceNumber.isEmpty()) {
-            successMessage += "\nSo tham chieu: " + referenceNumber;
+            successMessage.append("Số tham chiếu: ").append(referenceNumber).append("\n");
         }
-
         if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
-            successMessage += "\nMa dat phong: " + result.getBookingCode();
+            successMessage.append("Mã đặt phòng: ").append(result.getBookingCode()).append("\n");
+        }
+        if (result.getMessage() != null) {
+            successMessage.append("\n").append(result.getMessage());
         }
 
-        JOptionPane.showMessageDialog(this, successMessage, "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
-        
+        JOptionPane.showMessageDialog(this, successMessage.toString(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+        // Reset form and refresh room list
+        selectedRooms.clear();
+        for (GuestFormRow row : guestFormRows) {
+            row.idField.setText("");
+            row.nameField.setText("");
+            row.phoneField.setText("");
+        }
         setStep(1);
         bookingCards.show(bookingContent, "select-room");
-        selectedRooms.clear();
         runSearch();
+    }
+
+    private boolean validateGuestData(List<GuestInfoDto> guestInfos) {
+        for (int i = 0; i < guestInfos.size(); i++) {
+            GuestInfoDto guest = guestInfos.get(i);
+            String idNo = guest.getIdNo();
+            String phone = guest.getPhone();
+            String name = guest.getFullName();
+
+            if (name == null || name.trim().length() < 2) {
+                JOptionPane.showMessageDialog(this,
+                    "Họ tên Khách " + (i + 1) + " không hợp lệ.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (idNo == null || !idNo.matches("\\d{9,12}")) {
+                JOptionPane.showMessageDialog(this,
+                    "CCCD/Hộ chiếu của Khách " + (i + 1) + " phải gồm 9-12 chữ số.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (phone == null || !phone.matches("0\\d{9,10}")) {
+                JOptionPane.showMessageDialog(this,
+                    "Số điện thoại của Khách " + (i + 1) + " phải bắt đầu bằng 0 và có 10-11 chữ số.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<GuestInfoDto> collectGuestInfos() {

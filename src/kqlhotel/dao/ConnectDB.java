@@ -17,7 +17,7 @@ public class ConnectDB {
     public void connect() throws SQLException, ClassNotFoundException {
         if (connection == null || connection.isClosed()) {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            String url = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyKhachSan;encrypt=false";
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=QLKhachSan;encrypt=false";
             String user = "sa";
             String password = "123456";
             connection = DriverManager.getConnection(url, user, password);

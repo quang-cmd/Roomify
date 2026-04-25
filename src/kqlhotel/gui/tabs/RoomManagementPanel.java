@@ -18,9 +18,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import kqlhotel.bus.room.PhongBUS;
-import kqlhotel.entity.LoaiPhong;
-import kqlhotel.entity.Phong;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
@@ -37,13 +34,23 @@ public class RoomManagementPanel extends JPanel {
     private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
     private static final Color COLOR_DANGDON = new Color(143, 97, 255);
 
-    private final PhongBUS phongBUS = new PhongBUS();
-    private List<kqlhotel.entity.Phong> phongList;
-    private JLabel subtitle;
-    private JPanel statsRow;
-
-    public List<kqlhotel.entity.Phong> getPhongList() { return phongList; }
-    public PhongBUS getPhongBUS() { return phongBUS; }
+    public final List<RoomData> mockData = Arrays.asList(
+        new RoomData("101", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", COLOR_TRONG),
+        new RoomData("102", "Tầng 1", "Deluxe", "Đã đặt", "2 khách", "28m²", "1.200.000đ", COLOR_DADAT),
+        new RoomData("103", "Tầng 1", "Deluxe", "Bảo trì", "2 khách", "28m²", "1.200.000đ", COLOR_BAOTRI),
+        new RoomData("104", "Tầng 1", "Deluxe", "Trống", "2 khách", "28m²", "1.200.000đ", COLOR_TRONG),
+        new RoomData("105", "Tầng 1", "Deluxe", "Đang dọn", "2 khách", "28m²", "1.200.000đ", COLOR_DANGDON),
+        new RoomData("201", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", COLOR_TRONG),
+        new RoomData("202", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", COLOR_DADAT),
+        new RoomData("203", "Tầng 2", "Grand Premium 1", "Trống", "3 khách", "40m²", "2.200.000đ", COLOR_TRONG),
+        new RoomData("204", "Tầng 2", "Grand Premium 1", "Đã đặt", "3 khách", "40m²", "2.200.000đ", COLOR_DADAT),
+        new RoomData("301", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", COLOR_TRONG),
+        new RoomData("302", "Tầng 3", "Grand Premium 2", "Bảo trì", "4 khách", "55m²", "3.200.000đ", COLOR_BAOTRI),
+        new RoomData("303", "Tầng 3", "Grand Premium 2", "Trống", "4 khách", "55m²", "3.200.000đ", COLOR_TRONG),
+        new RoomData("401", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", COLOR_TRONG),
+        new RoomData("402", "Tầng 4", "Suite", "Đã đặt", "4 khách", "85m²", "5.500.000đ", COLOR_DADAT),
+        new RoomData("403", "Tầng 4", "Suite", "Trống", "4 khách", "85m²", "5.500.000đ", COLOR_TRONG)
+    );
 
     public RoomManagementPanel() {
         setOpaque(false);
@@ -59,24 +66,12 @@ public class RoomManagementPanel extends JPanel {
         JLabel title = new JLabel("Quản lý phòng");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
         title.setForeground(new Color(24, 40, 66));
-        subtitle = new JLabel("Đang tải...");
+        JLabel subtitle = new JLabel("15 phòng tổng cộng - 8 phòng trống");
         subtitle.setForeground(new Color(150, 165, 190));
         titlePanel.add(title);
         titlePanel.add(subtitle);
 
-        PrimaryButton btnSearch = new PrimaryButton(" Tra cứu phòng");
-        try {
-            java.net.URL searchURL = getClass().getResource("/kqlhotel/resources/icons/search.png");
-            if (searchURL != null) {
-                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(searchURL);
-                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
-                btnSearch.setIcon(new javax.swing.ImageIcon(img));
-            } else {
-                btnSearch.setText("🔍 Tra cứu phòng");
-            }
-        } catch (Exception ex) {
-            btnSearch.setText("🔍 Tra cứu phòng");
-        }
+        PrimaryButton btnSearch = new PrimaryButton("🔍 Tra cứu phòng");
         btnSearch.setBackground(ThemeColors.PRIMARY);
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> {
@@ -88,37 +83,32 @@ public class RoomManagementPanel extends JPanel {
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm phòng");
         btnAdd.setBackground(new Color(17, 24, 39));
         btnAdd.setForeground(Color.WHITE);
-        btnAdd.addActionListener(e -> {
-            Window owner = SwingUtilities.getWindowAncestor(this);
-            kqlhotel.gui.components.AddRoomDialog dialog = new kqlhotel.gui.components.AddRoomDialog(owner, phongBUS, this::reloadData);
-            dialog.setVisible(true);
-        });
-
-        PrimaryButton btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
-        btnAddRoomType.setBackground(new Color(30, 41, 59));
-        btnAddRoomType.setForeground(Color.WHITE);
-        btnAddRoomType.addActionListener(e -> {
-            Window owner = SwingUtilities.getWindowAncestor(this);
-            kqlhotel.gui.components.AddRoomTypeDialog dialog = new kqlhotel.gui.components.AddRoomTypeDialog(owner, new kqlhotel.bus.room.RoomTypeBUS(), this::reloadData);
-            dialog.setVisible(true);
-        });
 
         header.add(titlePanel);
         header.add(btnSearch, "alignx right,h 44!");
-        header.add(btnAddRoomType, "h 44!");
         header.add(btnAdd, "h 44!");
 
         // ===== 2. Stats Row =====
-        statsRow = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
+        JPanel statsRow = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
         statsRow.setOpaque(false);
+        statsRow.add(createStatCard("Trống", "8", "53%", COLOR_TRONG));
+        statsRow.add(createStatCard("Đã đặt", "4", "27%", COLOR_DADAT));
+        statsRow.add(createStatCard("Bảo trì", "2", "13%", COLOR_BAOTRI));
+        statsRow.add(createStatCard("Đang dọn", "1", "7%", COLOR_DANGDON));
 
         // ===== 3. Filter Row =====
         filterRow.setOpaque(false);
+        filterRow.add(createFilterBtn("Tất cả", "15", true));
+        filterRow.add(createFilterBtn("Trống", "8", false));
+        filterRow.add(createFilterBtn("Đã đặt", "4", false));
+        filterRow.add(createFilterBtn("Bảo trì", "2", false));
+        filterRow.add(createFilterBtn("Đang dọn", "1", false));
 
         // ===== 4. Grid =====
         gridContainer.setOpaque(false);
-
-        reloadData(); // Load real data
+        for (RoomData data : mockData) {
+            gridContainer.add(createRoomCard(data));
+        }
 
         JPanel gridWrapper = new JPanel(new BorderLayout());
         gridWrapper.setOpaque(false);
@@ -198,42 +188,6 @@ public class RoomManagementPanel extends JPanel {
         return btn;
     }
 
-    public void reloadData() {
-        phongList = phongBUS.getAllRooms();
-        
-        long total = phongList.size();
-        long tr = phongBUS.countByStatus(phongList, "Trong");
-        long dd = phongBUS.countByStatus(phongList, "DaDat");
-        long bt = phongBUS.countByStatus(phongList, "BaoTri");
-        long dn = phongBUS.countByStatus(phongList, "DangDon");
-
-        subtitle.setText(total + " phòng tổng cộng - " + tr + " phòng trống");
-
-        // Update Stats Row
-        statsRow.removeAll();
-        statsRow.add(createStatCard("Trống", String.valueOf(tr), getPct(tr, total), COLOR_TRONG));
-        statsRow.add(createStatCard("Đã đặt", String.valueOf(dd), getPct(dd, total), COLOR_DADAT));
-        statsRow.add(createStatCard("Bảo trì", String.valueOf(bt), getPct(bt, total), COLOR_BAOTRI));
-        statsRow.add(createStatCard("Đang dọn", String.valueOf(dn), getPct(dn, total), COLOR_DANGDON));
-        statsRow.revalidate(); statsRow.repaint();
-
-        // Update Filter Row
-        filterRow.removeAll();
-        filterRow.add(createFilterBtn("Tất cả", String.valueOf(total - bt), true));
-        filterRow.add(createFilterBtn("Trống", String.valueOf(tr), false));
-        filterRow.add(createFilterBtn("Đã đặt", String.valueOf(dd), false));
-        filterRow.add(createFilterBtn("Bảo trì", String.valueOf(bt), false));
-        filterRow.add(createFilterBtn("Đang dọn", String.valueOf(dn), false));
-        filterRow.revalidate(); filterRow.repaint();
-
-        applyFilter("Tất cả");
-    }
-
-    private String getPct(long count, long total) {
-        if (total == 0) return "0%";
-        return (int)((double)count/total * 100) + "%";
-    }
-
     private void applyFilter(String filter) {
         for (int i = 0; i < filterRow.getComponentCount(); i++) {
             if (filterRow.getComponent(i) instanceof JButton) {
@@ -265,97 +219,121 @@ public class RoomManagementPanel extends JPanel {
         }
 
         gridContainer.removeAll();
-        for (kqlhotel.entity.Phong p : phongList) {
-            String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
-            if (filter.equals("Tất cả")) {
-                if (!guiStatus.equals("Bảo trì")) {
-                    gridContainer.add(createRoomCard(p));
-                }
-            } else if (guiStatus.equals(filter)) {
-                gridContainer.add(createRoomCard(p));
+        for (RoomData data : mockData) {
+            if (filter.equals("Tất cả") || data.status.equals(filter)) {
+                gridContainer.add(createRoomCard(data));
             }
         }
         gridContainer.revalidate();
         gridContainer.repaint();
     }
 
-    public JPanel createRoomCard(kqlhotel.entity.Phong p) {
-        kqlhotel.entity.LoaiPhong lp = p.getLoaiPhong();
-        String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
-        Color statusColor = COLOR_TRONG;
-        if (guiStatus.equals("Đã đặt")) statusColor = COLOR_DADAT;
-        else if (guiStatus.equals("Bảo trì")) statusColor = COLOR_BAOTRI;
-        else if (guiStatus.equals("Đang dọn")) statusColor = COLOR_DANGDON;
-
+    public JPanel createRoomCard(RoomData data) {
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);
         card.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
 
-        // Header
+        // ===== Header (Number & Bed icon) =====
         JPanel topRow = new JPanel(new MigLayout("insets 0", "[][grow,right]", "[]"));
         topRow.setOpaque(false);
+        
         JPanel numGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         numGroup.setOpaque(false);
-        JLabel roomNo = new JLabel(p.getMaPhong());
+        JLabel roomNo = new JLabel(data.roomNo);
         roomNo.setFont(roomNo.getFont().deriveFont(Font.BOLD, 18f));
         roomNo.setForeground(new Color(30, 50, 80));
-        JLabel floor = new JLabel("Tầng " + p.getTang());
+        JLabel floor = new JLabel(data.floor);
         floor.setFont(floor.getFont().deriveFont(11f));
         floor.setForeground(new Color(130, 145, 170));
-        numGroup.add(roomNo); numGroup.add(floor);
+        numGroup.add(roomNo);
+        numGroup.add(floor);
+
+        JLabel bedIcon = new JLabel("🛏");
+        bedIcon.setFont(bedIcon.getFont().deriveFont(20f));
+        bedIcon.setForeground(new Color(160, 175, 200));
+
         topRow.add(numGroup);
+        topRow.add(bedIcon);
 
-        JButton btnEdit = new JButton();
-        try {
-            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/edit.png");
-            if (url != null) {
-                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
-                java.awt.Image img = icon.getImage().getScaledInstance(18, 18, java.awt.Image.SCALE_SMOOTH);
-                btnEdit.setIcon(new javax.swing.ImageIcon(img));
-            } else {
-                btnEdit.setText("✎");
-            }
-        } catch (Exception ex) {
-            btnEdit.setText("✎");
-        }
-        btnEdit.setFont(btnEdit.getFont().deriveFont(20f));
-        btnEdit.setForeground(new Color(100, 120, 150));
-        btnEdit.setBorderPainted(false);
-        btnEdit.setContentAreaFilled(false);
-        btnEdit.setFocusPainted(false);
-        btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnEdit.setToolTipText("Chỉnh sửa phòng");
-        btnEdit.addActionListener(e -> {
-            Window owner = SwingUtilities.getWindowAncestor(this);
-            kqlhotel.gui.components.EditRoomDialog dialog = new kqlhotel.gui.components.EditRoomDialog(owner, p, phongBUS, this::reloadData);
-            dialog.setVisible(true);
-        });
-        topRow.add(btnEdit, "gapleft 8, w 32!, h 32!");
-
-        // Type & Status
+        // ===== Type & Status =====
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         midRow.setOpaque(false);
-        midRow.add(makeBadge(lp.getTenLoaiPhong(), new Color(240, 244, 255), new Color(80, 120, 200)));
-        midRow.add(makeBadge("• " + guiStatus, new Color(statusColor.getRed(), statusColor.getGreen(), statusColor.getBlue(), 25), statusColor));
+        
+        Color badgeBg = new Color(data.statusColor.getRed(), data.statusColor.getGreen(), data.statusColor.getBlue(), 25);
+        JPanel typeBadge = makeBadge(data.roomType, new Color(240, 244, 255), new Color(80, 120, 200));
+        JPanel statusBadge = makeBadge("• " + data.status, badgeBg, data.statusColor);
+        
+        midRow.add(typeBadge, "left");
+        midRow.add(statusBadge, "right");
 
-        // Info
+        // ===== Info Row (Guests & Area) =====
         JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 12", "[][]", "[]"));
         infoRow.setOpaque(false);
-        infoRow.add(new JLabel("👤 " + lp.getSucChuaToiDa() + " khách") {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
-        infoRow.add(new JLabel("⛶ " + lp.getDienTich() + "m²") {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
+        JLabel guests = new JLabel("👤 " + data.guests);
+        guests.setForeground(new Color(130, 145, 170));
+        guests.setFont(guests.getFont().deriveFont(11f));
+        JLabel area = new JLabel("⛶ " + data.area);
+        area.setForeground(new Color(130, 145, 170));
+        area.setFont(area.getFont().deriveFont(11f));
+        infoRow.add(guests);
+        infoRow.add(area);
 
-        // Price
+        // ===== Footer (Price & Action) =====
+        JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
+        botRow.setOpaque(false);
+        
         JPanel priceGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 0", "[]", "[]"));
         priceGroup.setOpaque(false);
-        JLabel priceLbl = new JLabel(String.format("%,.0fđ", lp.getGiaPhong()));
+        JLabel priceLbl = new JLabel(data.price);
         priceLbl.setFont(priceLbl.getFont().deriveFont(Font.BOLD, 14f));
         priceLbl.setForeground(new Color(30, 50, 80));
+        JLabel night = new JLabel("/đêm");
+        night.setFont(night.getFont().deriveFont(11f));
+        night.setForeground(new Color(150, 165, 190));
         priceGroup.add(priceLbl);
-        priceGroup.add(new JLabel("/đêm") {{ setFont(getFont().deriveFont(11f)); setForeground(new Color(150, 165, 190)); }});
+        priceGroup.add(night);
+
+        botRow.add(priceGroup, "aligny center");
+        
+        // Buttons
+        if (data.status.equals("Trống")) {
+            // Hiển thị nút "Chi tiết" nhỏ
+            JButton btn = new JButton("✎ Chi tiết");
+            btn.setBackground(Color.WHITE);
+            btn.setForeground(new Color(100, 120, 150));
+            btn.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+            btn.setFocusPainted(false);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            botRow.add(btn, "h 32!");
+        } else if (data.status.equals("Đã đặt") || data.status.equals("Đang dọn")) {
+            PrimaryButton btn = new PrimaryButton("👤 Khách & Hóa đơn");
+            btn.setBackground(ThemeColors.PRIMARY);
+            btn.setForeground(Color.WHITE);
+            btn.addActionListener(e -> {
+                Window owner = SwingUtilities.getWindowAncestor(this);
+                kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(owner, data.roomNo, data.roomType, data.floor, data.price);
+                dialog.setVisible(true);
+            });
+            botRow.add(btn, "span 2,growx,h 36!,gapy 6 0");
+        } else {
+            JButton btn = new JButton("Chi tiết");
+            btn.setBackground(Color.WHITE);
+            btn.setForeground(new Color(100, 120, 150));
+            btn.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+            btn.setFocusPainted(false);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            botRow.add(btn, "h 32!");
+        }
 
         card.add(topRow, "growx");
         card.add(midRow, "gapy 12 0,growx");
         card.add(infoRow, "gapy 8 0");
-        card.add(priceGroup, "gapy 12 0");
+        
+        if (data.status.equals("Đã đặt") || data.status.equals("Đang dọn")) {
+            card.add(priceGroup, "gapy 12 0");
+            card.add(botRow, "gapy 4 0,growx");
+        } else {
+            card.add(botRow, "gapy 12 0,growx");
+        }
 
         return card;
     }
@@ -396,4 +374,14 @@ public class RoomManagementPanel extends JPanel {
         return badge;
     }
 
+    public static final class RoomData {
+        public final String roomNo, floor, roomType, status, guests, area, price;
+        public final Color statusColor;
+
+        public RoomData(String roomNo, String floor, String roomType, String status, String guests, String area, String price, Color color) {
+            this.roomNo = roomNo; this.floor = floor; this.roomType = roomType;
+            this.status = status; this.guests = guests; this.area = area;
+            this.price = price; this.statusColor = color;
+        }
+    }
 }

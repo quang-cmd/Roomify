@@ -16,7 +16,7 @@ import kqlhotel.entity.RoomEntity;
 public class RoomDaoSqlServer implements RoomDao {
     private static final String SQL_FIND_AVAILABLE =
         "SELECT lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi, " +
-        "SUM(CASE WHEN p.trangThaiPhong = 'Trong' AND ctdp.maCTDP IS NULL THEN 1 ELSE 0 END) AS soPhongTrong, " +
+        "SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) AS soPhongTrong, " +
         "COUNT(*) AS tongSoPhong " +
         "FROM LoaiPhong lp " +
         "JOIN Phong p ON p.maLoaiPhong = lp.maLoaiPhong " +
@@ -25,7 +25,7 @@ public class RoomDaoSqlServer implements RoomDao {
         "WHERE lp.sucChuaToiDa >= ? " +
         "AND (? = 1 OR lp.tenLoaiPhong LIKE ?) " +
         "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi " +
-        "HAVING SUM(CASE WHEN p.trangThaiPhong = 'Trong' AND ctdp.maCTDP IS NULL THEN 1 ELSE 0 END) > 0 " +
+        "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 " +
         "ORDER BY lp.giaPhong ASC";
 
     @Override
