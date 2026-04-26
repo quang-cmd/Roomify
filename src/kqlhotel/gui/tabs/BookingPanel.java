@@ -6,6 +6,7 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -58,12 +59,14 @@ public class BookingPanel extends JPanel {
     private int guestCount = 2;
     private JLabel guestCountLabel;
 
-    private final JLabel step1Label = new JLabel();
-    private final JLabel step2Label = new JLabel();
     private final CardLayout bookingCards = new CardLayout();
     private final JPanel bookingContent = new JPanel(bookingCards);
 
-    private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 12", "[grow,fill][grow,fill]", "[]"));
+    // Row height is fixed ("[205!]") so the 2x2 grid always occupies the same
+    // vertical space regardless of how many real cards (1..ROOMS_PER_SLIDE) are
+    // shown on the current slide. 205px is tuned tight against the densest card
+    // so the panel fits within the viewport leaving 24px whitespace at the bottom.
+    private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 10", "[grow,fill][grow,fill]", "[205!]"));
     private final JLabel selectedRoomsLabel = new JLabel("Ch\u01b0a ch\u1ecdn ph\u00f2ng");
     private final JLabel selectedDateLabel = new JLabel("Ng\u00e0y nh\u1eadn/tr\u1ea3: --");
     private final JLabel selectedGuestLabel = new JLabel("S\u1ed1 kh\u00e1ch: --");
@@ -99,7 +102,10 @@ public class BookingPanel extends JPanel {
         RoundedPanel filterCard = createFilterCard();
         JPanel rightSide = createRightSide();
 
-        add(filterCard, "growy");
+        // Anchor filter card to the top so its inner whitespace doesn't expand
+        // to fill the entire page height (which made users feel there was hidden
+        // content scrollable below the search button).
+        add(filterCard, "aligny top");
         add(rightSide, "grow");
 
         renderInitialRooms();
@@ -174,7 +180,7 @@ public class BookingPanel extends JPanel {
 
         String searchText = "T\u00ecm ph\u00f2ng tr\u1ed1ng";
         searchButton = new PrimaryButton(searchText);
-        searchButton.setBackground(new Color(17, 24, 39));
+        searchButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         searchButton.setForeground(Color.WHITE);
         searchButton.addActionListener(e -> runSearch());
         filterCard.add(searchButton, "h 44,gapy 6 0");
@@ -487,7 +493,7 @@ public class BookingPanel extends JPanel {
     }
 
     private JPanel createRightSide() {
-        JPanel right = new JPanel(new MigLayout("wrap 1,insets 0,gap 12", "[grow,fill]", "[]"));
+        JPanel right = new JPanel(new MigLayout("wrap 1,insets 0,gap 10", "[grow,fill]", "[]"));
         right.setOpaque(false);
 
         // Stepper indicator
@@ -503,38 +509,142 @@ public class BookingPanel extends JPanel {
         return right;
     }
 
+    // Stepper UI: two rounded pills, each with a circle badge holding the step
+    // number. The active pill is dark navy + white text + white circle with
+    // navy number. The inactive pill is soft slate background + muted text.
+    private StepPill step1Pill;
+    private StepPill step2Pill;
+
     private JPanel createStepperPanel() {
-        JPanel stepper = new JPanel(new MigLayout("insets 6 10,gap 0", "[grow,fill][grow,fill]", "[]"));
+        JPanel stepper = new JPanel(new MigLayout("insets 0,gap 8", "[grow,fill][grow,fill]", "[]"));
         stepper.setOpaque(false);
-        stepper.setBorder(BorderFactory.createLineBorder(new Color(225, 231, 245), 1));
-        stepper.setBackground(new Color(242, 246, 252));
 
-        step1Label.setHorizontalAlignment(SwingConstants.CENTER);
-        step2Label.setHorizontalAlignment(SwingConstants.CENTER);
+        step1Pill = new StepPill("1", "Chọn phòng");
+        step2Pill = new StepPill("2", "Thông tin khách hàng");
 
-        JPanel s1Wrap = new JPanel(new BorderLayout());
-        s1Wrap.setOpaque(false);
-        s1Wrap.add(step1Label);
-
-        JLabel arrow = new JLabel(" > ", SwingConstants.CENTER);
-        arrow.setForeground(new Color(180, 190, 210));
-
-        JPanel s2Wrap = new JPanel(new BorderLayout());
-        s2Wrap.setOpaque(false);
-        s2Wrap.add(step2Label);
-
-        stepper.add(s1Wrap, "h 36");
-        stepper.add(s2Wrap, "h 36");
-
+        stepper.add(step1Pill, "h 38!");
+        stepper.add(step2Pill, "h 38!");
         return stepper;
     }
 
+    /**
+     * Rounded "pill" used for the booking stepper: circular numbered badge
+     * on the left + descriptive text on the right. The active state uses the
+     * brand navy background; inactive uses a calm slate tint. Paints its own
+     * rounded background so we can swap colours on activation.
+     */
+    private static class StepPill extends JPanel {
+        private static final int ARC = 12;
+        private final CircleBadge badge;
+        private final JLabel textLabel;
+        private Color bgColor = COLOR_PILL_INACTIVE_BG;
+        private Color borderColor = COLOR_PILL_BORDER;
+
+        StepPill(String number, String text) {
+            setOpaque(false);
+            // "push[]8[]push" keeps the badge + text as a single group centered
+            // within the pill (instead of badge at left edge, text floating right).
+            setLayout(new MigLayout("insets 4 14", "push[]8[]push", "[]"));
+            badge = new CircleBadge(number);
+            textLabel = new JLabel(text);
+            textLabel.setFont(textLabel.getFont().deriveFont(Font.BOLD, 13f));
+            add(badge, "w 24!,h 24!,aligny center");
+            add(textLabel, "aligny center");
+            setActive(false);
+        }
+
+        void setActive(boolean active) {
+            if (active) {
+                bgColor = COLOR_PILL_ACTIVE_BG;
+                borderColor = COLOR_PILL_ACTIVE_BG;
+                textLabel.setForeground(COLOR_PILL_ACTIVE_TEXT);
+                badge.setColors(COLOR_PILL_ACTIVE_TEXT, COLOR_PILL_ACTIVE_BG);
+            } else {
+                bgColor = COLOR_PILL_INACTIVE_BG;
+                borderColor = COLOR_PILL_BORDER;
+                textLabel.setForeground(COLOR_PILL_INACTIVE_TEXT);
+                badge.setColors(COLOR_PILL_INACTIVE_BADGE_BG, COLOR_PILL_INACTIVE_BADGE_TEXT);
+            }
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bgColor);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            g2.setColor(borderColor);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /**
+     * Small circular badge that paints a coloured circle with a number drawn
+     * directly using FontMetrics so the number is precisely centered (a JLabel
+     * inside a BorderLayout drifts a pixel or two off due to font baseline).
+     */
+    private static class CircleBadge extends JPanel {
+        private static final Font BADGE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 12);
+        private Color bg = COLOR_PILL_INACTIVE_BADGE_BG;
+        private Color textColor = COLOR_PILL_INACTIVE_BADGE_TEXT;
+        private final String number;
+
+        CircleBadge(String number) {
+            this.number = number;
+            setOpaque(false);
+        }
+
+        void setColors(Color bgColor, Color textColor) {
+            this.bg = bgColor;
+            this.textColor = textColor;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Filled circle
+            g2.setColor(bg);
+            g2.fillOval(0, 0, w, h);
+
+            // Centered number using exact font metrics
+            g2.setColor(textColor);
+            g2.setFont(BADGE_FONT);
+            FontMetrics fm = g2.getFontMetrics();
+            int textW = fm.stringWidth(number);
+            int textH = fm.getAscent() - fm.getDescent();
+            int x = (w - textW) / 2;
+            int y = (h + textH) / 2;
+            g2.drawString(number, x, y);
+            g2.dispose();
+        }
+    }
+
+    // Stepper palette (aligned with PREMIUM brand navy)
+    private static final Color COLOR_PILL_ACTIVE_BG          = new Color(0x1E3A8A); // ThemeColors.PREMIUM_PRIMARY
+    private static final Color COLOR_PILL_ACTIVE_TEXT        = new Color(245, 248, 255);
+    private static final Color COLOR_PILL_INACTIVE_BG        = new Color(238, 243, 250);
+    private static final Color COLOR_PILL_INACTIVE_TEXT      = new Color(118, 134, 162);
+    private static final Color COLOR_PILL_INACTIVE_BADGE_BG  = new Color(208, 217, 234);
+    private static final Color COLOR_PILL_INACTIVE_BADGE_TEXT= new Color(118, 134, 162);
+    private static final Color COLOR_PILL_BORDER             = new Color(225, 231, 245);
+
     private JPanel createSelectRoomView() {
-        JPanel panel = new JPanel(new MigLayout("wrap 1,insets 0,gap 12", "[grow,fill]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("wrap 1,insets 0,gap 10", "[grow,fill]", "[]"));
         panel.setOpaque(false);
 
         RoundedPanel overview = new RoundedPanel(16, new Color(18, 35, 67), new Color(40, 64, 112), 1f);
-        overview.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
+        overview.setLayout(new MigLayout("wrap 1,insets 12 16", "[grow,fill]", "[]"));
 
         JPanel ovTitleRow = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
         ovTitleRow.setOpaque(false);
@@ -549,7 +659,7 @@ public class BookingPanel extends JPanel {
         }
         JLabel ovTitle = new JLabel("T\u1ed5ng quan ph\u00f2ng kh\u00e1ch s\u1ea1n");
         ovTitle.setForeground(new Color(245, 248, 255));
-        ovTitle.setFont(ovTitle.getFont().deriveFont(Font.BOLD, 22f));
+        ovTitle.setFont(ovTitle.getFont().deriveFont(Font.BOLD, 18f));
         ovTitleRow.add(star);
         ovTitleRow.add(ovTitle);
 
@@ -579,7 +689,7 @@ public class BookingPanel extends JPanel {
         selectionTextWrap.add(selectionDetailLabel);
 
         continueToGuestButton = new PrimaryButton("Nhập thông tin khách");
-        continueToGuestButton.setBackground(new Color(58, 119, 246));
+        continueToGuestButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         continueToGuestButton.setForeground(Color.WHITE);
         continueToGuestButton.addActionListener(e -> openCustomerInfo());
 
@@ -656,13 +766,14 @@ public class BookingPanel extends JPanel {
             setStep(1);
         });
 
+        // Deposit = secondary CTA -> violet accent. Full payment = primary CTA -> navy.
         PrimaryButton depositButton = new PrimaryButton("ĐẶT CỌC 30%");
-        depositButton.setBackground(new Color(0xEF960A));
+        depositButton.setBackground(ThemeColors.PREMIUM_ACCENT);
         depositButton.setForeground(Color.WHITE);
         depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", 0.30));
 
         PrimaryButton fullPaymentButton = new PrimaryButton("THANH TOÁN 100%");
-        fullPaymentButton.setBackground(new Color(0x089E6F));
+        fullPaymentButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         fullPaymentButton.setForeground(Color.WHITE);
         fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", 1.0));
 
@@ -686,8 +797,8 @@ public class BookingPanel extends JPanel {
 
     private JPanel roomCard(RoomCardData data) {
         boolean selected = selectedRooms.contains(data);
-        Color cardBg = selected ? new Color(234, 243, 255) : data.bg;
-        Color cardTone = selected ? new Color(58, 119, 246) : data.tone;
+        Color cardBg = selected ? ThemeColors.PREMIUM_PRIMARY_SOFT : data.bg;
+        Color cardTone = selected ? ThemeColors.PREMIUM_PRIMARY : data.tone;
 
         RoundedPanel card = new RoundedPanel(16, cardBg, cardTone, 1f);
         card.setLayout(new MigLayout("wrap 1,insets 14,gap 6", "[grow,fill]", "[]"));
@@ -768,8 +879,8 @@ public class BookingPanel extends JPanel {
 
         String pickText = selected ? "\u2713 \u0110\u00e3 ch\u1ecdn" : "+ Th\u00eam ph\u00f2ng";
         PrimaryButton pickButton = new PrimaryButton(pickText);
-        pickButton.setBackground(selected ? new Color(58, 119, 246) : new Color(255, 255, 255, 200));
-        pickButton.setForeground(selected ? Color.WHITE : new Color(36, 58, 91));
+        pickButton.setBackground(selected ? ThemeColors.PREMIUM_PRIMARY : new Color(255, 255, 255, 200));
+        pickButton.setForeground(selected ? Color.WHITE : ThemeColors.PREMIUM_TEXT_SECONDARY);
         pickButton.addActionListener(e -> toggleRoomSelection(data));
 
         card.addMouseListener(new MouseAdapter() {
@@ -1301,6 +1412,14 @@ public class BookingPanel extends JPanel {
             for (RoomCardData room : pageItems) {
                 roomList.add(roomCard(room));
             }
+            // Pad remaining cells with invisible placeholders so the 2x2 grid
+            // shape is preserved (row height is enforced by the layout itself).
+            int filler = ROOMS_PER_SLIDE - pageItems.size();
+            for (int i = 0; i < filler; i++) {
+                JPanel placeholder = new JPanel();
+                placeholder.setOpaque(false);
+                roomList.add(placeholder);
+            }
         }
 
         roomList.revalidate();
@@ -1357,7 +1476,7 @@ public class BookingPanel extends JPanel {
 
         if (continueToGuestButton != null) {
             continueToGuestButton.setEnabled(true);
-            continueToGuestButton.setBackground(new Color(58, 119, 246));
+            continueToGuestButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         }
 
         selectedRoomsLabel.setText(buildSelectedRoomsSummary());
@@ -1498,27 +1617,10 @@ public class BookingPanel extends JPanel {
     }
 
     private void setStep(int step) {
-        if (step == 1) {
-            setFilterLocked(false);
-            step1Label.setText("1  Ch\u1ecdn ph\u00f2ng");
-            step2Label.setText("2  Th\u00f4ng tin kh\u00e1ch h\u00e0ng");
-            step1Label.setOpaque(true);
-            step2Label.setOpaque(true);
-            step1Label.setBackground(new Color(18, 35, 67));
-            step1Label.setForeground(new Color(245, 248, 255));
-            step2Label.setBackground(new Color(230, 238, 252));
-            step2Label.setForeground(new Color(119, 137, 168));
-        } else {
-            setFilterLocked(true);
-            step1Label.setText("1  Ch\u1ecdn ph\u00f2ng");
-            step2Label.setText("2  Th\u00f4ng tin kh\u00e1ch h\u00e0ng");
-            step1Label.setOpaque(true);
-            step2Label.setOpaque(true);
-            step1Label.setBackground(new Color(230, 238, 252));
-            step1Label.setForeground(new Color(119, 137, 168));
-            step2Label.setBackground(new Color(18, 35, 67));
-            step2Label.setForeground(new Color(245, 248, 255));
-        }
+        boolean atStep1 = step == 1;
+        setFilterLocked(!atStep1);
+        if (step1Pill != null) step1Pill.setActive(atStep1);
+        if (step2Pill != null) step2Pill.setActive(!atStep1);
     }
 
     private void setFilterLocked(boolean locked) {

@@ -14,6 +14,7 @@ import javax.swing.JPanel;
 import javax.swing.JOptionPane;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
 public class StatisticsPanel extends JPanel {
@@ -46,8 +47,9 @@ public class StatisticsPanel extends JPanel {
         leftHint.setForeground(new Color(102, 124, 160));
         leftHint.setFont(leftHint.getFont().deriveFont(Font.BOLD, 13f));
 
+        // Export = secondary CTA -> violet accent (distinct from range/view buttons)
         PrimaryButton exportBtn = new PrimaryButton("Xuất báo cáo");
-        exportBtn.setBackground(new Color(16, 185, 129));
+        exportBtn.setBackground(ThemeColors.PREMIUM_ACCENT);
         exportBtn.setForeground(Color.WHITE);
         exportBtn.addActionListener(e -> JOptionPane.showMessageDialog(
             this,
@@ -80,8 +82,8 @@ public class StatisticsPanel extends JPanel {
     private void updateRangeButtons() {
         for (Map.Entry<String, PrimaryButton> item : rangeButtons.entrySet()) {
             boolean active = item.getKey().equals(activeRange);
-            item.getValue().setBackground(active ? new Color(16, 24, 48) : new Color(245, 247, 252));
-            item.getValue().setForeground(active ? Color.WHITE : new Color(74, 94, 128));
+            item.getValue().setBackground(active ? ThemeColors.PREMIUM_PRIMARY : ThemeColors.PREMIUM_SURFACE_HOVER);
+            item.getValue().setForeground(active ? Color.WHITE : ThemeColors.PREMIUM_TEXT_SECONDARY);
         }
     }
 
@@ -129,8 +131,8 @@ public class StatisticsPanel extends JPanel {
     private void updateViewButtons() {
         for (Map.Entry<String, PrimaryButton> item : viewButtons.entrySet()) {
             boolean active = item.getKey().equals(activeView);
-            item.getValue().setBackground(active ? new Color(37, 99, 235) : new Color(245, 247, 252));
-            item.getValue().setForeground(active ? Color.WHITE : new Color(74, 94, 128));
+            item.getValue().setBackground(active ? ThemeColors.PREMIUM_PRIMARY : ThemeColors.PREMIUM_SURFACE_HOVER);
+            item.getValue().setForeground(active ? Color.WHITE : ThemeColors.PREMIUM_TEXT_SECONDARY);
         }
     }
 

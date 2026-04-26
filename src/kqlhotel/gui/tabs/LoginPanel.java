@@ -33,45 +33,51 @@ public class LoginPanel extends LoginBackgroundPanel {
         card.setLayout(new MigLayout("wrap 1,insets 28 28 22 28,gap 10", "[grow,fill]", "[]"));
         card.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        RoundedPanel logoBox = new RoundedPanel(12, ThemeColors.TEXT_PRIMARY, new Color(255, 255, 255, 26), 1f);
+        // Premium login: deep navy logo box with white "KH" letters
+        RoundedPanel logoBox = new RoundedPanel(14, ThemeColors.PREMIUM_PRIMARY, ThemeColors.withAlpha(Color.WHITE, 24), 1f);
         logoBox.setLayout(new BorderLayout());
         JLabel logo = new JLabel("KH", SwingConstants.CENTER);
-        logo.setForeground(ThemeColors.ACCENT);
-        logo.setFont(logo.getFont().deriveFont(28f));
+        logo.setForeground(Color.WHITE);
+        logo.setFont(logo.getFont().deriveFont(java.awt.Font.BOLD, 28f));
         logoBox.add(logo, BorderLayout.CENTER);
 
         JLabel brand = new JLabel("KQL HOTEL", SwingConstants.CENTER);
-        brand.setForeground(ThemeColors.TEXT_PRIMARY);
-        brand.setFont(brand.getFont().deriveFont(32f));
+        brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
+        brand.setFont(brand.getFont().deriveFont(java.awt.Font.BOLD, 30f));
 
         JLabel subtitle = new JLabel("Hệ thống quản lý khách sạn", SwingConstants.CENTER);
-        subtitle.setForeground(ThemeColors.TEXT_MUTED);
+        subtitle.setForeground(ThemeColors.PREMIUM_TEXT_MUTED);
 
         JLabel userLb = new JLabel("Tên đăng nhập");
-        userLb.setForeground(ThemeColors.TEXT_MUTED);
+        userLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
+        userLb.setFont(userLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
         AppTextField usernameField = new AppTextField();
         usernameField.putClientProperty("JTextField.placeholderText", "Nhập tên đăng nhập");
-        usernameField.setBackground(ThemeColors.SURFACE_LIGHT);
-        usernameField.setForeground(ThemeColors.TEXT_PRIMARY);
+        usernameField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
+        usernameField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
 
         JLabel passLb = new JLabel("Mật khẩu");
-        passLb.setForeground(ThemeColors.TEXT_MUTED);
+        passLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
+        passLb.setFont(passLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
         JPasswordField passwordField = new JPasswordField();
         passwordField.putClientProperty("JTextField.placeholderText", "Nhập mật khẩu");
-        passwordField.setBackground(ThemeColors.SURFACE_LIGHT);
-        passwordField.setForeground(ThemeColors.TEXT_PRIMARY);
+        passwordField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
+        passwordField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
         usernameField.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
 
+        // Primary CTA in deep navy (Premium brand) instead of amber
         PrimaryButton loginButton = new PrimaryButton("Đăng nhập");
-        loginButton.setBackground(ThemeColors.ACCENT);
+        loginButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         loginButton.setForeground(Color.WHITE);
+        loginButton.setFont(loginButton.getFont().deriveFont(java.awt.Font.BOLD, 14f));
         loginButton.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
         passwordField.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
 
-        RoundedPanel demo = new RoundedPanel(12, ThemeColors.DEMO_BG, ThemeColors.DEMO_BORDER, 1f);
+        // Demo hint card uses violet accent soft tone for a modern note feel
+        RoundedPanel demo = new RoundedPanel(12, ThemeColors.PREMIUM_ACCENT_SOFT, ThemeColors.withAlpha(ThemeColors.PREMIUM_ACCENT, 80), 1f);
         demo.setLayout(new BorderLayout());
         JLabel demoText = new JLabel("Tài khoản demo: admin / mật khẩu: admin123");
-        demoText.setForeground(ThemeColors.DEMO_TEXT);
+        demoText.setForeground(ThemeColors.PREMIUM_ACCENT_DARK);
         demoText.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         demo.add(demoText, BorderLayout.CENTER);
 
