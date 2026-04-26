@@ -59,6 +59,37 @@ public final class ThemeColors {
     public static final Color DEMO_BORDER     = new Color(0xBFDBFE);
     public static final Color DEMO_TEXT       = PRIMARY_DARK;
 
+    // Brand
+    public static final Color PREMIUM_PRIMARY         = new Color(0x1E3A8A); // blue-900 (deep navy)
+    public static final Color PREMIUM_PRIMARY_DARK    = new Color(0x172E6F); // hover / pressed
+    public static final Color PREMIUM_PRIMARY_SOFT    = new Color(0xDBEAFE); // soft tag bg
+    public static final Color PREMIUM_ACCENT          = new Color(0x7C3AED); // violet-600 (CTA secondary)
+    public static final Color PREMIUM_ACCENT_DARK     = new Color(0x6D28D9);
+    public static final Color PREMIUM_ACCENT_SOFT     = new Color(0xEDE9FE);
+
+    // Surfaces
+    public static final Color PREMIUM_BG              = new Color(0xFAFAFA);
+    public static final Color PREMIUM_SURFACE         = new Color(0xFFFFFF);
+    public static final Color PREMIUM_SURFACE_HOVER   = new Color(0xF3F4F6); // gray-100
+
+    // Borders
+    public static final Color PREMIUM_BORDER          = new Color(0xE5E7EB); // gray-200
+    public static final Color PREMIUM_BORDER_SOFT     = new Color(0xF3F4F6);
+
+    // Text
+    public static final Color PREMIUM_TEXT_PRIMARY    = new Color(0x111827); // gray-900
+    public static final Color PREMIUM_TEXT_SECONDARY  = new Color(0x374151); // gray-700
+    public static final Color PREMIUM_TEXT_MUTED      = new Color(0x6B7280); // gray-500
+
+    // Light sidebar
+    public static final Color PREMIUM_SIDEBAR_BG          = new Color(0xFFFFFF);
+    public static final Color PREMIUM_SIDEBAR_BORDER      = new Color(0xE5E7EB);
+    public static final Color PREMIUM_SIDEBAR_TEXT        = new Color(0x374151);
+    public static final Color PREMIUM_SIDEBAR_TEXT_MUTED  = new Color(0x9CA3AF);
+    public static final Color PREMIUM_SIDEBAR_HOVER       = new Color(0xF3F4F6);
+    public static final Color PREMIUM_SIDEBAR_ACTIVE_BG   = PREMIUM_PRIMARY;
+    public static final Color PREMIUM_SIDEBAR_ACTIVE_TEXT = new Color(0xFFFFFF);
+
     /**
      * Chuẩn hoá trạng thái phòng về SQL code (Trong / DangSuDung / BaoTri).
      * Chấp nhận cả mã SQL và nhãn hiển thị tiếng Việt.

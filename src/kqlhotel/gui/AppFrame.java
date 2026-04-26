@@ -130,17 +130,19 @@ public class AppFrame extends JFrame {
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel(new MigLayout("wrap 1,insets 16,gap 4", "[grow,fill]", "[]push[]"));
         sidebar.setPreferredSize(new Dimension(240, 1));
-        sidebar.setBackground(ThemeColors.SIDEBAR_BG);
+        sidebar.setBackground(ThemeColors.PREMIUM_SIDEBAR_BG);
+        // Right edge separator (gives the light sidebar a clean delimiter)
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, ThemeColors.PREMIUM_SIDEBAR_BORDER));
 
         // Brand header with hotel icon
-        JPanel hotelIcon = createCircleAvatar(ThemeColors.ACCENT, "KH", 14f);
+        JPanel hotelIcon = createCircleAvatar(ThemeColors.PREMIUM_PRIMARY, "KH", 14f);
 
         JLabel brand = new JLabel("KQL HOTEL");
-        brand.setForeground(Color.WHITE);
+        brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
         brand.setFont(brand.getFont().deriveFont(Font.BOLD, 18f));
 
         JLabel brandSub = new JLabel("Management System");
-        brandSub.setForeground(ThemeColors.SIDEBAR_TEXT_MUTED);
+        brandSub.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
         brandSub.setFont(brandSub.getFont().deriveFont(11f));
 
         JPanel brandTextWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
@@ -155,7 +157,7 @@ public class AppFrame extends JFrame {
         sidebar.add(brandWrap, "gapy 4 14");
 
         JLabel menuLabel = new JLabel("MENU CH\u00cdNH");
-        menuLabel.setForeground(ThemeColors.SIDEBAR_TEXT_MUTED);
+        menuLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
         menuLabel.setFont(menuLabel.getFont().deriveFont(Font.BOLD, 11f));
         sidebar.add(menuLabel, "gapy 4 2");
 
@@ -218,7 +220,7 @@ public class AppFrame extends JFrame {
         }
 
         JLabel textLbl = new JLabel(text);
-        textLbl.setForeground(ThemeColors.SIDEBAR_TEXT);
+        textLbl.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT);
         textLbl.setFont(textLbl.getFont().deriveFont(Font.BOLD, 13.5f));
         textLbl.setHorizontalAlignment(SwingConstants.LEFT);
         textLbl.setVerticalAlignment(SwingConstants.CENTER);
@@ -281,15 +283,12 @@ public class AppFrame extends JFrame {
             int h = getHeight();
 
             if (active) {
-                // Filled rounded background
-                g2.setColor(ThemeColors.withAlpha(ThemeColors.ACCENT, 28));
-                g2.fillRoundRect(0, 0, w, h, 8, 8);
-                // Left accent bar (3px)
-                g2.setColor(ThemeColors.ACCENT);
-                g2.fillRoundRect(0, 6, 3, h - 12, 2, 2);
+                // Solid navy pill on white sidebar — text + icon flip to white
+                g2.setColor(ThemeColors.PREMIUM_SIDEBAR_ACTIVE_BG);
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
             } else if (hovered) {
-                g2.setColor(ThemeColors.withAlpha(ThemeColors.SIDEBAR_ITEM, 140));
-                g2.fillRoundRect(0, 0, w, h, 8, 8);
+                g2.setColor(ThemeColors.PREMIUM_SIDEBAR_HOVER);
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
             }
 
             g2.dispose();
@@ -481,14 +480,15 @@ public class AppFrame extends JFrame {
         userArea.add(avatar, "w 36!,h 36!,aligny center");
         userArea.add(userText, "aligny center");
 
-        // Logout button (replaces the old sidebar-bottom logout arrow)
-        JButton logoutBtn = new JButton("\u2192 \u0110\u0103ng xu\u1ea5t");
+        // Logout button: outline style, subtle red — less aggressive than
+        // the previous solid red badge, harmonises with light topbar.
+        JButton logoutBtn = new JButton("\u0110\u0103ng xu\u1ea5t");
         logoutBtn.setFont(logoutBtn.getFont().deriveFont(Font.BOLD, 12f));
         logoutBtn.setForeground(ThemeColors.DANGER);
-        logoutBtn.setBackground(ThemeColors.DANGER_SOFT);
+        logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
         logoutBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 60), 1, true),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
+            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
         logoutBtn.setFocusPainted(false);
         logoutBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t kh\u1ecfi h\u1ec7 th\u1ed1ng");
@@ -622,8 +622,9 @@ public class AppFrame extends JFrame {
             }
             JLabel lbl = menuTextLabels.get(entry.getKey());
             if (lbl != null) {
-                // All items stay bold for legibility on dark sidebar; active item shifts to accent color.
-                lbl.setForeground(active ? ThemeColors.ACCENT : ThemeColors.SIDEBAR_TEXT);
+                // Light sidebar: active item -> white text on navy pill;
+                // inactive -> dark gray on white.
+                lbl.setForeground(active ? ThemeColors.PREMIUM_SIDEBAR_ACTIVE_TEXT : ThemeColors.PREMIUM_SIDEBAR_TEXT);
                 lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, active ? 14f : 13.5f));
             }
         }
