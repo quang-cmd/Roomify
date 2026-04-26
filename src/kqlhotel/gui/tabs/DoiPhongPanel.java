@@ -6,26 +6,31 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
@@ -36,29 +41,39 @@ import kqlhotel.entity.DoiPhongSearchResult;
 public class DoiPhongPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final Color PAGE_BG = new Color(245, 248, 252);
+    private static final Color TEXT_PRIMARY = new Color(15, 23, 42);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color BORDER = new Color(226, 232, 240);
+    private static final Color SURFACE = Color.WHITE;
+    private static final Color SURFACE_SOFT = new Color(248, 250, 252);
+    private static final Color ACTION = new Color(37, 99, 235);
 
     private final DoiPhongBus doiPhongBus = new DoiPhongBus();
-    private final InputField inpMaDatPhong;
-    private final InputField inpTenKhach;
-    private final InputField inpSoDienThoai;
-    private final InputField inpSoPhong;
-    private final JPanel rightPanel;
-    private List<DoiPhongSearchResult> currentResults;
+
+    private final InputField inpMaDatPhong = new InputField("search.png", "VD: DP001");
+    private final InputField inpTenKhach = new InputField("customers.png", "VD: Nguyen Van A");
+    private final InputField inpSoDienThoai = new InputField("search.png", "VD: 0820000001");
+    private final InputField inpSoPhong = new InputField("room.png", "VD: P101");
+
+    private final JPanel resultListPanel = new JPanel();
+    private final JPanel detailPanel = new JPanel(new BorderLayout());
+    private final JLabel resultCountLabel = new JLabel("Chua co ket qua");
+
+    private List<DoiPhongSearchResult> currentResults = new ArrayList<>();
+    private DoiPhongSearchResult selectedResult;
+    private DoiPhongRoomOption selectedRoomOption;
 
     public DoiPhongPanel() {
         setOpaque(false);
-        setLayout(new BorderLayout(0, 22));
-        setBorder(new EmptyBorder(22, 28, 22, 28));
-
-        inpMaDatPhong = new InputField("search.png", "Vi du: DP001");
-        inpTenKhach = new InputField("customers.png", "Vi du: Nguyen Van A");
-        inpSoDienThoai = new InputField("search.png", "Vi du: 0820000001");
-        inpSoPhong = new InputField("room.png", "Vi du: P101");
-        rightPanel = new JPanel(new BorderLayout());
-        rightPanel.setOpaque(false);
+        setBackground(PAGE_BG);
+        setLayout(new BorderLayout(0, 20));
+        setBorder(new EmptyBorder(22, 24, 22, 24));
 
         add(createHeader(), BorderLayout.NORTH);
         add(createContent(), BorderLayout.CENTER);
+
+        showEmptyState();
     }
 
     private JPanel createHeader() {
@@ -69,33 +84,33 @@ public class DoiPhongPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("\u0110\u1ed5i ph\u00f2ng");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(new Color(15, 23, 42));
+        JLabel title = new JLabel("Doi phong");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        title.setForeground(TEXT_PRIMARY);
 
-        JLabel subtitle = new JLabel("Tra c\u1ee9u kh\u00e1ch \u0111ang l\u01b0u tr\u00fa v\u00e0 \u0111\u1ed5i sang ph\u00f2ng m\u1edbi ph\u00f9 h\u1ee3p");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitle.setForeground(new Color(100, 116, 139));
+        JLabel subtitle = new JLabel("Tim booking dang luu tru, chon phong trong phu hop va cap nhat ngay tren du lieu hien co.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(TEXT_MUTED);
 
         titleWrap.add(title);
         titleWrap.add(Box.createVerticalStrut(6));
         titleWrap.add(subtitle);
 
         header.add(titleWrap, BorderLayout.WEST);
-        header.add(createStepIndicator(), BorderLayout.EAST);
+        header.add(createProcessBadge(), BorderLayout.EAST);
         return header;
     }
 
-    private JPanel createStepIndicator() {
-        JPanel wrapper = new RoundedBlockPanel(18, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+    private JPanel createProcessBadge() {
+        RoundedBlockPanel wrapper = new RoundedBlockPanel(18, SURFACE, BORDER, 1f, new Color(15, 23, 42, 8), 4);
         wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.X_AXIS));
-        wrapper.setBorder(new EmptyBorder(14, 16, 14, 16));
+        wrapper.setBorder(new EmptyBorder(12, 16, 12, 16));
 
-        wrapper.add(createStepChip("1", "Chon khach", true));
-        wrapper.add(Box.createHorizontalStrut(16));
-        wrapper.add(createStepDivider());
-        wrapper.add(Box.createHorizontalStrut(16));
-        wrapper.add(createStepChip("2", "Chon phong moi", false));
+        wrapper.add(createStepChip("1", "Tim booking", true));
+        wrapper.add(Box.createHorizontalStrut(10));
+        wrapper.add(createDivider());
+        wrapper.add(Box.createHorizontalStrut(10));
+        wrapper.add(createStepChip("2", "Chon phong moi", selectedResult != null));
         return wrapper;
     }
 
@@ -109,131 +124,158 @@ public class DoiPhongPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(active ? new Color(15, 23, 42) : new Color(241, 245, 249));
+                g2.setColor(active ? new Color(17, 24, 39) : new Color(241, 245, 249));
                 g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
             }
         };
         circle.setOpaque(false);
-        circle.setPreferredSize(new Dimension(30, 30));
-        circle.setMaximumSize(new Dimension(30, 30));
+        circle.setPreferredSize(new Dimension(28, 28));
+        circle.setMaximumSize(new Dimension(28, 28));
 
         JLabel numberLabel = new JLabel(number, SwingConstants.CENTER);
-        numberLabel.setForeground(active ? Color.WHITE : new Color(148, 163, 184));
-        numberLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        numberLabel.setForeground(active ? Color.WHITE : TEXT_MUTED);
+        numberLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         circle.add(numberLabel, BorderLayout.CENTER);
 
         JLabel textLabel = new JLabel(text);
-        textLabel.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 14));
-        textLabel.setForeground(active ? new Color(15, 23, 42) : new Color(148, 163, 184));
+        textLabel.setForeground(active ? TEXT_PRIMARY : TEXT_MUTED);
+        textLabel.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
 
         chip.add(circle);
-        chip.add(Box.createHorizontalStrut(10));
+        chip.add(Box.createHorizontalStrut(8));
         chip.add(textLabel);
         return chip;
     }
 
-    private Component createStepDivider() {
+    private Component createDivider() {
         JPanel divider = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(new Color(226, 232, 240));
+                g2.setColor(BORDER);
                 g2.fillRoundRect(0, getHeight() / 2 - 1, getWidth(), 2, 2, 2);
                 g2.dispose();
             }
         };
         divider.setOpaque(false);
-        divider.setPreferredSize(new Dimension(26, 10));
-        divider.setMaximumSize(new Dimension(26, 10));
+        divider.setPreferredSize(new Dimension(24, 10));
         return divider;
     }
 
     private JPanel createContent() {
-        JPanel content = new JPanel(new BorderLayout(26, 0));
+        JPanel content = new JPanel(new BorderLayout(22, 0));
         content.setOpaque(false);
 
-        JPanel leftWrap = new JPanel(new BorderLayout());
-        leftWrap.setOpaque(false);
-        leftWrap.setPreferredSize(new Dimension(430, 0));
-        leftWrap.add(createSearchCard(), BorderLayout.NORTH);
+        JPanel leftColumn = new JPanel();
+        leftColumn.setOpaque(false);
+        leftColumn.setPreferredSize(new Dimension(430, 0));
+        leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
 
-        showEmptyState();
+        leftColumn.add(createSearchCard());
+        leftColumn.add(Box.createVerticalStrut(18));
+        leftColumn.add(createResultsCard());
 
-        content.add(leftWrap, BorderLayout.WEST);
-        content.add(rightPanel, BorderLayout.CENTER);
+        detailPanel.setOpaque(false);
+
+        content.add(leftColumn, BorderLayout.WEST);
+        content.add(detailPanel, BorderLayout.CENTER);
         return content;
     }
 
     private JPanel createSearchCard() {
-        RoundedBlockPanel card = new RoundedBlockPanel(22, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 12), 5);
+        RoundedBlockPanel card = new RoundedBlockPanel(22, SURFACE, BORDER, 1f, new Color(15, 23, 42, 10), 4);
         card.setLayout(new BorderLayout());
 
         JPanel top = new JPanel();
         top.setOpaque(false);
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.setBorder(new EmptyBorder(18, 20, 16, 20));
+        top.setBorder(new EmptyBorder(18, 20, 12, 20));
 
-        JPanel titleRow = new JPanel();
-        titleRow.setOpaque(false);
-        titleRow.setLayout(new BoxLayout(titleRow, BoxLayout.X_AXIS));
+        JLabel title = new JLabel("Bo loc tim khach dang o");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        title.setForeground(TEXT_PRIMARY);
 
-        JPanel iconBadge = createSoftIconBadge("search.png", 18, new Color(239, 246, 255), new Color(59, 130, 246));
-        JLabel title = new JLabel("Tim khach can doi phong");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        title.setForeground(new Color(15, 23, 42));
-
-        JLabel sub = new JLabel("<html>Nhap it nhat 1 thong tin de tra cuu khach can doi<br>phong</html>");
+        JLabel sub = new JLabel("Nhap it nhat 1 thong tin. He thong se tim tren booking va phong hien tai trong database.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        sub.setForeground(new Color(148, 163, 184));
+        sub.setForeground(TEXT_MUTED);
 
-        titleRow.add(iconBadge);
-        titleRow.add(Box.createHorizontalStrut(10));
-        titleRow.add(title);
-
-        top.add(titleRow);
-        top.add(Box.createVerticalStrut(12));
+        top.add(title);
+        top.add(Box.createVerticalStrut(6));
         top.add(sub);
-
-        JPanel divider = new JPanel();
-        divider.setBackground(new Color(241, 245, 249));
-        divider.setPreferredSize(new Dimension(1, 1));
 
         JPanel form = new JPanel();
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBorder(new EmptyBorder(18, 20, 20, 20));
+        form.setBorder(new EmptyBorder(10, 20, 20, 20));
 
         form.add(createFieldGroup("Ma dat phong", inpMaDatPhong));
-        form.add(Box.createVerticalStrut(14));
+        form.add(Box.createVerticalStrut(12));
         form.add(createFieldGroup("Ten khach", inpTenKhach));
-        form.add(Box.createVerticalStrut(14));
+        form.add(Box.createVerticalStrut(12));
         form.add(createFieldGroup("So dien thoai", inpSoDienThoai));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createFieldGroup("So phong", inpSoPhong));
-        form.add(Box.createVerticalStrut(22));
+        form.add(Box.createVerticalStrut(12));
+        form.add(createFieldGroup("So phong hien tai", inpSoPhong));
+        form.add(Box.createVerticalStrut(18));
 
-        JButton searchButton = new JButton("Tim khach hang");
-        ImageIcon buttonIcon = loadIcon("search.png", 15, 15);
-        if (buttonIcon != null) {
-            searchButton.setIcon(buttonIcon);
-            searchButton.setIconTextGap(8);
-        }
-        searchButton.setBackground(new Color(23, 33, 54));
-        searchButton.setForeground(Color.WHITE);
-        searchButton.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        searchButton.setFocusPainted(false);
-        searchButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        searchButton.setBorder(new EmptyBorder(14, 18, 14, 18));
-        searchButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        searchButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        JPanel buttonRow = new JPanel(new GridLayout(1, 2, 10, 0));
+        buttonRow.setOpaque(false);
+        buttonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+
+        JButton searchButton = createPrimaryButton("Tim booking", "search.png", new Color(17, 24, 39));
         searchButton.addActionListener(e -> performSearch());
 
-        form.add(searchButton);
+        JButton resetButton = createSecondaryButton("Xoa loc");
+        resetButton.addActionListener(e -> resetSearch());
+
+        buttonRow.add(searchButton);
+        buttonRow.add(resetButton);
+        form.add(buttonRow);
 
         card.add(top, BorderLayout.NORTH);
-        card.add(divider, BorderLayout.CENTER);
-        card.add(form, BorderLayout.SOUTH);
+        card.add(form, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createResultsCard() {
+        RoundedBlockPanel card = new RoundedBlockPanel(22, SURFACE, BORDER, 1f, new Color(15, 23, 42, 10), 4);
+        card.setLayout(new BorderLayout());
+        card.setPreferredSize(new Dimension(430, 0));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(16, 18, 12, 18));
+
+        JPanel titleWrap = new JPanel();
+        titleWrap.setOpaque(false);
+        titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("Danh sach booking");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        title.setForeground(TEXT_PRIMARY);
+
+        resultCountLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        resultCountLabel.setForeground(TEXT_MUTED);
+
+        titleWrap.add(title);
+        titleWrap.add(Box.createVerticalStrut(4));
+        titleWrap.add(resultCountLabel);
+
+        header.add(titleWrap, BorderLayout.WEST);
+
+        resultListPanel.setOpaque(false);
+        resultListPanel.setLayout(new BoxLayout(resultListPanel, BoxLayout.Y_AXIS));
+
+        JScrollPane scrollPane = new JScrollPane(resultListPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getViewport().setBackground(SURFACE);
+        scrollPane.setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        card.add(header, BorderLayout.NORTH);
+        card.add(scrollPane, BorderLayout.CENTER);
         return card;
     }
 
@@ -245,12 +287,38 @@ public class DoiPhongPanel extends JPanel {
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(new Color(71, 85, 105));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         group.add(label);
-        group.add(Box.createVerticalStrut(8));
+        group.add(Box.createVerticalStrut(7));
         group.add(field);
         return group;
+    }
+
+    private JButton createPrimaryButton(String text, String iconFile, Color bgColor) {
+        JButton button = new JButton(text);
+        ImageIcon icon = loadIcon(iconFile, 14, 14);
+        if (icon != null) {
+            button.setIcon(icon);
+            button.setIconTextGap(8);
+        }
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(12, 14, 12, 14));
+        return button;
+    }
+
+    private JButton createSecondaryButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(new Color(241, 245, 249));
+        button.setForeground(TEXT_PRIMARY);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(12, 14, 12, 14));
+        return button;
     }
 
     private void performSearch() {
@@ -260,147 +328,386 @@ public class DoiPhongPanel extends JPanel {
         String soPhong = inpSoPhong.getValue().trim();
 
         if (maDatPhong.isEmpty() && tenKhach.isEmpty() && soDienThoai.isEmpty() && soPhong.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui long nhap it nhat 1 thong tin de tim kiem.", "Thong bao", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui long nhap it nhat 1 thong tin de tim booking.", "Thong bao", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         currentResults = doiPhongBus.searchBookings(maDatPhong, tenKhach, soDienThoai, soPhong);
+        selectedRoomOption = null;
+
         if (currentResults.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Khong tim thay khach hang hoac don dat phong phu hop.", "Thong bao", JOptionPane.INFORMATION_MESSAGE);
+            selectedResult = null;
+            updateResultList();
+            showEmptyState();
+            JOptionPane.showMessageDialog(this, "Khong tim thay booking phu hop.", "Thong bao", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        selectedResult = currentResults.get(0);
+        updateResultList();
+        showSelectedResult();
+    }
+
+    private void resetSearch() {
+        inpMaDatPhong.setValue("");
+        inpTenKhach.setValue("");
+        inpSoDienThoai.setValue("");
+        inpSoPhong.setValue("");
+        currentResults = new ArrayList<>();
+        selectedResult = null;
+        selectedRoomOption = null;
+        updateResultList();
+        showEmptyState();
+    }
+
+    private void updateResultList() {
+        resultListPanel.removeAll();
+
+        if (currentResults.isEmpty()) {
+            resultCountLabel.setText("Chua co ket qua phu hop");
+            resultListPanel.add(createEmptyListMessage());
+        } else {
+            resultCountLabel.setText(currentResults.size() + " booking phu hop");
+            for (DoiPhongSearchResult result : currentResults) {
+                resultListPanel.add(createBookingCard(result));
+                resultListPanel.add(Box.createVerticalStrut(10));
+            }
+        }
+
+        resultListPanel.revalidate();
+        resultListPanel.repaint();
+        repaint();
+    }
+
+    private JPanel createEmptyListMessage() {
+        RoundedBlockPanel panel = new RoundedBlockPanel(16, SURFACE_SOFT, BORDER, 1f, new Color(15, 23, 42, 0), 0);
+        panel.setLayout(new BorderLayout());
+        panel.setBorder(new EmptyBorder(20, 16, 20, 16));
+
+        JLabel label = new JLabel("<html><div style='text-align:center;'>Nhap thong tin o bo loc de hien booking tai day.</div></html>", SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(TEXT_MUTED);
+        panel.add(label, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createBookingCard(DoiPhongSearchResult result) {
+        boolean active = selectedResult != null && selectedResult.getMaChiTietDatPhong().equals(result.getMaChiTietDatPhong());
+        Color bg = active ? new Color(239, 246, 255) : SURFACE_SOFT;
+        Color borderColor = active ? new Color(96, 165, 250) : BORDER;
+
+        RoundedBlockPanel card = new RoundedBlockPanel(18, bg, borderColor, 1.2f, new Color(15, 23, 42, 0), 0);
+        card.setLayout(new BorderLayout(0, 10));
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+
+        JLabel guestLabel = new JLabel(result.getTenKhachHang());
+        guestLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        guestLabel.setForeground(TEXT_PRIMARY);
+
+        top.add(guestLabel, BorderLayout.WEST);
+        top.add(createTag(active ? "Dang chon" : result.getMaDatPhong(), active ? new Color(219, 234, 254) : new Color(241, 245, 249), active ? ACTION : TEXT_MUTED), BorderLayout.EAST);
+
+        JLabel info = new JLabel(result.getMaPhongHienTai() + "  •  " + result.getLoaiPhongHienTai() + "  •  " + result.getSoLuongNguoiO() + " khach");
+        info.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        info.setForeground(TEXT_MUTED);
+
+        JLabel date = new JLabel(formatDateTime(result.getNgayNhan()) + " -> " + formatDateTime(result.getNgayTra()));
+        date.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        date.setForeground(TEXT_MUTED);
+
+        JPanel meta = new JPanel();
+        meta.setOpaque(false);
+        meta.setLayout(new BoxLayout(meta, BoxLayout.Y_AXIS));
+        meta.add(info);
+        meta.add(Box.createVerticalStrut(4));
+        meta.add(date);
+
+        card.add(top, BorderLayout.NORTH);
+        card.add(meta, BorderLayout.CENTER);
+
+        MouseAdapter selectListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                selectedResult = result;
+                selectedRoomOption = null;
+                updateResultList();
+                showSelectedResult();
+            }
+        };
+        card.addMouseListener(selectListener);
+        top.addMouseListener(selectListener);
+        meta.addMouseListener(selectListener);
+
+        return card;
+    }
+
+    private JLabel createTag(String text, Color bg, Color fg) {
+        JLabel tag = new JLabel(text, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        tag.setOpaque(false);
+        tag.setForeground(fg);
+        tag.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tag.setBorder(new EmptyBorder(4, 10, 4, 10));
+        return tag;
+    }
+
+    private void showSelectedResult() {
+        if (selectedResult == null) {
             showEmptyState();
             return;
         }
 
-        showSearchResult(currentResults.get(0));
-    }
+        detailPanel.removeAll();
 
-    private void showSearchResult(DoiPhongSearchResult result) {
-        rightPanel.removeAll();
-
-        RoundedBlockPanel card = new RoundedBlockPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 12), 5);
+        RoundedBlockPanel card = new RoundedBlockPanel(24, SURFACE, BORDER, 1f, new Color(15, 23, 42, 10), 4);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(24, 24, 24, 24));
+        card.setBorder(new EmptyBorder(22, 22, 22, 22));
 
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Thong tin khach va phong hien tai");
+        JLabel title = new JLabel("Chi tiet doi phong");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(new Color(15, 23, 42));
+        title.setForeground(TEXT_PRIMARY);
 
-        String countText = currentResults != null && currentResults.size() > 1
-            ? "Dang hien thi ket qua dau tien trong " + currentResults.size() + " ket qua tim thay."
-            : "Da tim thay 1 ket qua phu hop voi thong tin tra cuu.";
-        JLabel info = new JLabel(countText);
-        info.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        info.setForeground(new Color(100, 116, 139));
+        JLabel sub = new JLabel("Kiem tra thong tin booking, sau do chon phong trong phu hop de cap nhat.");
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        sub.setForeground(TEXT_MUTED);
 
-        wrap.add(title);
-        wrap.add(Box.createVerticalStrut(6));
-        wrap.add(info);
-        wrap.add(Box.createVerticalStrut(22));
-        wrap.add(createInfoGrid(result));
-        wrap.add(Box.createVerticalStrut(22));
-        wrap.add(createRoomSelectionBlock(result));
+        content.add(title);
+        content.add(Box.createVerticalStrut(6));
+        content.add(sub);
+        content.add(Box.createVerticalStrut(18));
+        content.add(createBookingSummary(selectedResult));
+        content.add(Box.createVerticalStrut(18));
+        content.add(createAvailableRoomsSection(selectedResult));
 
-        card.add(wrap, BorderLayout.CENTER);
-        rightPanel.add(card, BorderLayout.NORTH);
-        rightPanel.revalidate();
-        rightPanel.repaint();
+        card.add(content, BorderLayout.NORTH);
+        detailPanel.add(card, BorderLayout.CENTER);
+        detailPanel.revalidate();
+        detailPanel.repaint();
     }
 
-    private JPanel createInfoGrid(DoiPhongSearchResult result) {
-        JPanel grid = new JPanel(new java.awt.GridLayout(0, 2, 16, 16));
-        grid.setOpaque(false);
-        grid.add(createInfoItem("Ma dat phong", result.getMaDatPhong()));
-        grid.add(createInfoItem("Khach hang", result.getTenKhachHang()));
-        grid.add(createInfoItem("So dien thoai", result.getSoDienThoai()));
-        grid.add(createInfoItem("CCCD", result.getCccd()));
-        grid.add(createInfoItem("Phong hien tai", result.getMaPhongHienTai()));
-        grid.add(createInfoItem("Loai phong", result.getLoaiPhongHienTai()));
-        grid.add(createInfoItem("Ngay nhan", formatDateTime(result.getNgayNhan())));
-        grid.add(createInfoItem("Ngay tra", formatDateTime(result.getNgayTra())));
-        return grid;
+    private JPanel createBookingSummary(DoiPhongSearchResult result) {
+        JPanel wrap = new JPanel(new BorderLayout(16, 0));
+        wrap.setOpaque(false);
+
+        RoundedBlockPanel left = new RoundedBlockPanel(18, SURFACE_SOFT, BORDER, 1f, new Color(15, 23, 42, 0), 0);
+        left.setLayout(new GridLayout(0, 2, 12, 12));
+        left.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        left.add(createInfoItem("Ma dat phong", result.getMaDatPhong()));
+        left.add(createInfoItem("Khach hang", result.getTenKhachHang()));
+        left.add(createInfoItem("So dien thoai", result.getSoDienThoai()));
+        left.add(createInfoItem("CCCD", result.getCccd()));
+        left.add(createInfoItem("Phong hien tai", result.getMaPhongHienTai()));
+        left.add(createInfoItem("Loai phong", result.getLoaiPhongHienTai()));
+        left.add(createInfoItem("Ngay nhan", formatDateTime(result.getNgayNhan())));
+        left.add(createInfoItem("Ngay tra", formatDateTime(result.getNgayTra())));
+
+        RoundedBlockPanel right = new RoundedBlockPanel(18, new Color(239, 246, 255), new Color(191, 219, 254), 1f, new Color(15, 23, 42, 0), 0);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+        right.setBorder(new EmptyBorder(16, 16, 16, 16));
+        right.setPreferredSize(new Dimension(220, 0));
+
+        JLabel matchTitle = new JLabel("Tieu chi doi phong");
+        matchTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        matchTitle.setForeground(TEXT_PRIMARY);
+
+        JLabel roomTypeRule = new JLabel("Uu tien cung loai phong: " + safeText(result.getLoaiPhongHienTai()));
+        roomTypeRule.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        roomTypeRule.setForeground(TEXT_MUTED);
+
+        JLabel capacityRule = new JLabel("Suc chua toi thieu: " + Math.max(result.getSoLuongNguoiO(), 1) + " khach");
+        capacityRule.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        capacityRule.setForeground(TEXT_MUTED);
+
+        JLabel peopleLabel = new JLabel(result.getSoLuongNguoiO() + " khach dang o");
+        peopleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        peopleLabel.setForeground(ACTION);
+
+        right.add(matchTitle);
+        right.add(Box.createVerticalStrut(10));
+        right.add(roomTypeRule);
+        right.add(Box.createVerticalStrut(6));
+        right.add(capacityRule);
+        right.add(Box.createVerticalGlue());
+        right.add(peopleLabel);
+
+        wrap.add(left, BorderLayout.CENTER);
+        wrap.add(right, BorderLayout.EAST);
+        return wrap;
     }
 
     private JPanel createInfoItem(String labelText, String value) {
-        JPanel item = new RoundedBlockPanel(18, new Color(248, 250, 252), new Color(226, 232, 240), 1f, new Color(15, 23, 42, 0), 0);
+        JPanel item = new JPanel();
+        item.setOpaque(false);
         item.setLayout(new BoxLayout(item, BoxLayout.Y_AXIS));
-        item.setBorder(new EmptyBorder(14, 16, 14, 16));
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        label.setForeground(new Color(100, 116, 139));
+        label.setForeground(TEXT_MUTED);
 
-        JLabel content = new JLabel(value == null || value.isEmpty() ? "-" : value);
+        JLabel content = new JLabel(safeText(value));
         content.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        content.setForeground(new Color(15, 23, 42));
+        content.setForeground(TEXT_PRIMARY);
 
         item.add(label);
-        item.add(Box.createVerticalStrut(6));
+        item.add(Box.createVerticalStrut(4));
         item.add(content);
         return item;
     }
 
-    private JPanel createRoomSelectionBlock(DoiPhongSearchResult result) {
-        JPanel block = new RoundedBlockPanel(20, new Color(248, 250, 252), new Color(226, 232, 240), 1f, new Color(15, 23, 42, 0), 0);
-        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
-        block.setBorder(new EmptyBorder(18, 18, 18, 18));
+    private JPanel createAvailableRoomsSection(DoiPhongSearchResult result) {
+        RoundedBlockPanel wrap = new RoundedBlockPanel(20, SURFACE_SOFT, BORDER, 1f, new Color(15, 23, 42, 0), 0);
+        wrap.setLayout(new BorderLayout(0, 14));
+        wrap.setBorder(new EmptyBorder(18, 18, 18, 18));
 
-        JLabel title = new JLabel("Chon phong moi");
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+
+        JPanel titleWrap = new JPanel();
+        titleWrap.setOpaque(false);
+        titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("Phong trong de doi");
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        title.setForeground(new Color(15, 23, 42));
+        title.setForeground(TEXT_PRIMARY);
 
-        JLabel subtitle = new JLabel("He thong se lay cac phong dang trong trong database QLKhachSan.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitle.setForeground(new Color(100, 116, 139));
+        JLabel sub = new JLabel("Danh sach duoc loc tu du lieu hien co: cung uu tien loai phong va du suc chua.");
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        sub.setForeground(TEXT_MUTED);
 
-        List<DoiPhongRoomOption> availableRooms = doiPhongBus.getAvailableRooms(result.getMaPhongHienTai());
-        JComboBox<DoiPhongRoomOption> roomCombo = new JComboBox<>(availableRooms.toArray(new DoiPhongRoomOption[0]));
-        roomCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        roomCombo.setPreferredSize(new Dimension(0, 40));
-        roomCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        titleWrap.add(title);
+        titleWrap.add(Box.createVerticalStrut(4));
+        titleWrap.add(sub);
 
-        JButton changeButton = new JButton("Xac nhan doi phong");
-        changeButton.setBackground(new Color(37, 99, 235));
-        changeButton.setForeground(Color.WHITE);
-        changeButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        changeButton.setFocusPainted(false);
-        changeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        changeButton.setBorder(new EmptyBorder(12, 16, 12, 16));
-        changeButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        changeButton.setMaximumSize(new Dimension(220, 44));
-        changeButton.setEnabled(!availableRooms.isEmpty());
-        changeButton.addActionListener(e -> confirmChangeRoom(result, roomCombo));
+        header.add(titleWrap, BorderLayout.WEST);
 
-        JLabel emptyRoomsLabel = new JLabel("Khong co phong trong de doi.");
-        emptyRoomsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        emptyRoomsLabel.setForeground(new Color(220, 38, 38));
-        emptyRoomsLabel.setVisible(availableRooms.isEmpty());
+        JPanel roomList = new JPanel();
+        roomList.setOpaque(false);
+        roomList.setLayout(new BoxLayout(roomList, BoxLayout.Y_AXIS));
 
-        block.add(title);
-        block.add(Box.createVerticalStrut(6));
-        block.add(subtitle);
-        block.add(Box.createVerticalStrut(16));
-        block.add(roomCombo);
-        block.add(Box.createVerticalStrut(10));
-        block.add(emptyRoomsLabel);
-        block.add(Box.createVerticalStrut(12));
-        block.add(changeButton);
-        return block;
-    }
-
-    private void confirmChangeRoom(DoiPhongSearchResult result, JComboBox<DoiPhongRoomOption> roomCombo) {
-        DoiPhongRoomOption selectedRoom = (DoiPhongRoomOption) roomCombo.getSelectedItem();
-        if (selectedRoom == null) {
-            JOptionPane.showMessageDialog(this, "Vui long chon phong moi.", "Thong bao", JOptionPane.WARNING_MESSAGE);
-            return;
+        List<DoiPhongRoomOption> availableRooms = doiPhongBus.getAvailableRooms(result);
+        if (availableRooms.isEmpty()) {
+            roomList.add(createNoRoomState());
+        } else {
+            for (DoiPhongRoomOption room : availableRooms) {
+                roomList.add(createRoomOptionCard(result, room));
+                roomList.add(Box.createVerticalStrut(10));
+            }
         }
 
+        JScrollPane scrollPane = new JScrollPane(roomList);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getViewport().setBackground(SURFACE_SOFT);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setPreferredSize(new Dimension(0, 320));
+
+        wrap.add(header, BorderLayout.NORTH);
+        wrap.add(scrollPane, BorderLayout.CENTER);
+        return wrap;
+    }
+
+    private JPanel createNoRoomState() {
+        RoundedBlockPanel panel = new RoundedBlockPanel(16, SURFACE, BORDER, 1f, new Color(15, 23, 42, 0), 0);
+        panel.setLayout(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(22, 16, 22, 16));
+
+        JLabel label = new JLabel("Khong co phong trong phu hop de doi.");
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(185, 28, 28));
+        panel.add(label);
+        return panel;
+    }
+
+    private JPanel createRoomOptionCard(DoiPhongSearchResult result, DoiPhongRoomOption room) {
+        boolean selected = selectedRoomOption != null && selectedRoomOption.getMaPhong().equals(room.getMaPhong());
+        boolean sameType = safeText(room.getMaLoaiPhong()).equalsIgnoreCase(safeText(result.getMaLoaiPhongHienTai()));
+
+        RoundedBlockPanel card = new RoundedBlockPanel(
+            18,
+            selected ? new Color(239, 246, 255) : SURFACE,
+            selected ? new Color(96, 165, 250) : BORDER,
+            1.2f,
+            new Color(15, 23, 42, 0),
+            0
+        );
+        card.setLayout(new BorderLayout(12, 0));
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+
+        JPanel roomTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        roomTop.setOpaque(false);
+
+        JLabel roomLabel = new JLabel(room.getMaPhong());
+        roomLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        roomLabel.setForeground(TEXT_PRIMARY);
+
+        roomTop.add(roomLabel);
+        roomTop.add(Box.createHorizontalStrut(10));
+        roomTop.add(createTag(sameType ? "Cung loai" : "Loai khac", sameType ? new Color(220, 252, 231) : new Color(254, 249, 195), sameType ? new Color(22, 101, 52) : new Color(133, 77, 14)));
+
+        JLabel detail = new JLabel(room.getTenLoaiPhong() + "  •  Tang " + room.getTang() + "  •  " + room.getSucChuaToiDa() + " khach");
+        detail.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        detail.setForeground(TEXT_MUTED);
+
+        JLabel note = new JLabel(sameType ? "Phu hop nhat voi phong hien tai." : "Van hop le vi du suc chua, nhung khac loai phong.");
+        note.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        note.setForeground(TEXT_MUTED);
+
+        left.add(roomTop);
+        left.add(Box.createVerticalStrut(8));
+        left.add(detail);
+        left.add(Box.createVerticalStrut(4));
+        left.add(note);
+
+        JPanel action = new JPanel();
+        action.setOpaque(false);
+        action.setLayout(new BoxLayout(action, BoxLayout.Y_AXIS));
+
+        JButton selectButton = createSecondaryButton(selected ? "Dang chon" : "Chon phong");
+        selectButton.setEnabled(!selected);
+        selectButton.addActionListener(e -> {
+            selectedRoomOption = room;
+            showSelectedResult();
+        });
+
+        JButton confirmButton = createPrimaryButton("Xac nhan doi", "swap-room.png", ACTION);
+        confirmButton.addActionListener(e -> confirmChangeRoom(result, room));
+
+        action.add(selectButton);
+        action.add(Box.createVerticalStrut(8));
+        action.add(confirmButton);
+
+        card.add(left, BorderLayout.CENTER);
+        card.add(action, BorderLayout.EAST);
+        return card;
+    }
+
+    private void confirmChangeRoom(DoiPhongSearchResult result, DoiPhongRoomOption room) {
         int confirmed = JOptionPane.showConfirmDialog(
             this,
-            "Doi phong tu " + result.getMaPhongHienTai() + " sang " + selectedRoom.getMaPhong() + "?",
+            "Doi phong tu " + result.getMaPhongHienTai() + " sang " + room.getMaPhong() + "?",
             "Xac nhan doi phong",
             JOptionPane.YES_NO_OPTION
         );
@@ -408,49 +715,52 @@ public class DoiPhongPanel extends JPanel {
             return;
         }
 
-        boolean success = doiPhongBus.changeRoom(result.getMaChiTietDatPhong(), selectedRoom.getMaPhong());
-        if (success) {
-            JOptionPane.showMessageDialog(this, "Doi phong thanh cong.", "Thong bao", JOptionPane.INFORMATION_MESSAGE);
-            inpSoPhong.setValue(selectedRoom.getMaPhong());
-            performSearch();
-        } else {
-            JOptionPane.showMessageDialog(this, "Khong the doi phong. Vui long kiem tra du lieu database.", "Loi", JOptionPane.ERROR_MESSAGE);
+        boolean success = doiPhongBus.changeRoom(result.getMaChiTietDatPhong(), room.getMaPhong());
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Khong the doi phong. Vui long kiem tra lai du lieu trong database.", "Loi", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        JOptionPane.showMessageDialog(this, "Doi phong thanh cong tu " + result.getMaPhongHienTai() + " sang " + room.getMaPhong() + ".", "Thong bao", JOptionPane.INFORMATION_MESSAGE);
+        inpMaDatPhong.setValue(result.getMaDatPhong());
+        inpSoPhong.setValue(room.getMaPhong());
+        performSearch();
     }
 
     private void showEmptyState() {
-        rightPanel.removeAll();
+        detailPanel.removeAll();
 
         JPanel emptyWrap = new JPanel(new GridBagLayout());
         emptyWrap.setOpaque(false);
 
-        JPanel empty = new JPanel();
-        empty.setOpaque(false);
-        empty.setLayout(new BoxLayout(empty, BoxLayout.Y_AXIS));
+        RoundedBlockPanel emptyCard = new RoundedBlockPanel(24, SURFACE, BORDER, 1f, new Color(15, 23, 42, 10), 4);
+        emptyCard.setLayout(new BoxLayout(emptyCard, BoxLayout.Y_AXIS));
+        emptyCard.setBorder(new EmptyBorder(34, 24, 34, 24));
+        emptyCard.setPreferredSize(new Dimension(0, 360));
 
-        JPanel stateIcon = createLargeStateIcon();
-        stateIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel iconBox = createLargeStateIcon();
+        iconBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel title = new JLabel("Chua co du lieu doi phong");
+        JLabel title = new JLabel("San sang doi phong");
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        title.setForeground(new Color(51, 65, 85));
+        title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel sub = new JLabel("<html><div style='text-align:center;'>Tim khach hang dang co phong hop le de thuc<br>hien doi phong</div></html>");
-        sub.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        sub.setForeground(new Color(148, 163, 184));
-        sub.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel subtitle = new JLabel("<html><div style='text-align:center;'>Tim mot booking dang luu tru o cot ben trai.<br>Sau khi chon, danh sach phong trong hop le se hien ra tai day.</div></html>");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(TEXT_MUTED);
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        empty.add(stateIcon);
-        empty.add(Box.createVerticalStrut(24));
-        empty.add(title);
-        empty.add(Box.createVerticalStrut(12));
-        empty.add(sub);
+        emptyCard.add(iconBox);
+        emptyCard.add(Box.createVerticalStrut(20));
+        emptyCard.add(title);
+        emptyCard.add(Box.createVerticalStrut(10));
+        emptyCard.add(subtitle);
 
-        emptyWrap.add(empty);
-        rightPanel.add(emptyWrap, BorderLayout.CENTER);
-        rightPanel.revalidate();
-        rightPanel.repaint();
+        emptyWrap.add(emptyCard);
+        detailPanel.add(emptyWrap, BorderLayout.CENTER);
+        detailPanel.revalidate();
+        detailPanel.repaint();
     }
 
     private JPanel createLargeStateIcon() {
@@ -459,13 +769,14 @@ public class DoiPhongPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(241, 245, 249));
+                g2.setColor(new Color(239, 246, 255));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
                 g2.dispose();
             }
         };
         panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(82, 82));
+        panel.setPreferredSize(new Dimension(84, 84));
+        panel.setMaximumSize(new Dimension(84, 84));
 
         JLabel icon = new JLabel("", SwingConstants.CENTER);
         ImageIcon swapIcon = loadIcon("swap-room.png", 38, 38);
@@ -473,39 +784,15 @@ public class DoiPhongPanel extends JPanel {
             icon.setIcon(swapIcon);
         } else {
             icon.setText("\u21c4");
+            icon.setForeground(new Color(96, 165, 250));
             icon.setFont(new Font("Segoe UI", Font.PLAIN, 28));
-            icon.setForeground(new Color(191, 219, 254));
         }
         panel.add(icon, BorderLayout.CENTER);
         return panel;
     }
 
-    private JPanel createSoftIconBadge(String iconFile, int size, Color bg, Color fallbackColor) {
-        JPanel badge = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillOval(0, 0, getWidth(), getHeight());
-                g2.dispose();
-            }
-        };
-        badge.setOpaque(false);
-        badge.setPreferredSize(new Dimension(28, 28));
-        badge.setMaximumSize(new Dimension(28, 28));
-
-        JLabel iconLabel = new JLabel("", SwingConstants.CENTER);
-        ImageIcon icon = loadIcon(iconFile, size, size);
-        if (icon != null) {
-            iconLabel.setIcon(icon);
-        } else {
-            iconLabel.setText("\u25cb");
-            iconLabel.setForeground(fallbackColor);
-            iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        }
-        badge.add(iconLabel, BorderLayout.CENTER);
-        return badge;
+    private String safeText(String value) {
+        return value == null || value.trim().isEmpty() ? "-" : value;
     }
 
     private String formatDateTime(LocalDateTime value) {
@@ -583,12 +870,11 @@ public class DoiPhongPanel extends JPanel {
             setOpaque(false);
             setLayout(new BorderLayout());
             setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                BorderFactory.createLineBorder(BORDER),
                 new EmptyBorder(0, 12, 0, 12)
             ));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
             setPreferredSize(new Dimension(0, 42));
-            setAlignmentX(Component.LEFT_ALIGNMENT);
 
             JLabel iconLabel = new JLabel();
             ImageIcon icon = loadIcon(iconFile, 15, 15);
@@ -596,7 +882,7 @@ public class DoiPhongPanel extends JPanel {
                 iconLabel.setIcon(icon);
             } else {
                 iconLabel.setText("\u25cb");
-                iconLabel.setForeground(new Color(148, 163, 184));
+                iconLabel.setForeground(TEXT_MUTED);
             }
             iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
             add(iconLabel, BorderLayout.WEST);
@@ -605,7 +891,7 @@ public class DoiPhongPanel extends JPanel {
             textField.setBorder(null);
             textField.setOpaque(false);
             textField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            textField.setForeground(new Color(15, 23, 42));
+            textField.setForeground(TEXT_PRIMARY);
             add(textField, BorderLayout.CENTER);
 
             textField.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -620,18 +906,18 @@ public class DoiPhongPanel extends JPanel {
                 @Override
                 public void focusLost(java.awt.event.FocusEvent e) {
                     setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                        BorderFactory.createLineBorder(BORDER),
                         new EmptyBorder(0, 12, 0, 12)
                     ));
                 }
             });
         }
 
-        public String getValue() {
+        String getValue() {
             return textField.getText();
         }
 
-        public void setValue(String value) {
+        void setValue(String value) {
             textField.setText(value);
         }
     }

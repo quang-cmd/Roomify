@@ -17,8 +17,8 @@ public class DoiPhongBus {
         return dao.searchBookings(maDatPhong, tenKhach, soDienThoai, maPhong);
     }
 
-    public List<DoiPhongRoomOption> getAvailableRooms(String currentRoom) {
-        return dao.getAvailableRooms(currentRoom);
+    public List<DoiPhongRoomOption> getAvailableRooms(DoiPhongSearchResult booking) {
+        return dao.getAvailableRooms(booking);
     }
 
     public boolean changeRoom(String maChiTietDatPhong, String newRoom) {

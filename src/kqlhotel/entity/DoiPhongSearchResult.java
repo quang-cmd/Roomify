@@ -10,10 +10,12 @@ public class DoiPhongSearchResult {
     private String soDienThoai;
     private String cccd;
     private String maPhongHienTai;
+    private String maLoaiPhongHienTai;
     private String loaiPhongHienTai;
     private LocalDateTime ngayNhan;
     private LocalDateTime ngayTra;
     private int soLuongNguoiO;
+    private int sucChuaToiDaPhongHienTai;
 
     public String getMaChiTietDatPhong() {
         return maChiTietDatPhong;
@@ -75,6 +77,14 @@ public class DoiPhongSearchResult {
         return loaiPhongHienTai;
     }
 
+    public String getMaLoaiPhongHienTai() {
+        return maLoaiPhongHienTai;
+    }
+
+    public void setMaLoaiPhongHienTai(String maLoaiPhongHienTai) {
+        this.maLoaiPhongHienTai = maLoaiPhongHienTai;
+    }
+
     public void setLoaiPhongHienTai(String loaiPhongHienTai) {
         this.loaiPhongHienTai = loaiPhongHienTai;
     }
@@ -101,5 +111,13 @@ public class DoiPhongSearchResult {
 
     public void setSoLuongNguoiO(int soLuongNguoiO) {
         this.soLuongNguoiO = soLuongNguoiO;
+    }
+
+    public int getSucChuaToiDaPhongHienTai() {
+        return sucChuaToiDaPhongHienTai;
+    }
+
+    public void setSucChuaToiDaPhongHienTai(int sucChuaToiDaPhongHienTai) {
+        this.sucChuaToiDaPhongHienTai = sucChuaToiDaPhongHienTai;
     }
 }

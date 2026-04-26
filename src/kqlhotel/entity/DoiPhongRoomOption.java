@@ -2,8 +2,10 @@ package kqlhotel.entity;
 
 public class DoiPhongRoomOption {
     private String maPhong;
+    private String maLoaiPhong;
     private String tenLoaiPhong;
     private int tang;
+    private int sucChuaToiDa;
     private String trangThaiPhong;
 
     public String getMaPhong() {
@@ -18,6 +20,14 @@ public class DoiPhongRoomOption {
         return tenLoaiPhong;
     }
 
+    public String getMaLoaiPhong() {
+        return maLoaiPhong;
+    }
+
+    public void setMaLoaiPhong(String maLoaiPhong) {
+        this.maLoaiPhong = maLoaiPhong;
+    }
+
     public void setTenLoaiPhong(String tenLoaiPhong) {
         this.tenLoaiPhong = tenLoaiPhong;
     }
@@ -30,6 +40,14 @@ public class DoiPhongRoomOption {
         this.tang = tang;
     }
 
+    public int getSucChuaToiDa() {
+        return sucChuaToiDa;
+    }
+
+    public void setSucChuaToiDa(int sucChuaToiDa) {
+        this.sucChuaToiDa = sucChuaToiDa;
+    }
+
     public String getTrangThaiPhong() {
         return trangThaiPhong;
     }
@@ -40,6 +58,6 @@ public class DoiPhongRoomOption {
 
     @Override
     public String toString() {
-        return maPhong + " - " + tenLoaiPhong + " - T\u1ea7ng " + tang;
+        return maPhong + " - " + tenLoaiPhong + " - T\u1ea7ng " + tang + " - " + sucChuaToiDa + " kh\u00e1ch";
     }
 }

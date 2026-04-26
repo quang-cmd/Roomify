@@ -16,7 +16,8 @@ public class DoiPhongDao {
         List<DoiPhongSearchResult> results = new ArrayList<>();
         String sql =
             "SELECT ctdp.maCTDP, dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
-            "ctdp.maPhong, lp.tenLoaiPhong, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
+            "ctdp.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, " +
+            "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
             "FROM ChiTietDatPhong ctdp " +
             "JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
             "JOIN KhachHang kh ON kh.maKH = dp.maKH " +
@@ -49,12 +50,14 @@ public class DoiPhongDao {
                     item.setSoDienThoai(rs.getString("sdt"));
                     item.setCccd(rs.getString("CCCD"));
                     item.setMaPhongHienTai(rs.getString("maPhong"));
+                    item.setMaLoaiPhongHienTai(rs.getString("maLoaiPhong"));
                     item.setLoaiPhongHienTai(rs.getString("tenLoaiPhong"));
                     Timestamp ngayNhan = rs.getTimestamp("ngayNhanDuKien");
                     Timestamp ngayTra = rs.getTimestamp("ngayTraDuKien");
                     item.setNgayNhan(ngayNhan != null ? ngayNhan.toLocalDateTime() : null);
                     item.setNgayTra(ngayTra != null ? ngayTra.toLocalDateTime() : null);
                     item.setSoLuongNguoiO(rs.getInt("soLuongNguoiO"));
+                    item.setSucChuaToiDaPhongHienTai(rs.getInt("sucChuaToiDa"));
                     results.add(item);
                 }
             }
@@ -65,24 +68,31 @@ public class DoiPhongDao {
         return results;
     }
 
-    public List<DoiPhongRoomOption> getAvailableRooms(String currentRoom) {
+    public List<DoiPhongRoomOption> getAvailableRooms(DoiPhongSearchResult booking) {
         List<DoiPhongRoomOption> rooms = new ArrayList<>();
         String sql =
-            "SELECT p.maPhong, lp.tenLoaiPhong, p.tang, p.trangThaiPhong " +
+            "SELECT p.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, p.tang, p.trangThaiPhong " +
             "FROM Phong p " +
             "JOIN LoaiPhong lp ON lp.maLoaiPhong = p.maLoaiPhong " +
-            "WHERE p.trangThaiPhong = 'Trong' AND p.maPhong <> ? " +
-            "ORDER BY p.tang, p.maPhong";
+            "WHERE p.trangThaiPhong = 'Trong' " +
+            "AND p.maPhong <> ? " +
+            "AND lp.sucChuaToiDa >= ? " +
+            "ORDER BY CASE WHEN p.maLoaiPhong = ? THEN 0 ELSE 1 END, " +
+            "lp.sucChuaToiDa ASC, p.tang ASC, p.maPhong ASC";
 
         try (Connection conn = ConnectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, currentRoom == null ? "" : currentRoom);
+            ps.setString(1, booking == null ? "" : booking.getMaPhongHienTai());
+            ps.setInt(2, booking == null ? 1 : Math.max(1, booking.getSoLuongNguoiO()));
+            ps.setString(3, booking == null ? "" : booking.getMaLoaiPhongHienTai());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DoiPhongRoomOption room = new DoiPhongRoomOption();
                     room.setMaPhong(rs.getString("maPhong"));
+                    room.setMaLoaiPhong(rs.getString("maLoaiPhong"));
                     room.setTenLoaiPhong(rs.getString("tenLoaiPhong"));
+                    room.setSucChuaToiDa(rs.getInt("sucChuaToiDa"));
                     room.setTang(rs.getInt("tang"));
                     room.setTrangThaiPhong(rs.getString("trangThaiPhong"));
                     rooms.add(room);
