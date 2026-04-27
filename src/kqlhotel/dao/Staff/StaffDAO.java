@@ -89,7 +89,7 @@ public class StaffDAO {
     }
 
     public boolean update(Staff staff) {
-        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, tenDangNhap = ? WHERE maNV = ?";
+        String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, ngayVao = ?, luong = ?, tenDangNhap = ? WHERE maNV = ?";
         try {
             ConnectDB.getInstance().connect();
         } catch (SQLException | ClassNotFoundException e) {
@@ -102,8 +102,16 @@ public class StaffDAO {
             pstmt.setString(1, staff.getFullName());
             pstmt.setString(2, staff.getPhone());
             pstmt.setBoolean(3, staff.getGender());
-            pstmt.setString(4, staff.getAccount().getUsername());
-            pstmt.setString(5, staff.getStaffId());
+            pstmt.setDate(4, staff.getNgayVao() != null
+                ? Date.valueOf(staff.getNgayVao())
+                : Date.valueOf(LocalDate.now()));
+            if (staff.getLuong() != null) {
+                pstmt.setDouble(5, staff.getLuong());
+            } else {
+                pstmt.setDouble(5, 0.0);
+            }
+            pstmt.setString(6, staff.getAccount().getUsername());
+            pstmt.setString(7, staff.getStaffId());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi cập nhật nhân viên: " + e.getMessage());
