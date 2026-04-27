@@ -224,10 +224,16 @@ public class CheckoutBUS {
             return 0;
         }
 
-        double discount = km.getTienKhuyenMai();
+        double discount;
 
-        if (km.getGiaTriToiDa() > 0) {
-            discount = Math.min(discount, km.getGiaTriToiDa());
+        if ("TheoPhanTram".equals(km.getLoaiKM())) {
+            discount = amountBeforeDiscount * km.getTienKhuyenMai() / 100.0;
+
+            if (km.getGiaTriToiDa() > 0) {
+                discount = Math.min(discount, km.getGiaTriToiDa());
+            }
+        } else {
+            discount = km.getTienKhuyenMai();
         }
 
         return Math.max(0, Math.min(discount, amountBeforeDiscount));

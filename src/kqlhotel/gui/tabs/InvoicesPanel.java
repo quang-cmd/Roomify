@@ -41,10 +41,10 @@ public class InvoicesPanel extends JPanel {
         setBackground(PAGE_BG);
         setLayout(new BorderLayout());
 
-        JPanel header = createHeader();
+        //JPanel header = createHeader();
 
         JPanel content = new JPanel(new MigLayout(
-                "insets 10 14 14 14, gap 10, fill",
+                "insets 0 14 14 14, gap 10, fill",
                 "[245::260,fill][grow,fill]",
                 "[grow,fill]"
         ));
@@ -65,7 +65,7 @@ public class InvoicesPanel extends JPanel {
 
         content.add(detailScroll, "grow, push");
 
-        add(header, BorderLayout.NORTH);
+        //add(header, BorderLayout.NORTH);
         add(content, BorderLayout.CENTER);
 
         refreshData();
@@ -128,7 +128,7 @@ public class InvoicesPanel extends JPanel {
     }
 
     private JPanel createHeader() {
-        JPanel panel = new JPanel(new MigLayout("insets 20 24 0 24,gap 0", "[grow]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 10 24 0 24,gap 0", "[grow]", "[]"));
         panel.setOpaque(false);
 
         JPanel titleBox = new JPanel(new MigLayout("insets 0, wrap 1", "[]", "[]"));
@@ -375,23 +375,12 @@ public class InvoicesPanel extends JPanel {
         });
 
         PrimaryButton bPdf = new PrimaryButton("Xuất PDF");
+        bPdf.setIcon(loadIcon("print.png", 18, 18));
         bPdf.setBackground(new Color(255, 193, 7));
         bPdf.setForeground(Color.WHITE);
         bPdf.setFocusPainted(false);
+        bPdf.setArc(12);
         bPdf.addActionListener(e -> PDFInvoiceGenerator.exportInvoice(
-                hd,
-                invoicesBUS.getRoomDetails(hd.getMaHD()),
-                invoicesBUS.getServiceDetails(hd.getMaHD())
-        ));
-
-        PrimaryButton bPrint = new PrimaryButton("");
-        bPrint.setIcon(loadIcon("print.png", 22, 22));
-        bPrint.setBackground(Color.WHITE);
-        bPrint.setBorder(BorderFactory.createLineBorder(new Color(180, 190, 210), 2));
-        bPrint.setToolTipText("In hóa đơn");
-        bPrint.setPreferredSize(new Dimension(38, 38));
-        bPrint.setArc(20);
-        bPrint.addActionListener(e -> PDFInvoiceGenerator.exportInvoice(
                 hd,
                 invoicesBUS.getRoomDetails(hd.getMaHD()),
                 invoicesBUS.getServiceDetails(hd.getMaHD())
@@ -401,7 +390,6 @@ public class InvoicesPanel extends JPanel {
         topRow.add(new JPanel() {{ setOpaque(false); }}, "growx");
         topRow.add(bConfirm, "h 38!");
         topRow.add(bPdf, "h 38!");
-        topRow.add(bPrint, "h 38!,w 38!");
 
         String roomText = roomDetails.isEmpty()
                 ? "Không có phòng"

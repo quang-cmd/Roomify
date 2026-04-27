@@ -82,13 +82,13 @@ public class CheckoutPanel extends JPanel {
         setBackground(PAGE_BG);
         setLayout(new BorderLayout());
 
-        JPanel header = createHeader();
+        //JPanel header = createHeader();
 
         contentPanel.setOpaque(false);
         contentPanel.add(createStep1View(), "step1");
         contentPanel.add(createStep2View(), "step2");
 
-        add(header, BorderLayout.NORTH);
+        //add(header, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
 
         setStep(1);
@@ -152,14 +152,14 @@ public class CheckoutPanel extends JPanel {
 
     private JPanel createStep1View() {
         JPanel panel = new JPanel(new MigLayout(
-                "insets 20 24 24 24, gap 20, fill",
+                "insets 5 24 10 24, gap 12, fill",
                 "[300!][grow,fill]",
                 "[grow,fill]"
         ));
         panel.setOpaque(false);
 
         RoundedPanel filterCard = new RoundedPanel(20, Color.WHITE, new Color(225, 231, 245), 1.5f);
-        filterCard.setLayout(new MigLayout("wrap 1,insets 10,gap 4", "[grow,fill]", "[]"));
+        filterCard.setLayout(new MigLayout("wrap 1,insets 8,gap 4", "[grow,fill]", "[]"));
 
         JLabel title = new JLabel("Tìm phòng cần trả");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
@@ -267,15 +267,6 @@ public class CheckoutPanel extends JPanel {
             proceedCheckoutMultiRooms();
         });
         rightSide.add(checkoutMultiBtn, "h 44!, growx, gapy 10 0");
-
-        JScrollPane filterScroll = new JScrollPane(filterCard);
-        filterScroll.setBorder(BorderFactory.createEmptyBorder());
-        filterScroll.setOpaque(false);
-        filterScroll.getViewport().setOpaque(false);
-        filterScroll.getViewport().setBackground(PAGE_BG);
-        filterScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        filterScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        filterScroll.getVerticalScrollBar().setUnitIncrement(16);
 
         panel.add(filterCard, "growy, top");
         panel.add(rightSide, "grow, push");
@@ -690,7 +681,15 @@ public class CheckoutPanel extends JPanel {
 
         List<Promotion> promotions = checkoutBUS.getAvailablePromotions();
         for (Promotion km : promotions) {
-            String display = km.getMaKM() + " - " + km.getTenKM() + " (-" + CurrencyUtils.formatVND(km.getTienKhuyenMai()) + ")";
+            String valueText;
+
+            if ("TheoPhanTram".equals(km.getLoaiKM())) {
+                valueText = removeDecimalZero(km.getTienKhuyenMai()) + "%";
+            } else {
+                valueText = CurrencyUtils.formatVND(km.getTienKhuyenMai());
+            }
+
+            String display = km.getMaKM() + " - " + km.getTenKM() + " (-" + valueText + ")";
             promotionCombo.addItem(display);
             promotionDisplayToCode.put(display, km.getMaKM());
         }
@@ -786,6 +785,10 @@ public class CheckoutPanel extends JPanel {
     }
 
     private void setStep(int s) {
+        if (step1Label.getParent() == null || step2Label.getParent() == null) {
+            return;
+        }
+
         if (s == 1) {
             step1Label.setText(" 1    Tìm lưu trú ");
             step1Label.setForeground(Color.WHITE);
@@ -851,15 +854,28 @@ public class CheckoutPanel extends JPanel {
                 continue;
             }
 
-            double effectiveDiscount = km.getTienKhuyenMai();
+            double effectiveDiscount;
 
-            if (km.getGiaTriToiDa() > 0) {
-                effectiveDiscount = Math.min(effectiveDiscount, km.getGiaTriToiDa());
+            if ("TheoPhanTram".equals(km.getLoaiKM())) {
+                effectiveDiscount = amountBeforeDiscount * km.getTienKhuyenMai() / 100.0;
+
+                if (km.getGiaTriToiDa() > 0) {
+                    effectiveDiscount = Math.min(effectiveDiscount, km.getGiaTriToiDa());
+                }
+            } else {
+                effectiveDiscount = km.getTienKhuyenMai();
             }
 
             effectiveDiscount = Math.min(effectiveDiscount, amountBeforeDiscount);
 
-            String display = km.getMaKM() + " - " + km.getTenKM() + " (-" + CurrencyUtils.formatVND(km.getTienKhuyenMai()) + ")";
+            String valueText;
+            if ("TheoPhanTram".equals(km.getLoaiKM())) {
+                valueText = removeDecimalZero(km.getTienKhuyenMai()) + "%";
+            } else {
+                valueText = CurrencyUtils.formatVND(km.getTienKhuyenMai());
+            }
+
+            String display = km.getMaKM() + " - " + km.getTenKM() + " (-" + valueText + ")";
 
             if (effectiveDiscount > bestEffectiveDiscount) {
                 bestEffectiveDiscount = effectiveDiscount;
@@ -885,5 +901,11 @@ public class CheckoutPanel extends JPanel {
             this.statusText = st;
             this.statusColor = col;
         }
+    }
+    private String removeDecimalZero(double value) {
+        if (value == (long) value) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
     }
 }
