@@ -10,9 +10,10 @@ import kqlhotel.entity.Account;
 import kqlhotel.entity.Staff;
 import kqlhotel.gui.theme.ThemeColors;
 
-public class AddStaffDialog extends JDialog {
+public class EditStaffDialog extends JDialog {
 
     private final StaffBUS staffBUS;
+    private final Staff staff;
     private final Runnable onSuccess;
 
     // Form fields
@@ -30,9 +31,10 @@ public class AddStaffDialog extends JDialog {
 
     private JLabel lblError;
 
-    public AddStaffDialog(Window owner, StaffBUS staffBUS, Runnable onSuccess) {
-        super(owner, "Thêm nhân viên", ModalityType.APPLICATION_MODAL);
+    public EditStaffDialog(Window owner, StaffBUS staffBUS, Staff staff, Runnable onSuccess) {
+        super(owner, "Chỉnh sửa nhân viên", ModalityType.APPLICATION_MODAL);
         this.staffBUS  = staffBUS;
+        this.staff     = staff;
         this.onSuccess = onSuccess;
 
         setUndecorated(true);
@@ -51,8 +53,56 @@ public class AddStaffDialog extends JDialog {
         pack();
         setLocationRelativeTo(owner);
 
-        // Auto-generate staff ID with length 5 (NV + 3 digits)
-        tfMaNV.setText(String.format("NV%03d", (int)(Math.random() * 1000)));
+        // Pre-fill with existing staff data
+        prefillData();
+    }
+
+    private void prefillData() {
+        tfMaNV.setText(staff.getStaffId() != null ? staff.getStaffId() : "");
+        tfMaNV.setEditable(false); // Mã NV không được thay đổi
+        tfMaNV.setForeground(new Color(150, 165, 190));
+
+        tfHoTen.setText(staff.getFullName() != null ? staff.getFullName() : "");
+        tfSdt.setText(staff.getPhone() != null ? staff.getPhone() : "");
+
+        if (staff.getGender() != null && !staff.getGender()) {
+            rbNu.setSelected(true);
+        } else {
+            rbNam.setSelected(true);
+        }
+
+        if (staff.getAccount() != null) {
+            tfUsername.setText(staff.getAccount().getUsername() != null ? staff.getAccount().getUsername() : "");
+            tfUsername.setEditable(false); // Username không được thay đổi
+            tfUsername.setForeground(new Color(150, 165, 190));
+            pfPassword.setText(staff.getAccount().getPassword() != null ? staff.getAccount().getPassword() : "");
+
+            // Vai trò
+            String role = staff.getAccount().getRole();
+            if ("QuanLy".equals(role)) {
+                cbVaiTro.setSelectedItem("Quản lý");
+            } else {
+                cbVaiTro.setSelectedItem("Nhân viên");
+            }
+
+            // Tình trạng
+            String status = staff.getAccount().getStatus();
+            if ("DangHoatDong".equals(status)) {
+                cbTinhTrang.setSelectedItem("Đang hoạt động");
+            } else {
+                cbTinhTrang.setSelectedItem("Ngừng hoạt động");
+            }
+        }
+
+        if (staff.getNgayVao() != null) {
+            dpNgayVao.setSelectedDate(staff.getNgayVao());
+        } else {
+            dpNgayVao.setSelectedDate(LocalDate.now());
+        }
+
+        if (staff.getLuong() != null) {
+            tfLuong.setText(String.valueOf(staff.getLuong().longValue()));
+        }
     }
 
     // ===== Header =====
@@ -61,8 +111,8 @@ public class AddStaffDialog extends JDialog {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(18, 35, 67),
-                                                     getWidth(), 0, new Color(36, 60, 110));
+                GradientPaint gp = new GradientPaint(0, 0, new Color(20, 80, 160),
+                                                     getWidth(), 0, new Color(40, 120, 200));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight() + 20, 16, 16);
                 g2.dispose();
@@ -81,25 +131,26 @@ public class AddStaffDialog extends JDialog {
             }
         };
         icon.setOpaque(false);
-        JLabel iconLbl = new JLabel("👤", SwingConstants.CENTER);
+        JLabel iconLbl = new JLabel("✏", SwingConstants.CENTER);
         iconLbl.setForeground(Color.WHITE);
         iconLbl.setFont(iconLbl.getFont().deriveFont(20f));
         icon.add(iconLbl);
 
         JPanel textGroup = new JPanel(new MigLayout("insets 0, wrap 1, gap 2"));
         textGroup.setOpaque(false);
-        JLabel title = new JLabel("Thêm nhân viên mới");
+        JLabel title = new JLabel("Chỉnh sửa nhân viên");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
         title.setForeground(Color.WHITE);
-        JLabel sub = new JLabel("Điền đầy đủ thông tin bên dưới");
+        String staffName = staff.getFullName() != null ? staff.getFullName() : "Nhân viên";
+        JLabel sub = new JLabel("Đang chỉnh sửa thông tin: " + staffName);
         sub.setFont(sub.getFont().deriveFont(12f));
-        sub.setForeground(new Color(180, 200, 240));
+        sub.setForeground(new Color(180, 210, 255));
         textGroup.add(title);
         textGroup.add(sub);
 
         JButton btnClose = new JButton("×");
         btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 20f));
-        btnClose.setForeground(new Color(180, 200, 240));
+        btnClose.setForeground(new Color(180, 210, 255));
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
@@ -146,7 +197,7 @@ public class AddStaffDialog extends JDialog {
         form.add(genderPanel, "h 36!");
 
         // Row 3: Username | Password
-        form.add(label("Tên đăng nhập", true));
+        form.add(label("Tên đăng nhập", false));
         form.add(label("Mật khẩu",      true));
         tfUsername = styledField();
         pfPassword = new JPasswordField();
@@ -203,13 +254,13 @@ public class AddStaffDialog extends JDialog {
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("✔ Xác nhận thêm");
-        btnConfirm.setBackground(new Color(18, 35, 67));
+        PrimaryButton btnConfirm = new PrimaryButton("✔ Xác nhận cập nhật");
+        btnConfirm.setBackground(new Color(20, 80, 160));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());
 
         footer.add(btnCancel,  "left");
-        footer.add(btnConfirm, "right, h 40!, w 160!");
+        footer.add(btnConfirm, "right, h 40!, w 180!");
         return footer;
     }
 
@@ -217,14 +268,11 @@ public class AddStaffDialog extends JDialog {
     private void onConfirm() {
         lblError.setText(" ");
 
-        String maNV     = tfMaNV.getText().trim();
         String hoTen    = tfHoTen.getText().trim();
         String sdt      = tfSdt.getText().trim();
-        String username = tfUsername.getText().trim();
         String password = new String(pfPassword.getPassword()).trim();
 
-        if (maNV.isEmpty() || hoTen.isEmpty() || sdt.isEmpty()
-                || username.isEmpty() || password.isEmpty()) {
+        if (hoTen.isEmpty() || sdt.isEmpty() || password.isEmpty()) {
             lblError.setText("⚠ Vui lòng điền đầy đủ các trường bắt buộc (*).");
             return;
         }
@@ -239,7 +287,7 @@ public class AddStaffDialog extends JDialog {
 
         LocalDate ngayVao = dpNgayVao.getSelectedDate();
 
-        Double luong = null;
+        Double luong = staff.getLuong(); // giữ giá trị cũ nếu không điền
         String luongStr = tfLuong.getText().trim().replaceAll("[^0-9]", "");
         if (!luongStr.isEmpty()) {
             try { luong = Double.parseDouble(luongStr); }
@@ -249,15 +297,27 @@ public class AddStaffDialog extends JDialog {
             }
         }
 
-        Account account = new Account(username, password, role, status);
-        Staff   staff   = new Staff(maNV, hoTen, sdt, gender, account, ngayVao, luong);
+        // Cập nhật đối tượng Staff
+        staff.setFullName(hoTen);
+        staff.setPhone(sdt);
+        staff.setGender(gender);
+        staff.setNgayVao(ngayVao);
+        staff.setLuong(luong);
 
-        boolean ok = staffBUS.addStaff(staff);
+        // Cập nhật Account
+        Account account = staff.getAccount();
+        if (account != null) {
+            account.setPassword(password);
+            account.setRole(role);
+            account.setStatus(status);
+        }
+
+        boolean ok = staffBUS.updateStaff(staff);
         if (ok) {
             if (onSuccess != null) onSuccess.run();
             dispose();
         } else {
-            lblError.setText("⚠ Thêm thất bại. Tên đăng nhập hoặc Mã NV có thể đã tồn tại.");
+            lblError.setText("⚠ Cập nhật thất bại. Vui lòng kiểm tra lại.");
         }
     }
 
