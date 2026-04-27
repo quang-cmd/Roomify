@@ -34,6 +34,7 @@ import kqlhotel.bus.checkin.CheckInServiceProvider;
 import kqlhotel.bus.checkin.model.ArrivalDto;
 import kqlhotel.bus.checkin.model.CheckInResult;
 import kqlhotel.gui.components.BackgroundPanel;
+import kqlhotel.gui.components.DatePicker;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
@@ -51,8 +52,8 @@ public class CheckInPanel extends BackgroundPanel {
     private final CheckInService checkInService = CheckInServiceProvider.getInstance();
     private final ArrivalsTableModel tableModel = new ArrivalsTableModel();
     private final JTextField keywordField = new JTextField();
-    private final JTextField fromField = new JTextField();
-    private final JTextField toField = new JTextField();
+    private final DatePicker fromPicker = new DatePicker();
+    private final DatePicker toPicker = new DatePicker();
     private final JLabel summaryLabel = new JLabel();
 
     public CheckInPanel() {
@@ -61,8 +62,8 @@ public class CheckInPanel extends BackgroundPanel {
         add(buildTableCard(), "grow,push");
         // Default: arrivals expected today
         LocalDate today = LocalDate.now();
-        fromField.setText(today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        toField.setText(today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        fromPicker.setSelectedDate(today);
+        toPicker.setSelectedDate(today);
         reload();
     }
 
@@ -72,7 +73,7 @@ public class CheckInPanel extends BackgroundPanel {
     private RoundedPanel buildFilterCard() {
         RoundedPanel card = new RoundedPanel(14, ThemeColors.SURFACE, ThemeColors.BORDER_SOFT, 1f);
         card.setLayout(new MigLayout("insets 18 22,gap 14",
-            "[grow,fill][140!][140!][120!][120!]", "[]"));
+            "[grow,fill][180!][180!][100!][130!]", "[]"));
 
         JLabel title = new JLabel("Danh sách khách đến");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
@@ -97,9 +98,6 @@ public class CheckInPanel extends BackgroundPanel {
             }
         });
 
-        decorateDateField(fromField, "Từ ngày (dd/MM/yyyy)");
-        decorateDateField(toField, "Đến ngày (dd/MM/yyyy)");
-
         JButton searchBtn = new JButton("Tìm");
         styleSecondaryButton(searchBtn);
         searchBtn.addActionListener(this::onSearch);
@@ -107,33 +105,19 @@ public class CheckInPanel extends BackgroundPanel {
         PrimaryButton refreshBtn = new PrimaryButton("Hôm nay");
         refreshBtn.addActionListener(e -> {
             LocalDate today = LocalDate.now();
-            fromField.setText(today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-            toField.setText(today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            fromPicker.setSelectedDate(today);
+            toPicker.setSelectedDate(today);
             keywordField.setText("");
             reload();
         });
 
         card.add(titleWrap, "spanx 5, wrap, gapbottom 6");
         card.add(keywordField, "h 36!");
-        card.add(fromField, "h 36!");
-        card.add(toField, "h 36!");
+        card.add(fromPicker, "h 36!");
+        card.add(toPicker, "h 36!");
         card.add(searchBtn, "h 36!");
         card.add(refreshBtn, "h 36!");
         return card;
-    }
-
-    private void decorateDateField(JTextField field, String placeholder) {
-        field.putClientProperty("JTextField.placeholderText", placeholder);
-        field.setPreferredSize(new Dimension(0, 36));
-        field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true),
-            new EmptyBorder(0, 12, 0, 12)));
-        field.setHorizontalAlignment(SwingConstants.CENTER);
-        field.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) reload();
-            }
-        });
     }
 
     private void styleSecondaryButton(JButton btn) {
@@ -203,11 +187,11 @@ public class CheckInPanel extends BackgroundPanel {
     private void onSearch(ActionEvent e) { reload(); }
 
     private void reload() {
-        LocalDate from = parseDate(fromField.getText());
-        LocalDate to = parseDate(toField.getText());
+        LocalDate from = fromPicker.getSelectedDate();
+        LocalDate to = toPicker.getSelectedDate();
         if (from == null || to == null) {
             JOptionPane.showMessageDialog(this,
-                "Ngày không hợp lệ. Định dạng: dd/MM/yyyy",
+                "Ngày không hợp lệ.",
                 "Lỗi", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -256,17 +240,6 @@ public class CheckInPanel extends BackgroundPanel {
             result.getMessage() + "\nMã hóa đơn: " + result.getMaHD(),
             "Thành công", JOptionPane.INFORMATION_MESSAGE);
         reload();
-    }
-
-    private static LocalDate parseDate(String text) {
-        if (text == null) return null;
-        String s = text.trim();
-        if (s.isEmpty()) return null;
-        try {
-            return LocalDate.parse(s, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        } catch (Exception ex) {
-            return null;
-        }
     }
 
     private static String fmtDate(java.time.LocalDateTime dt) {

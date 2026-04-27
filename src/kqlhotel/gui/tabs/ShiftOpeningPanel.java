@@ -136,8 +136,8 @@ public class ShiftOpeningPanel extends BackgroundPanel {
         noteScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         noteScroll.setPreferredSize(new Dimension(0, 80));
 
-        // Section: CTA
-        confirmButton.setBackground(ThemeColors.ACCENT);
+        // Section: CTA - Premium navy primary (replaces amber accent)
+        confirmButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         confirmButton.setForeground(Color.WHITE);
         confirmButton.setFont(confirmButton.getFont().deriveFont(Font.BOLD, 14f));
         confirmButton.addActionListener(e -> confirmShift());
