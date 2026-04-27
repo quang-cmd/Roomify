@@ -28,6 +28,10 @@ public class StaffPanel extends JPanel {
     private final StaffBUS staffBUS = new StaffBUS();
     private List<Staff> staffList;
     private JLabel subtitle;
+    
+    private String currentStatusFilter = "Tất cả";
+    private String currentSearchQuery = "";
+    private final java.util.List<JButton> filterButtons = new java.util.ArrayList<>();
 
     public StaffPanel() {
         staffList = staffBUS.getAll();
@@ -76,12 +80,34 @@ public class StaffPanel extends JPanel {
             BorderFactory.createLineBorder(new Color(225, 231, 245), 1),
             BorderFactory.createEmptyBorder(6, 12, 6, 12)
         ));
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateSearch(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateSearch(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateSearch(); }
+            private void updateSearch() {
+                currentSearchQuery = searchField.getText().toLowerCase().trim();
+                applyFilters();
+            }
+        });
 
         filterBar.add(searchField, "growy,h 38!");
-        filterBar.add(createFilterBtn("Tất cả", true), "h 38!");
-        filterBar.add(createFilterBtn("Đang làm", false), "h 38!");
-        filterBar.add(createFilterBtn("Nghỉ phép", false), "h 38!");
-        filterBar.add(createFilterBtn("Nghỉ việc", false), "h 38!");
+        
+        JButton btnAll = createFilterBtn("Tất cả", true);
+        JButton btnActive = createFilterBtn("Đang làm", false);
+        JButton btnStopped = createFilterBtn("Nghỉ việc", false);
+        
+        filterButtons.add(btnAll);
+        filterButtons.add(btnActive);
+        filterButtons.add(btnStopped);
+
+        filterBar.add(btnAll, "h 38!");
+        filterBar.add(btnActive, "h 38!");
+        filterBar.add(btnStopped, "h 38!");
+        
+        // Gắn listener cho các nút lọc
+        btnAll.addActionListener(e -> selectFilter(btnAll, "Tất cả"));
+        btnActive.addActionListener(e -> selectFilter(btnActive, "Đang làm"));
+        btnStopped.addActionListener(e -> selectFilter(btnStopped, "Nghỉ việc"));
 
         // ===== 3. List Container =====
         RoundedPanel listWrapper = new RoundedPanel(16, Color.WHITE, new Color(225, 231, 245), 1f);
@@ -143,19 +169,59 @@ public class StaffPanel extends JPanel {
         return btn;
     }
 
+    private void selectFilter(JButton selectedBtn, String filterText) {
+        currentStatusFilter = filterText;
+        for (JButton btn : filterButtons) {
+            boolean active = (btn == selectedBtn);
+            btn.setBackground(active ? new Color(17, 24, 39) : Color.WHITE);
+            btn.setForeground(active ? Color.WHITE : new Color(100, 120, 150));
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(active ? new Color(17, 24, 39) : new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+            ));
+        }
+        applyFilters();
+    }
+
+    private void applyFilters() {
+        java.util.stream.Stream<Staff> stream = staffList.stream();
+        
+        // 1. Lọc theo trạng thái
+        if ("Đang làm".equals(currentStatusFilter)) {
+            stream = stream.filter(s -> s.getAccount() != null && "DangHoatDong".equals(s.getAccount().getStatus()));
+        } else if ("Nghỉ việc".equals(currentStatusFilter)) {
+            stream = stream.filter(s -> s.getAccount() != null && "NgungHoatDong".equals(s.getAccount().getStatus()));
+        }
+        
+        // 2. Lọc theo tên (search)
+        if (!currentSearchQuery.isEmpty()) {
+            stream = stream.filter(s -> {
+                String name = s.getFullName() != null ? s.getFullName().toLowerCase() : "";
+                return name.contains(currentSearchQuery);
+            });
+        }
+        
+        List<Staff> filteredList = stream.collect(java.util.stream.Collectors.toList());
+        renderStaffList(filteredList);
+    }
+
     public void reloadData() {
         staffList = staffBUS.getAll();
         long activeCount = staffList.stream().filter(s -> s.getAccount() != null && "DangHoatDong".equals(s.getAccount().getStatus())).count();
         subtitle.setText(staffList.size() + " nhân viên - " + activeCount + " đang làm việc");
-        renderStaffList();
+        applyFilters(); // Apply current filters to new data
     }
 
     private void renderStaffList() {
+        renderStaffList(this.staffList);
+    }
+
+    private void renderStaffList(List<Staff> listToRender) {
         listContainer.removeAll();
-        for (int i = 0; i < staffList.size(); i++) {
-            Staff staff = staffList.get(i);
+        for (int i = 0; i < listToRender.size(); i++) {
+            Staff staff = listToRender.get(i);
             JPanel row = createStaffRow(staff);
-            if (i < staffList.size() - 1) {
+            if (i < listToRender.size() - 1) {
                 row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 244, 250)));
             }
             listContainer.add(row, "growx");
@@ -213,6 +279,10 @@ public class StaffPanel extends JPanel {
             statusFg = new Color(180, 120, 10);
         } else if ("NghiViec".equals(accountStatus)) {
             statusLabel = "● Nghỉ việc";
+            statusBg = new Color(254, 226, 226);
+            statusFg = new Color(185, 28, 28);
+        } else if ("NgungHoatDong".equals(accountStatus)) {
+            statusLabel = "● Đã nghỉ"; // Hiển thị chung cho các trạng thái không hoạt động
             statusBg = new Color(254, 226, 226);
             statusFg = new Color(185, 28, 28);
         } else {
@@ -280,9 +350,36 @@ public class StaffPanel extends JPanel {
         // Column 8: Actions
         JPanel actionGroup = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
         actionGroup.setOpaque(false);
-        JLabel editBtn = new JLabel("✎");
-        editBtn.setForeground(new Color(150, 165, 190));
+
+        javax.swing.ImageIcon editIcon = loadScaledIcon("edit.png", 18, 18);
+        JLabel editBtn = editIcon != null ? new JLabel(editIcon) : new JLabel("✎");
+        if (editIcon == null) {
+            editBtn.setForeground(new Color(60, 120, 220));
+            editBtn.setFont(editBtn.getFont().deriveFont(Font.BOLD, 16f));
+        }
         editBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        editBtn.setToolTipText("Chỉnh sửa nhân viên");
+        editBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(StaffPanel.this);
+                kqlhotel.gui.components.EditStaffDialog dialog =
+                    new kqlhotel.gui.components.EditStaffDialog(owner, staffBUS, staff, StaffPanel.this::reloadData);
+                dialog.setVisible(true);
+            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
+                editBtn.setOpaque(true);
+                editBtn.setBackground(new Color(230, 240, 255));
+                editBtn.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+                editBtn.repaint();
+            }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) {
+                editBtn.setOpaque(false);
+                editBtn.setBorder(null);
+                editBtn.repaint();
+            }
+        });
+
         JLabel delBtn = new JLabel("🗑");
         delBtn.setForeground(new Color(150, 165, 190));
         delBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -300,6 +397,7 @@ public class StaffPanel extends JPanel {
 
         return row;
     }
+
 
     private JPanel makeAvatar(Color bg, Color fg, String txt) {
         JPanel circle = new JPanel(new BorderLayout()) {
@@ -342,5 +440,23 @@ public class StaffPanel extends JPanel {
         lbl.setFont(lbl.getFont().deriveFont(12f));
         badge.add(lbl);
         return badge;
+    }
+
+    private javax.swing.ImageIcon loadScaledIcon(String filename, int w, int h) {
+        try {
+            java.net.URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
+            java.awt.image.BufferedImage img;
+            if (resource != null) {
+                img = javax.imageio.ImageIO.read(resource);
+            } else {
+                java.io.File file = new java.io.File("src/kqlhotel/resources/icons/" + filename);
+                if (!file.exists()) return null;
+                img = javax.imageio.ImageIO.read(file);
+            }
+            java.awt.Image scaled = img.getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH);
+            return new javax.swing.ImageIcon(scaled);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
