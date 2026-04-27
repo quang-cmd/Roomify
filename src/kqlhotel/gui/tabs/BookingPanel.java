@@ -542,14 +542,23 @@ public class BookingPanel extends JPanel {
 
         StepPill(String number, String text) {
             setOpaque(false);
-            // "push[]8[]push" keeps the badge + text as a single group centered
-            // within the pill (instead of badge at left edge, text floating right).
-            setLayout(new MigLayout("insets 4 14", "push[]8[]push", "[]"));
+            // GridBagLayout centers a single child both horizontally and vertically
+            // with no extra constraints. We build [badge | text] as ONE group and
+            // drop it in the centre — this guarantees the group's vertical
+            // position is consistent (top + bottom margins equal) regardless of
+            // the pill's actual height.
+            setLayout(new java.awt.GridBagLayout());
+
             badge = new CircleBadge(number);
             textLabel = new JLabel(text);
             textLabel.setFont(textLabel.getFont().deriveFont(Font.BOLD, 13f));
-            add(badge, "w 24!,h 24!,aligny center");
-            add(textLabel, "aligny center");
+
+            JPanel group = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[center]"));
+            group.setOpaque(false);
+            group.add(badge, "w 24!,h 24!");
+            group.add(textLabel);
+
+            add(group); // default GridBagConstraints centers the group
             setActive(false);
         }
 

@@ -392,15 +392,18 @@ public class ShiftOpeningPanel extends BackgroundPanel {
         }
     }
 
-    /** Màu stripe theo mệnh giá — dùng cho thanh accent bên trái row. */
+    /**
+     * Màu stripe theo mệnh giá — lấy đúng màu chủ đạo của tờ tiền VND
+     * thật ngoài đời để nhân viên nhận diện nhanh khi kiểm kê.
+     */
     private Color stripeColorFor(int value) {
         switch (value) {
-            case 10_000:  return ThemeColors.DANGER;   // đỏ - nhạt nhất, dễ nhận
-            case 20_000:  return ThemeColors.PRIMARY;  // xanh
-            case 50_000:  return ThemeColors.WARNING;  // amber
-            case 100_000: return ThemeColors.ACCENT;   // cam sẫm
-            case 200_000: return ThemeColors.SUCCESS;  // xanh lá
-            case 500_000: return new Color(0xA855F7);  // tím cho bản cao nhất
+            case 10_000:  return new Color(0xC1A376); // nâu vàng / vàng đất
+            case 20_000:  return new Color(0x5885AF); // xanh dương đậm
+            case 50_000:  return new Color(0xE29BB1); // hồng tím
+            case 100_000: return new Color(0xA5C97A); // xanh lá mạ
+            case 200_000: return new Color(0xD17A61); // đỏ cam / nâu hồng
+            case 500_000: return new Color(0x82B0D2); // xanh lơ / xanh tím
             default:      return ThemeColors.TEXT_MUTED;
         }
     }
