@@ -23,6 +23,10 @@ import kqlhotel.entity.LoaiPhong;
 import kqlhotel.entity.Phong;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.dao.invoice.InvoiceDAO;
+import kqlhotel.dao.customer.CustomerDAO;
+import kqlhotel.entity.Invoice;
+import kqlhotel.entity.Customer;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
@@ -36,6 +40,7 @@ public class RoomManagementPanel extends JPanel {
     private static final Color COLOR_DADAT = new Color(49, 130, 206);
     private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
     private static final Color COLOR_DANGDON = new Color(143, 97, 255);
+    private static final Color COLOR_DANGSUDUNG = new Color(239, 68, 68);
 
     private final PhongBUS phongBUS = new PhongBUS();
     private List<kqlhotel.entity.Phong> phongList;
@@ -61,7 +66,7 @@ public class RoomManagementPanel extends JPanel {
         title.setForeground(new Color(24, 40, 66));
         subtitle = new JLabel("Đang tải...");
         subtitle.setForeground(new Color(150, 165, 190));
-        titlePanel.add(title);
+        // titlePanel.add(title); // Bỏ title bị trùng
         titlePanel.add(subtitle);
 
         PrimaryButton btnSearch = new PrimaryButton(" Tra cứu phòng");
@@ -109,7 +114,7 @@ public class RoomManagementPanel extends JPanel {
         header.add(btnAdd, "h 44!");
 
         // ===== 2. Stats Row =====
-        statsRow = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
+        statsRow = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
         statsRow.setOpaque(false);
 
         // ===== 3. Filter Row =====
@@ -203,6 +208,7 @@ public class RoomManagementPanel extends JPanel {
         
         long total = phongList.size();
         long tr = phongBUS.countByStatus(phongList, "Trong");
+        long dsd = phongBUS.countByStatus(phongList, "DangSuDung");
         long dd = phongBUS.countByStatus(phongList, "DaDat");
         long bt = phongBUS.countByStatus(phongList, "BaoTri");
         long dn = phongBUS.countByStatus(phongList, "DangDon");
@@ -212,6 +218,7 @@ public class RoomManagementPanel extends JPanel {
         // Update Stats Row
         statsRow.removeAll();
         statsRow.add(createStatCard("Trống", String.valueOf(tr), getPct(tr, total), COLOR_TRONG));
+        statsRow.add(createStatCard("Đang sử dụng", String.valueOf(dsd), getPct(dsd, total), COLOR_DANGSUDUNG));
         statsRow.add(createStatCard("Đã đặt", String.valueOf(dd), getPct(dd, total), COLOR_DADAT));
         statsRow.add(createStatCard("Bảo trì", String.valueOf(bt), getPct(bt, total), COLOR_BAOTRI));
         statsRow.add(createStatCard("Đang dọn", String.valueOf(dn), getPct(dn, total), COLOR_DANGDON));
@@ -221,6 +228,7 @@ public class RoomManagementPanel extends JPanel {
         filterRow.removeAll();
         filterRow.add(createFilterBtn("Tất cả", String.valueOf(total - bt), true));
         filterRow.add(createFilterBtn("Trống", String.valueOf(tr), false));
+        filterRow.add(createFilterBtn("Đang sử dụng", String.valueOf(dsd), false));
         filterRow.add(createFilterBtn("Đã đặt", String.valueOf(dd), false));
         filterRow.add(createFilterBtn("Bảo trì", String.valueOf(bt), false));
         filterRow.add(createFilterBtn("Đang dọn", String.valueOf(dn), false));
@@ -231,7 +239,7 @@ public class RoomManagementPanel extends JPanel {
 
     private String getPct(long count, long total) {
         if (total == 0) return "0%";
-        return (int)((double)count/total * 100) + "%";
+        return Math.round((double)count/total * 100) + "%";
     }
 
     private void applyFilter(String filter) {
@@ -286,6 +294,7 @@ public class RoomManagementPanel extends JPanel {
         if (guiStatus.equals("Đã đặt")) statusColor = COLOR_DADAT;
         else if (guiStatus.equals("Bảo trì")) statusColor = COLOR_BAOTRI;
         else if (guiStatus.equals("Đang dọn")) statusColor = COLOR_DANGDON;
+        else if (guiStatus.equals("Đang sử dụng")) statusColor = COLOR_DANGSUDUNG;
 
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);
         card.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
@@ -331,6 +340,8 @@ public class RoomManagementPanel extends JPanel {
         });
         topRow.add(btnEdit, "gapleft 8, w 32!, h 32!");
 
+
+
         // Type & Status
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         midRow.setOpaque(false);
@@ -340,7 +351,20 @@ public class RoomManagementPanel extends JPanel {
         // Info
         JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 12", "[][]", "[]"));
         infoRow.setOpaque(false);
-        infoRow.add(new JLabel("👤 " + lp.getSucChuaToiDa() + " khách") {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
+        
+        Invoice activeInv = null;
+        Customer activeCust = null;
+        if (guiStatus.equals("Đang sử dụng")) {
+            InvoiceDAO invDAO = new InvoiceDAO();
+            activeInv = invDAO.getActiveByRoom(p.getMaPhong());
+            if (activeInv != null && activeInv.getMaKhachHang() != null) {
+                CustomerDAO custDAO = new CustomerDAO();
+                activeCust = custDAO.getById(activeInv.getMaKhachHang());
+            }
+        }
+        
+        String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChuaToiDa() + " khách");
+        infoRow.add(new JLabel("👤 " + occupantStr) {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
         infoRow.add(new JLabel("⛶ " + lp.getDienTich() + "m²") {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
 
         // Price
@@ -356,6 +380,38 @@ public class RoomManagementPanel extends JPanel {
         card.add(midRow, "gapy 12 0,growx");
         card.add(infoRow, "gapy 8 0");
         card.add(priceGroup, "gapy 12 0");
+
+        if (guiStatus.equals("Đang sử dụng") || guiStatus.equals("Đã đặt")) {
+            final Invoice finalInv = activeInv;
+            final Customer finalCust = activeCust;
+            JButton btnKhachHoaDon = new JButton("Khách & Hóa đơn");
+            btnKhachHoaDon.setFont(btnKhachHoaDon.getFont().deriveFont(Font.BOLD, 13f));
+            btnKhachHoaDon.setBackground(new Color(41, 121, 255)); // Bright Blue matching screenshot
+            btnKhachHoaDon.setForeground(Color.WHITE);
+            btnKhachHoaDon.setFocusPainted(false);
+            btnKhachHoaDon.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnKhachHoaDon.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(41, 121, 255), 1, true),
+                BorderFactory.createEmptyBorder(8, 0, 8, 0)
+            ));
+            
+            btnKhachHoaDon.addActionListener(e -> {
+                Window owner = SwingUtilities.getWindowAncestor(RoomManagementPanel.this);
+                Runnable onCheckout = () -> {
+                    // Navigate to cancel-room screen via AppFrame
+                    java.awt.Container c = RoomManagementPanel.this;
+                    while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                    if (c instanceof kqlhotel.gui.AppFrame) {
+                        ((kqlhotel.gui.AppFrame) c).navigateTo("checkout");
+                    }
+                };
+                kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(
+                    owner, p, finalInv, finalCust, onCheckout
+                );
+                dialog.setVisible(true);
+            });
+            card.add(btnKhachHoaDon, "gapy 8 0, growx");
+        }
 
         return card;
     }

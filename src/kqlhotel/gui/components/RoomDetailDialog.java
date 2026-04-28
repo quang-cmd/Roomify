@@ -2,9 +2,16 @@ package kqlhotel.gui.components;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.net.URL;
+import java.io.File;
+import java.util.List;
 import javax.swing.*;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.entity.Service;
+import kqlhotel.entity.ServiceDetail;
+import kqlhotel.dao.service.ServiceDAO;
+import kqlhotel.dao.invoice.ServiceDetailDAO;
 
 public class RoomDetailDialog extends JDialog {
 
@@ -14,6 +21,17 @@ public class RoomDetailDialog extends JDialog {
     private String roomNo;
     private String roomType;
     private String roomPrice;
+    private kqlhotel.entity.Invoice invoice;
+    private kqlhotel.entity.Customer customer;
+    // Panel chứa danh sách dịch vụ (để refresh khi thêm/xóa)
+    private JPanel serviceListPanel;
+    private JLabel lblTotalServices;
+    private JLabel lblVat;
+    private JLabel lblGrandTotal;
+    private long totalRoom;
+    private JPanel addBtnRow;
+    private JPanel addFormPanel;
+    private Runnable onCheckout;
 
     // Tab buttons
     private JPanel tabKhachCont;
@@ -22,11 +40,18 @@ public class RoomDetailDialog extends JDialog {
     // Footer buttons
     private JButton btnFooterLeft;
 
-    public RoomDetailDialog(Window owner, String roomNo, String roomType, String floor, String price) {
-        super(owner, "Chi tiết phòng " + roomNo, ModalityType.APPLICATION_MODAL);
-        this.roomNo = roomNo;
-        this.roomType = roomType;
-        this.roomPrice = price;
+    public RoomDetailDialog(Window owner, kqlhotel.entity.Phong phong, kqlhotel.entity.Invoice invoice, kqlhotel.entity.Customer customer) {
+        this(owner, phong, invoice, customer, null);
+    }
+
+    public RoomDetailDialog(Window owner, kqlhotel.entity.Phong phong, kqlhotel.entity.Invoice invoice, kqlhotel.entity.Customer customer, Runnable onCheckout) {
+        super(owner, "Chi tiết phòng " + phong.getMaPhong(), ModalityType.APPLICATION_MODAL);
+        this.roomNo = phong.getMaPhong();
+        this.roomType = phong.getLoaiPhong().getTenLoaiPhong();
+        this.roomPrice = String.valueOf(phong.getLoaiPhong().getGiaPhong());
+        this.invoice = invoice;
+        this.customer = customer;
+        this.onCheckout = onCheckout;
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 0));
 
@@ -35,7 +60,7 @@ public class RoomDetailDialog extends JDialog {
         rootPanel.setOpaque(false);
         
         // Header
-        rootPanel.add(createHeader(roomNo, roomType, floor), "growx");
+        rootPanel.add(createHeader(roomNo, roomType, "Tầng " + phong.getTang()), "growx");
 
         // Tabs
         rootPanel.add(createTabsRow(), "growx");
@@ -90,9 +115,16 @@ public class RoomDetailDialog extends JDialog {
             }
         };
         iconPanel.setOpaque(false);
-        JLabel iconLbl = new JLabel("🛏", SwingConstants.CENTER);
+        JLabel iconLbl = new JLabel();
+        ImageIcon bedIcon = loadIcon("bed.png", 22, 22);
+        if (bedIcon != null) {
+            iconLbl.setIcon(bedIcon);
+        } else {
+            iconLbl.setText("🛏");
+            iconLbl.setFont(iconLbl.getFont().deriveFont(20f));
+        }
+        iconLbl.setHorizontalAlignment(SwingConstants.CENTER);
         iconLbl.setForeground(Color.WHITE);
-        iconLbl.setFont(iconLbl.getFont().deriveFont(20f));
         iconPanel.add(iconLbl);
 
         JPanel textPanel = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
@@ -130,14 +162,24 @@ public class RoomDetailDialog extends JDialog {
 
         tabKhachCont = new JPanel(new MigLayout("insets 0 10 0 10", "[]", "[grow]"));
         tabKhachCont.setBackground(Color.WHITE);
-        JLabel lblKhach = new JLabel("👤 Thông tin khách");
+        JLabel lblKhach = new JLabel("Thông tin khách");
+        ImageIcon clientIcon = loadIcon("client.png", 14, 14);
+        if (clientIcon != null) {
+            lblKhach.setIcon(clientIcon);
+            lblKhach.setIconTextGap(6);
+        }
         lblKhach.setFont(lblKhach.getFont().deriveFont(Font.BOLD, 13f));
         tabKhachCont.add(lblKhach, "aligny center");
         tabKhachCont.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         tabHoaDonCont = new JPanel(new MigLayout("insets 0 10 0 10, gap 8", "[][]", "[grow]"));
         tabHoaDonCont.setBackground(Color.WHITE);
-        JLabel lblHoaDon = new JLabel("📄 Hóa đơn");
+        JLabel lblHoaDon = new JLabel("Hóa đơn");
+        ImageIcon invoiceIcon = loadIcon("invoice.png", 14, 14);
+        if (invoiceIcon != null) {
+            lblHoaDon.setIcon(invoiceIcon);
+            lblHoaDon.setIconTextGap(6);
+        }
         lblHoaDon.setFont(lblHoaDon.getFont().deriveFont(Font.BOLD, 13f));
         
         JPanel badge = new JPanel(new BorderLayout()) {
@@ -187,7 +229,9 @@ public class RoomDetailDialog extends JDialog {
             ((JLabel)tabHoaDonCont.getComponent(0)).setForeground(ThemeColors.TEXT_MUTED);
 
             if(btnFooterLeft != null) {
-                btnFooterLeft.setText("📄 Xem hóa đơn");
+                btnFooterLeft.setText("Xem hóa đơn");
+                ImageIcon icon = loadIcon("invoice.png", 14, 14);
+                if (icon != null) btnFooterLeft.setIcon(icon);
             }
         } else {
             tabKhachCont.setBorder(BorderFactory.createEmptyBorder(0, 0, 2, 0));
@@ -197,7 +241,9 @@ public class RoomDetailDialog extends JDialog {
             ((JLabel)tabHoaDonCont.getComponent(0)).setForeground(ThemeColors.PRIMARY);
 
             if(btnFooterLeft != null) {
-                btnFooterLeft.setText("👤 Xem thông tin khách");
+                btnFooterLeft.setText("Xem thông tin khách");
+                ImageIcon icon = loadIcon("client.png", 14, 14);
+                if (icon != null) btnFooterLeft.setIcon(icon);
             }
         }
     }
@@ -216,7 +262,8 @@ public class RoomDetailDialog extends JDialog {
         lblStatus.setForeground(new Color(40, 160, 80));
         badgeStatus.add(lblStatus);
         
-        JLabel lblCode = new JLabel("Mã đặt: BK001");
+        String maHD = (invoice != null) ? invoice.getMaHD() : "N/A";
+        JLabel lblCode = new JLabel("Mã Hóa Đơn: " + maHD);
         lblCode.setForeground(ThemeColors.TEXT_MUTED);
         lblCode.setFont(lblCode.getFont().deriveFont(12f));
 
@@ -230,11 +277,17 @@ public class RoomDetailDialog extends JDialog {
         title1.setForeground(ThemeColors.TEXT_MUTED);
         pnlPersonal.add(title1, "span 2, wrap");
 
-        pnlPersonal.add(createIconLabelData("👤 Họ và tên", "Lê Văn Dũng"));
-        pnlPersonal.add(createIconLabelData("📞 Điện thoại", "0901 234 567"));
-        pnlPersonal.add(createIconLabelData("✉ Email", "dung.le@yahoo.com"));
-        pnlPersonal.add(createIconLabelData("💳 CMND/CCCD", "048085023456"));
-        pnlPersonal.add(createIconLabelData("📍 Địa chỉ", "78 Nguyễn Văn Linh, Đà Nẵng"), "span 2");
+        String ten = (customer != null) ? customer.getHoTenKH() : "Khách vãng lai";
+        String sdt = (customer != null) ? customer.getSdt() : "N/A";
+        String email = (customer != null && customer.getEmail() != null && !customer.getEmail().isEmpty()) ? customer.getEmail() : "N/A";
+        String cccd = (customer != null) ? customer.getCCCD() : "N/A";
+        String diaChi = (customer != null && customer.getDiaChi() != null && !customer.getDiaChi().isEmpty()) ? customer.getDiaChi() : "N/A";
+
+        pnlPersonal.add(createIconLabelData("client.png", "Họ và tên", ten));
+        pnlPersonal.add(createIconLabelData("telephone.png", "Điện thoại", sdt));
+        pnlPersonal.add(createIconLabelData("email.png", "Email", email));
+        pnlPersonal.add(createIconLabelData("credit-card.png", "CMND/CCCD", cccd));
+        pnlPersonal.add(createIconLabelData("location.png", "Địa chỉ", diaChi), "span 2");
 
         RoundedPanel pnlBooking = new RoundedPanel(12, new Color(230, 255, 240), new Color(180, 240, 200), 1);
         pnlBooking.setLayout(new MigLayout("insets 16 20 16 20, wrap 2", "[grow][grow]", "[]12[]"));
@@ -243,20 +296,28 @@ public class RoomDetailDialog extends JDialog {
         title2.setForeground(new Color(40, 120, 70));
         pnlBooking.add(title2, "span 2, wrap");
 
-        pnlBooking.add(createIconLabelDataTextOnly("Nhận phòng", "1/4/2026", new Color(40, 160, 80), new Color(40, 120, 70)));
-        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", "5/4/2026", new Color(40, 160, 80), new Color(40, 120, 70)));
-        pnlBooking.add(createIconLabelDataTextOnly("Số khách", "2 người", new Color(40, 160, 80), new Color(40, 120, 70)));
-        long pricePerNightK = parseMoney(roomPrice);
-        long totalRoomK = pricePerNightK * 4;
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        String checkIn = (invoice != null && invoice.getNgayLapHD() != null) ? invoice.getNgayLapHD().format(dtf) : "N/A";
+        String soKhach = (invoice != null) ? (invoice.getSoLuongNguoi() + " người") : "N/A";
+        long totalRoomK = (invoice != null) ? (long)invoice.getTienPhong() : parseMoney(roomPrice);
+
+        pnlBooking.add(createIconLabelDataTextOnly("Nhận phòng", checkIn, new Color(40, 160, 80), new Color(40, 120, 70)));
+        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", "Chưa trả", new Color(40, 160, 80), new Color(40, 120, 70)));
+        pnlBooking.add(createIconLabelDataTextOnly("Số khách", soKhach, new Color(40, 160, 80), new Color(40, 120, 70)));
         pnlBooking.add(createIconLabelDataTextOnly("Tiền phòng", formatMoney(totalRoomK), new Color(40, 160, 80), new Color(40, 120, 70)));
 
         JPanel pnlStats = new JPanel(new MigLayout("insets 0, gap 12", "[grow,fill][grow,fill][grow,fill]", "[]"));
         pnlStats.setOpaque(false);
-        pnlStats.add(createStatBox("Tổng lần đặt", "8", new Color(255, 245, 210), new Color(250, 220, 120), new Color(160, 80, 0)));
-        pnlStats.add(createStatBox("Tổng chi tiêu", "45.800.000đ", new Color(250, 245, 255), new Color(230, 210, 255), new Color(120, 60, 160)));
-        pnlStats.add(createStatBox("Thành viên từ", "thg 6 2023", new Color(240, 248, 255), new Color(200, 220, 255), new Color(40, 80, 160)));
+        pnlStats.add(createStatBox("Hạng thẻ", (customer != null) ? customer.getHangKH() : "N/A", new Color(255, 245, 210), new Color(250, 220, 120), new Color(160, 80, 0)));
+        pnlStats.add(createStatBox("Điểm tích lũy", (customer != null) ? String.valueOf(customer.getDiemTichLuy()) : "0", new Color(250, 245, 255), new Color(230, 210, 255), new Color(120, 60, 160)));
+        pnlStats.add(createStatBox("Quốc tịch", (customer != null) ? customer.getQuocTich() : "N/A", new Color(240, 248, 255), new Color(200, 220, 255), new Color(40, 80, 160)));
 
-        PrimaryButton btnBigInvoice = new PrimaryButton("📄 Xem hóa đơn");
+        PrimaryButton btnBigInvoice = new PrimaryButton("Xem hóa đơn");
+        ImageIcon bigInvoiceIcon = loadIcon("invoice.png", 16, 16);
+        if (bigInvoiceIcon != null) {
+            btnBigInvoice.setIcon(bigInvoiceIcon);
+            btnBigInvoice.setIconTextGap(8);
+        }
         btnBigInvoice.setBackground(ThemeColors.PRIMARY);
         btnBigInvoice.setForeground(Color.WHITE);
         btnBigInvoice.addActionListener(e -> switchTab("HOADON"));
@@ -270,10 +331,15 @@ public class RoomDetailDialog extends JDialog {
         return pnl;
     }
 
-    private JPanel createIconLabelData(String label, String data) {
+    private JPanel createIconLabelData(String iconName, String label, String data) {
         JPanel pnl = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
         pnl.setOpaque(false);
         JLabel lblTitle = new JLabel(label);
+        ImageIcon icon = loadIcon(iconName, 14, 14);
+        if (icon != null) {
+            lblTitle.setIcon(icon);
+            lblTitle.setIconTextGap(6);
+        }
         lblTitle.setForeground(ThemeColors.TEXT_MUTED);
         lblTitle.setFont(lblTitle.getFont().deriveFont(11f));
         JLabel lblData = new JLabel(data);
@@ -324,10 +390,13 @@ public class RoomDetailDialog extends JDialog {
         JLabel lbl1 = new JLabel("Số hóa đơn");
         lbl1.setForeground(ThemeColors.TEXT_MUTED);
         lbl1.setFont(lbl1.getFont().deriveFont(11f));
-        JLabel lbl2 = new JLabel("KQL-2026-0125");
+        String maHD = (invoice != null) ? invoice.getMaHD() : "N/A";
+        JLabel lbl2 = new JLabel(maHD);
         lbl2.setForeground(ThemeColors.TEXT_PRIMARY);
         lbl2.setFont(lbl2.getFont().deriveFont(Font.BOLD, 16f));
-        JLabel lbl3 = new JLabel("Tạo ngày 1/4/2026");
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String ngayLap = (invoice != null && invoice.getNgayLapHD() != null) ? invoice.getNgayLapHD().format(dtf) : "N/A";
+        JLabel lbl3 = new JLabel("Tạo ngày " + ngayLap);
         lbl3.setForeground(ThemeColors.TEXT_MUTED);
         lbl3.setFont(lbl3.getFont().deriveFont(11f));
         pnlLeft.add(lbl1);
@@ -357,78 +426,288 @@ public class RoomDetailDialog extends JDialog {
 
         RoundedPanel mainPnl = new RoundedPanel(12, Color.WHITE, ThemeColors.BORDER, 1);
         mainPnl.setLayout(new MigLayout("insets 0, wrap 1, gap 0", "[grow,fill]", "[]"));
-        
-        JPanel titleRow = new JPanel(new MigLayout("insets 16 20 12 20", "[]", "[]"));
+
+        // Title row với star icon
+        JPanel titleRow = new JPanel(new MigLayout("insets 16 20 12 20", "[][]", "[]"));
         titleRow.setOpaque(false);
+        JLabel starIcon = new JLabel();
+        ImageIcon starIco = loadIcon("star.png", 14, 14);
+        if (starIco != null) starIcon.setIcon(starIco); else starIcon.setText("★");
         JLabel mainTitle = new JLabel("CHI TIẾT HÓA ĐƠN");
         mainTitle.setFont(mainTitle.getFont().deriveFont(Font.BOLD, 11f));
         mainTitle.setForeground(ThemeColors.TEXT_MUTED);
-        titleRow.add(mainTitle);
+        titleRow.add(starIcon);
+        titleRow.add(mainTitle, "gapx 4");
         mainPnl.add(titleRow);
 
+        // Tiền phòng (fixed)
         mainPnl.add(createSeparator());
-        long pricePerNight = parseMoney(roomPrice);
-        long totalRoom = pricePerNight * 4;
-        mainPnl.add(createInvoiceItem("🛏", "Tiền phòng " + roomType + " – 4 đêm", "1/4/2026 → 5/4/2026", formatMoney(totalRoom), false));
-        mainPnl.add(createSeparator());
-        mainPnl.add(createInvoiceItem("🍽", "Bữa sáng buffet", "8 × 220.000đ", "1.760.000đ", true));
-        mainPnl.add(createSeparator());
-        mainPnl.add(createInvoiceItem("💆", "Spa & Massage", "2 × 800.000đ", "1.600.000đ", true));
-        mainPnl.add(createSeparator());
-        mainPnl.add(createInvoiceItem("👕", "Giặt ủi", "3 × 50.000đ", "150.000đ", true));
+        long totalRoom = (invoice != null) ? (long)invoice.getTienPhong() : (parseMoney(roomPrice) * 4);
+        mainPnl.add(createInvoiceItem("bed.png", "🛏", "Tiền phòng " + roomType, "Tính đến hiện tại", formatMoney(totalRoom), null, null));
         mainPnl.add(createSeparator());
 
-        JPanel addRow = new JPanel(new MigLayout("insets 16 20 16 20", "[grow,fill]", "[]"));
-        addRow.setOpaque(false);
-        JButton btnAddDichVu = new JButton("+ Thêm dịch vụ");
-        btnAddDichVu.setFont(btnAddDichVu.getFont().deriveFont(13f));
-        btnAddDichVu.setForeground(ThemeColors.PRIMARY);
-        btnAddDichVu.setBackground(new Color(245, 250, 255));
-        btnAddDichVu.setFocusPainted(false);
-        btnAddDichVu.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAddDichVu.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
-        btnAddDichVu.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
-            @Override
-            public void paint(Graphics g, JComponent c) {
-                super.paint(g, c);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(150, 180, 240));
-                Stroke dashed = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6}, 0);
-                g2.setStroke(dashed);
-                g2.drawRoundRect(0, 0, c.getWidth()-1, c.getHeight()-1, 8, 8);
-                g2.dispose();
-            }
-        });
-        addRow.add(btnAddDichVu);
-        mainPnl.add(addRow);
+        // Danh sách dịch vụ từ DB
+        serviceListPanel = new JPanel(new MigLayout("insets 0, wrap 1, gap 0", "[grow,fill]", "[]"));
+        serviceListPanel.setOpaque(false);
+        mainPnl.add(serviceListPanel, "growx");
+
+        // Nút + inline form thêm dịch vụ
+        addBtnRow = createAddBtnRow();
+        addFormPanel = createInlineAddForm();
+        addFormPanel.setVisible(false);
+        mainPnl.add(addBtnRow, "growx");
+        mainPnl.add(addFormPanel, "growx");
         mainPnl.add(createSeparator());
 
+        // Tổng tiền
         JPanel sumRow = new JPanel(new MigLayout("insets 16 20 20 20, wrap 2, gapy 8", "[grow][right]", "[]"));
         sumRow.setOpaque(false);
-        long totalServices = 3510000;
-        long vat = (long)((totalRoom + totalServices) * 0.1);
-        long grandTotal = totalRoom + totalServices + vat;
-        sumRow.add(createMutedLabel("Tạm tính")); sumRow.add(createMutedLabelDark(formatMoney(totalRoom)));
-        sumRow.add(createMutedLabel("Tiền dịch vụ")); sumRow.add(createMutedLabelDark(formatMoney(totalServices)));
-        sumRow.add(createMutedLabel("Thuế VAT (10%)")); sumRow.add(createMutedLabelDark(formatMoney(vat)));
-        
-        sumRow.add(createSeparator(), "span 2, growx, gapy 8 8");
+        long totalServices = (invoice != null) ? (long)invoice.getTienDichVu() : 0;
+        long vat = (invoice != null) ? (long)invoice.getTienThue() : (long)((totalRoom + totalServices) * 0.1);
+        long grandTotal = (invoice != null) ? (long)invoice.getTongTienThanhToan() : (totalRoom + totalServices + vat);
 
+        lblTotalServices = new JLabel(formatMoney(totalServices));
+        lblVat = new JLabel(formatMoney(vat));
+        lblGrandTotal = new JLabel(formatMoney(grandTotal));
+        lblTotalServices.setForeground(ThemeColors.TEXT_PRIMARY);
+        lblTotalServices.setFont(lblTotalServices.getFont().deriveFont(12f));
+        lblVat.setForeground(ThemeColors.TEXT_PRIMARY);
+        lblVat.setFont(lblVat.getFont().deriveFont(12f));
+        lblGrandTotal.setFont(lblGrandTotal.getFont().deriveFont(Font.BOLD, 16f));
+        lblGrandTotal.setForeground(ThemeColors.PRIMARY);
+
+        sumRow.add(createMutedLabel("Tạm tính")); sumRow.add(createMutedLabelDark(formatMoney(totalRoom)));
+        sumRow.add(createMutedLabel("Tiền dịch vụ")); sumRow.add(lblTotalServices);
+        sumRow.add(createMutedLabel("Thuế VAT (10%)")); sumRow.add(lblVat);
+        sumRow.add(createSeparator(), "span 2, growx, gapy 8 8");
         JLabel lblTongT = new JLabel("Còn phải thanh toán");
         lblTongT.setFont(lblTongT.getFont().deriveFont(Font.BOLD, 14f));
         lblTongT.setForeground(ThemeColors.TEXT_PRIMARY);
-        JLabel lblTongV = new JLabel(formatMoney(grandTotal));
-        lblTongV.setFont(lblTongV.getFont().deriveFont(Font.BOLD, 16f));
-        lblTongV.setForeground(ThemeColors.PRIMARY);
-        sumRow.add(lblTongT); sumRow.add(lblTongV);
-
+        sumRow.add(lblTongT); sumRow.add(lblGrandTotal);
         mainPnl.add(sumRow);
+
+        // Nút thanh toán
+        JPanel payRow = new JPanel(new MigLayout("insets 0 20 16 20", "[grow,fill]", "[]"));
+        payRow.setOpaque(false);
+        JButton btnThanhToan = new JButton("✔ Thanh toán");
+        btnThanhToan.setFont(btnThanhToan.getFont().deriveFont(Font.BOLD, 14f));
+        btnThanhToan.setBackground(new Color(34, 197, 94));
+        btnThanhToan.setForeground(Color.WHITE);
+        btnThanhToan.setFocusPainted(false);
+        btnThanhToan.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnThanhToan.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(22, 163, 74), 1, true),
+            BorderFactory.createEmptyBorder(10, 0, 10, 0)
+        ));
+        btnThanhToan.addActionListener(e -> {
+            dispose();
+            if (onCheckout != null) onCheckout.run();
+        });
+        payRow.add(btnThanhToan);
+        mainPnl.add(payRow);
 
         pnl.add(hdr);
         pnl.add(mainPnl);
 
+        // Load dịch vụ từ DB sau khi UI đã được dựng
+        javax.swing.SwingUtilities.invokeLater(() -> refreshServiceList());
+
         return pnl;
+    }
+
+    private void refreshServiceList() {
+        if (serviceListPanel == null) return;
+        serviceListPanel.removeAll();
+        if (invoice != null) {
+            ServiceDetailDAO dao = new ServiceDetailDAO();
+            List<ServiceDetail> list = dao.getByInvoice(invoice.getMaHD());
+            for (ServiceDetail sd : list) {
+                String tenDV = (sd.getGhiChu() != null && !sd.getGhiChu().isEmpty()) ? sd.getGhiChu() : sd.getMaDV();
+                String sub = sd.getSoLuong() + " × " + formatMoney((long)sd.getDonGia());
+                serviceListPanel.add(createInvoiceItem("star.png", "🔧", tenDV, sub, formatMoney((long)sd.getThanhTien()), sd.getMaCTDV(), serviceListPanel));
+                serviceListPanel.add(createSeparator());
+            }
+            // Cập nhật label tổng
+            double svcTotal = list.stream().mapToDouble(ServiceDetail::getThanhTien).sum();
+            long roomAmt = (long)invoice.getTienPhong();
+            long vatAmt = (long)((roomAmt + svcTotal) * 0.1);
+            long grandAmt = roomAmt + (long)svcTotal + vatAmt;
+            if (lblTotalServices != null) lblTotalServices.setText(formatMoney((long)svcTotal));
+            if (lblVat != null) lblVat.setText(formatMoney(vatAmt));
+            if (lblGrandTotal != null) lblGrandTotal.setText(formatMoney(grandAmt));
+        }
+        serviceListPanel.revalidate();
+        serviceListPanel.repaint();
+    }
+
+    private JPanel createAddBtnRow() {
+        JPanel row = new JPanel(new MigLayout("insets 12 20 12 20", "[grow,fill]", "[]"));
+        row.setOpaque(false);
+        JButton btn = new JButton("+ Thêm dịch vụ");
+        btn.setFont(btn.getFont().deriveFont(13f));
+        btn.setForeground(ThemeColors.PRIMARY);
+        btn.setBackground(new Color(245, 250, 255));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override public void paint(Graphics g, JComponent c) {
+                super.paint(g, c);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(150, 180, 240));
+                g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6}, 0));
+                g2.drawRoundRect(0, 0, c.getWidth()-1, c.getHeight()-1, 8, 8);
+                g2.dispose();
+            }
+        });
+        btn.addActionListener(e -> {
+            addBtnRow.setVisible(false);
+            addFormPanel.setVisible(true);
+            Container p = addBtnRow.getParent();
+            if (p != null) { p.revalidate(); p.repaint(); }
+        });
+        row.add(btn);
+        return row;
+    }
+
+    private JPanel createInlineAddForm() {
+        List<Service> services = new ServiceDAO().getAllActive();
+        RoundedPanel form = new RoundedPanel(12, new Color(240, 245, 255), new Color(180, 210, 255), 1);
+        form.setLayout(new MigLayout("insets 16 20 16 20, wrap 1, gap 10", "[grow,fill]", "[]"));
+
+        JLabel title = new JLabel("Thêm dịch vụ mới");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 13f));
+        title.setForeground(ThemeColors.PRIMARY);
+        form.add(title);
+
+        JComboBox<Object> combo = new JComboBox<>();
+        combo.addItem("-- Chọn dịch vụ --");
+        for (Service s : services) combo.addItem(s);
+        combo.setBackground(Color.WHITE);
+        combo.setFont(combo.getFont().deriveFont(13f));
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> list, Object value, int idx, boolean sel, boolean focus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, idx, sel, focus);
+                if (value instanceof Service) {
+                    Service s = (Service) value;
+                    String p = s.getDonGia() == 0 ? "Miễn phí" : formatMoney((long)s.getDonGia());
+                    lbl.setText(s.getTenDV() + " — " + p);
+                }
+                return lbl;
+            }
+        });
+        form.add(combo, "growx, h 34!");
+
+        JPanel detailPnl = new JPanel(new MigLayout("insets 0, wrap 1, gap 6", "[grow,fill]", "[]"));
+        detailPnl.setOpaque(false);
+        detailPnl.setVisible(false);
+
+        JPanel donGiaRow = new JPanel(new MigLayout("insets 4 8 4 8", "[grow][28!][36!][28!]", "[]"));
+        donGiaRow.setBackground(new Color(230, 238, 255));
+        donGiaRow.setBorder(BorderFactory.createLineBorder(new Color(180, 210, 255), 1));
+        JLabel lblDonGia = new JLabel("Đơn giá: 0đ");
+        lblDonGia.setFont(lblDonGia.getFont().deriveFont(12f));
+        lblDonGia.setForeground(ThemeColors.TEXT_PRIMARY);
+        int[] qty = {1};
+        JButton btnMinus = new JButton("−");
+        JLabel lblQtyLbl = new JLabel("1", SwingConstants.CENTER);
+        lblQtyLbl.setFont(lblQtyLbl.getFont().deriveFont(Font.BOLD, 13f));
+        JButton btnPlus = new JButton("+");
+        for (JButton b : new JButton[]{btnMinus, btnPlus}) {
+            b.setFont(b.getFont().deriveFont(Font.BOLD, 14f));
+            b.setBackground(Color.WHITE);
+            b.setFocusPainted(false);
+            b.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true));
+            b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+        donGiaRow.add(lblDonGia, "grow");
+        donGiaRow.add(btnMinus);
+        donGiaRow.add(lblQtyLbl);
+        donGiaRow.add(btnPlus);
+        detailPnl.add(donGiaRow, "growx");
+
+        JPanel thanhTienRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
+        thanhTienRow.setOpaque(false);
+        JLabel lblTTLabel = new JLabel("Thành tiền (1 × 0đ)");
+        lblTTLabel.setFont(lblTTLabel.getFont().deriveFont(12f));
+        lblTTLabel.setForeground(ThemeColors.TEXT_MUTED);
+        JLabel lblTTVal = new JLabel("0đ");
+        lblTTVal.setFont(lblTTVal.getFont().deriveFont(Font.BOLD, 13f));
+        lblTTVal.setForeground(ThemeColors.PRIMARY);
+        thanhTienRow.add(lblTTLabel, "grow");
+        thanhTienRow.add(lblTTVal);
+        detailPnl.add(thanhTienRow, "growx");
+        form.add(detailPnl, "growx");
+
+        Runnable updateDetail = () -> {
+            if (combo.getSelectedItem() instanceof Service) {
+                Service s = (Service) combo.getSelectedItem();
+                long price = (long) s.getDonGia();
+                lblDonGia.setText("Đơn giá: " + formatMoney(price));
+                lblQtyLbl.setText(String.valueOf(qty[0]));
+                lblTTLabel.setText("Thành tiền (" + qty[0] + " × " + formatMoney(price) + ")");
+                lblTTVal.setText(formatMoney(price * qty[0]));
+            }
+        };
+        combo.addActionListener(e -> {
+            if (combo.getSelectedItem() instanceof Service) {
+                qty[0] = 1; updateDetail.run(); detailPnl.setVisible(true);
+            } else { detailPnl.setVisible(false); }
+            form.revalidate(); form.repaint();
+        });
+        btnMinus.addActionListener(e -> { if (qty[0] > 1) { qty[0]--; updateDetail.run(); } });
+        btnPlus.addActionListener(e -> { qty[0]++; updateDetail.run(); });
+
+        JPanel btnRow = new JPanel(new MigLayout("insets 0", "[grow][][]", "[]"));
+        btnRow.setOpaque(false);
+        JButton btnOk = new JButton("Xác nhận thêm");
+        btnOk.setBackground(ThemeColors.PRIMARY);
+        btnOk.setForeground(Color.WHITE);
+        btnOk.setFocusPainted(false);
+        btnOk.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnCancel = new JButton("Hủy");
+        btnCancel.setFocusPainted(false);
+        btnCancel.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCancel.addActionListener(e -> {
+            combo.setSelectedIndex(0); qty[0] = 1;
+            detailPnl.setVisible(false);
+            addFormPanel.setVisible(false);
+            addBtnRow.setVisible(true);
+            Container p = addFormPanel.getParent();
+            if (p != null) { p.revalidate(); p.repaint(); }
+        });
+        btnOk.addActionListener(e -> {
+            if (!(combo.getSelectedItem() instanceof Service)) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn dịch vụ!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            Service s = (Service) combo.getSelectedItem();
+            ServiceDetail sd = new ServiceDetail();
+            sd.setMaHD(invoice != null ? invoice.getMaHD() : "");
+            sd.setMaDV(s.getMaDV());
+            sd.setSoLuong(qty[0]);
+            sd.setDonGia(s.getDonGia());
+            sd.setThanhTien(s.getDonGia() * qty[0]);
+            sd.setGhiChu(s.getTenDV());
+            if (new ServiceDetailDAO().insert(sd)) {
+                combo.setSelectedIndex(0); qty[0] = 1;
+                detailPnl.setVisible(false);
+                addFormPanel.setVisible(false);
+                addBtnRow.setVisible(true);
+                Container p = addFormPanel.getParent();
+                if (p != null) { p.revalidate(); p.repaint(); }
+                refreshServiceList();
+            } else {
+                JOptionPane.showMessageDialog(this, "Thêm dịch vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        btnRow.add(btnOk, "grow, h 36!");
+        btnRow.add(btnCancel, "w 80!, h 36!");
+        form.add(btnRow, "growx");
+        return form;
     }
 
     private JLabel createMutedLabel(String t) {
@@ -458,13 +737,14 @@ public class RoomDetailDialog extends JDialog {
         return p;
     }
 
-    private JPanel createInvoiceItem(String iconStr, String title, String sub, String price, boolean deleteable) {
+    private JPanel createInvoiceItem(String iconFile, String iconStr, String title, String sub, String price, String maCTDV, JPanel parentPanel) {
         JPanel pnl = new JPanel(new MigLayout("insets 12 20 12 20", "[][grow][][]", "[]"));
         pnl.setOpaque(false);
-        JLabel icon = new JLabel(iconStr);
-        icon.setFont(icon.getFont().deriveFont(18f));
-        icon.setForeground(ThemeColors.TEXT_MUTED);
-        
+        JLabel icon = new JLabel();
+        ImageIcon imgIcon = (iconFile != null && !iconFile.isEmpty()) ? loadIcon(iconFile, 18, 18) : null;
+        if (imgIcon != null) { icon.setIcon(imgIcon); }
+        else { icon.setText(iconStr); icon.setFont(icon.getFont().deriveFont(18f)); icon.setForeground(ThemeColors.TEXT_MUTED); }
+
         JPanel pnlText = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
         pnlText.setOpaque(false);
         JLabel lblTitle = new JLabel(title);
@@ -484,19 +764,27 @@ public class RoomDetailDialog extends JDialog {
         pnl.add(pnlText, "growx");
         pnl.add(lblPrice);
 
-        if (deleteable) {
-            JButton btnDel = new JButton("🗑");
+        if (maCTDV != null) {
+            JButton btnDel = new JButton();
+            ImageIcon delIco = loadIcon("delete.png", 16, 16);
+            if (delIco != null) { btnDel.setIcon(delIco); }
+            else { btnDel.setText("🗑"); btnDel.setFont(btnDel.getFont().deriveFont(14f)); }
             btnDel.setForeground(new Color(240, 80, 80));
-            btnDel.setFont(btnDel.getFont().deriveFont(14f));
             btnDel.setContentAreaFilled(false);
             btnDel.setBorderPainted(false);
             btnDel.setMargin(new Insets(0, 0, 0, 0));
             btnDel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            pnl.add(btnDel, "w 24!");
+            btnDel.addActionListener(e -> {
+                int confirm = JOptionPane.showConfirmDialog(this, "Xóa dịch vụ này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    new ServiceDetailDAO().delete(maCTDV);
+                    refreshServiceList();
+                }
+            });
+            pnl.add(btnDel, "w 24!");   
         } else {
-            pnl.add(new JLabel(" "), "w 24!"); 
+            pnl.add(new JLabel(" "), "w 24!");
         }
-
         return pnl;
     }
 
@@ -505,7 +793,12 @@ public class RoomDetailDialog extends JDialog {
         footer.setBackground(Color.WHITE);
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, ThemeColors.BORDER_SOFT));
 
-        btnFooterLeft = new JButton("📄 Xem hóa đơn");
+        btnFooterLeft = new JButton("Xem hóa đơn");
+        ImageIcon footerInvoiceIcon = loadIcon("invoice.png", 14, 14);
+        if (footerInvoiceIcon != null) {
+            btnFooterLeft.setIcon(footerInvoiceIcon);
+            btnFooterLeft.setIconTextGap(6);
+        }
         btnFooterLeft.setFont(btnFooterLeft.getFont().deriveFont(13f));
         btnFooterLeft.setForeground(ThemeColors.TEXT_MUTED);
         btnFooterLeft.setBackground(Color.WHITE);
@@ -541,5 +834,24 @@ public class RoomDetailDialog extends JDialog {
     
     private String formatMoney(long money) {
         return String.format("%,d", money).replace(',', '.') + "đ";
+    }
+
+    private ImageIcon loadIcon(String filename, int width, int height) {
+        try {
+            URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
+            if (resource == null) {
+                String srcPath = "src/kqlhotel/resources/icons/" + filename;
+                File file = new File(srcPath);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
+            }
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                Image scaledImage = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaledImage);
+            }
+        } catch (Exception e) {}
+        return null;
     }
 }

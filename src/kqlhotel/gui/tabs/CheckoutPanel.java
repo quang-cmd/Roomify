@@ -437,7 +437,7 @@ public class CheckoutPanel extends JPanel {
         });
         
         sMaint.addActionListener(e -> {
-            nextRoomStatus = "Bảo trì";
+            nextRoomStatus = "BaoTri";
             sMaint.setBackground(new Color(40, 167, 69)); // Xanh lá theo yêu cầu
             sMaint.setForeground(Color.WHITE);
             sMaint.setBorder(BorderFactory.createEmptyBorder());
@@ -511,6 +511,13 @@ public class CheckoutPanel extends JPanel {
                     PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
                 }
                 JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+
+                // Cập nhật giao diện Quản lý phòng
+                java.awt.Container c = CheckoutPanel.this;
+                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                if (c instanceof kqlhotel.gui.AppFrame) {
+                    ((kqlhotel.gui.AppFrame) c).refreshRoomManagementData();
+                }
                 
                 // Clear state and return
                 roomCodeField.setText("");

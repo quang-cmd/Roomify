@@ -52,7 +52,7 @@ CREATE TABLE KhachHang (
     hoTenKH     NVARCHAR(100)  NOT NULL,
     gioiTinh    BIT            NOT NULL DEFAULT 1,
     ngaySinh    DATETIME2      NULL,
-    email       VARCHAR(100)   NULL,g
+    email       VARCHAR(100)   NULL,
     sdt         VARCHAR(15)    NOT NULL UNIQUE,
     CCCD        VARCHAR(20)    NOT NULL UNIQUE,
     quocTich    NVARCHAR(50)   NOT NULL DEFAULT N'Viet Nam',
@@ -107,7 +107,7 @@ CREATE TABLE Phong (
     maLoaiPhong     CHAR(5)     NOT NULL,
     tang            INT         NOT NULL CHECK (tang > 0),
     trangThaiPhong  VARCHAR(20) NOT NULL DEFAULT 'Trong'
-                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri')),
+                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri', 'DangDon', 'DaDat')),
     CONSTRAINT FK_Phong_LoaiPhong FOREIGN KEY (maLoaiPhong) REFERENCES LoaiPhong(maLoaiPhong)
 );
 GO

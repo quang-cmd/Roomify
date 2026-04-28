@@ -148,7 +148,7 @@ public class RoomSearchDialog extends JDialog {
         JLabel lbl3 = new JLabel("Trạng thái phòng");
         lbl3.setForeground(ThemeColors.TEXT_MUTED);
         lbl3.setFont(lbl3.getFont().deriveFont(12f));
-        cbStatus = new JComboBox<>(new String[]{"Tất cả trạng thái", "Trống", "Đã đặt", "Bảo trì", "Đang dọn"});
+        cbStatus = new JComboBox<>(new String[]{"Tất cả trạng thái", "Trống", "Đang sử dụng", "Đã đặt", "Bảo trì", "Đang dọn"});
         cbStatus.putClientProperty("JComponent.roundRect", true);
         col3.add(lbl3);
         col3.add(cbStatus, "h 36!");

@@ -54,7 +54,7 @@ public class StaffPanel extends JPanel {
         subtitle = new JLabel(staffList.size() + " nhân viên - " + activeCount + " đang làm việc");
         subtitle.setForeground(new Color(150, 165, 190));
         
-        titlePanel.add(title);
+        // titlePanel.add(title); // Bỏ title bị trùng
         titlePanel.add(subtitle);
 
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm nhân viên");
