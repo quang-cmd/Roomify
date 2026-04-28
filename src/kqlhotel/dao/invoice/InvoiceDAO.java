@@ -286,6 +286,30 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
 
         return null;
     }
+    public String getServiceName(String maDV) {
+        if (maDV == null || maDV.isBlank()) {
+            return "";
+        }
+
+        String sql = "SELECT tenDV FROM DichVu WHERE maDV = ?";
+
+        try (
+                java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+                java.sql.PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setString(1, maDV);
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("tenDV");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
 
     @Override
     public boolean create(Invoice t) {

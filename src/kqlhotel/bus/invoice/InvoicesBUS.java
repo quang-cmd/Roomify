@@ -105,4 +105,7 @@ public class InvoicesBUS {
     public String getStaffName(String maNV) {
         return invoiceDAO.getStaffName(maNV);
     }
+    public String getServiceName(String maDV) {
+        return invoiceDAO.getServiceName(maDV);
+    }
 }

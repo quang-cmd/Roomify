@@ -18,7 +18,6 @@ import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.DateUtils;
-import kqlhotel.utils.PDFInvoiceGenerator;
 import net.miginfocom.swing.MigLayout;
 
 public class InvoicesPanel extends JPanel {
@@ -380,11 +379,17 @@ public class InvoicesPanel extends JPanel {
         bPdf.setForeground(Color.WHITE);
         bPdf.setFocusPainted(false);
         bPdf.setArc(12);
-        bPdf.addActionListener(e -> PDFInvoiceGenerator.exportInvoice(
-                hd,
-                invoicesBUS.getRoomDetails(hd.getMaHD()),
-                invoicesBUS.getServiceDetails(hd.getMaHD())
-        ));
+        bPdf.addActionListener(e -> {
+            new kqlhotel.gui.dialog.InvoicePreviewDialog(
+                    SwingUtilities.getWindowAncestor(this),
+                    hd,
+                    invoicesBUS.getCustomerInfo(hd.getMaKhachHang()),
+                    invoicesBUS.getStaffName(hd.getMaNhanVien()),
+                    invoicesBUS.getRoomDetails(hd.getMaHD()),
+                    invoicesBUS.getServiceDetails(hd.getMaHD()),
+                    invoicesBUS
+            ).setVisible(true);
+        });
 
         topRow.add(idBox);
         topRow.add(new JPanel() {{ setOpaque(false); }}, "growx");
@@ -464,7 +469,10 @@ public class InvoicesPanel extends JPanel {
 
         for (ServiceDetail ct : serviceDetails) {
             tablePanel.add(createTRow(
-                    "Dịch vụ: " + ct.getMaDV(),
+                    "Dịch vụ: " + ct.getMaDV()
+                            + (invoicesBUS.getServiceName(ct.getMaDV()).isBlank()
+                            ? ""
+                            : " - " + invoicesBUS.getServiceName(ct.getMaDV())),
                     String.valueOf(ct.getSoLuong()),
                     CurrencyUtils.formatVND(ct.getDonGia()),
                     "",
