@@ -34,7 +34,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import kqlhotel.bus.DichVuBus;
 import kqlhotel.entity.DichVuEntity;
@@ -171,6 +170,7 @@ public class DichVuPanel extends JPanel {
         editButton.setContentAreaFilled(false);
         editButton.setFocusPainted(false);
         editButton.setForeground(new Color(148, 163, 184));
+        editButton.setToolTipText("Sửa dịch vụ");
         editButton.addActionListener(e -> showServiceDialog(service));
         actions.add(editButton);
         top.add(actions, BorderLayout.EAST);
@@ -258,8 +258,8 @@ public class DichVuPanel extends JPanel {
         JTextField priceField = createDialogField(editing ? String.valueOf((long) existing.getGia()) : "");
         JComboBox<String> categoryBox = new JComboBox<>(new String[]{"Buồng phòng", "Ăn uống", "Thư giãn", "Vận chuyển", "Tiện ích"});
         categoryBox.setSelectedItem(editing ? normalizeCategory(existing.getLoaiDV()) : "Tiện ích");
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{"DangHoatDong", "NgungHoatDong"});
-        statusBox.setSelectedItem(editing ? existing.getTrangThai() : "DangHoatDong");
+        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Đang hoạt động", "Ngừng hoạt động"});
+        statusBox.setSelectedItem(mapStatusLabel(editing ? existing.getTrangThai() : "DangHoatDong"));
         JTextArea descriptionArea = new JTextArea(editing ? safe(existing.getMoTa()) : "");
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
@@ -306,7 +306,7 @@ public class DichVuPanel extends JPanel {
             payload.setTenDV(nameField.getText().trim());
             payload.setGia(price);
             payload.setLoaiDV(normalizeCategory(String.valueOf(categoryBox.getSelectedItem())));
-            payload.setTrangThai(String.valueOf(statusBox.getSelectedItem()));
+            payload.setTrangThai(mapStatusCode(String.valueOf(statusBox.getSelectedItem())));
             payload.setMoTa(descriptionArea.getText().trim());
 
             boolean success = editing ? bus.update(payload) : bus.insert(payload);
@@ -314,7 +314,7 @@ public class DichVuPanel extends JPanel {
                 dialog.dispose();
                 loadServices();
             } else {
-                JOptionPane.showMessageDialog(dialog, "Không thể lưu dịch vụ. Kiểm tra dữ liệu database.");
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu dịch vụ. Vui lòng kiểm tra dữ liệu trong cơ sở dữ liệu.");
             }
         });
 
@@ -409,7 +409,7 @@ public class DichVuPanel extends JPanel {
     private JPanel createCategoryIcon(String category) {
         Color bg;
         String file;
-        switch (category) {
+        switch (normalizeCategory(category)) {
             case "Buồng phòng":
                 bg = new Color(243, 232, 255);
                 file = "services.png";
@@ -458,14 +458,15 @@ public class DichVuPanel extends JPanel {
     }
 
     private JLabel createCategoryChip(String category) {
-        JLabel chip = new JLabel(category);
+        String normalized = normalizeCategory(category);
+        JLabel chip = new JLabel(normalized);
         chip.setOpaque(true);
         chip.setBorder(new EmptyBorder(4, 10, 4, 10));
         chip.setFont(new Font("Segoe UI", Font.BOLD, 11));
 
         Color bg;
         Color fg;
-        switch (category) {
+        switch (normalized) {
             case "Buồng phòng":
                 bg = new Color(243, 232, 255);
                 fg = new Color(124, 58, 237);
@@ -498,7 +499,7 @@ public class DichVuPanel extends JPanel {
     }
 
     private String getUnitLabel(String category) {
-        switch (category) {
+        switch (normalizeCategory(category)) {
             case "Ăn uống":
                 return "/người";
             case "Buồng phòng":
@@ -537,6 +538,14 @@ public class DichVuPanel extends JPanel {
             return "Tiện ích";
         }
         return category;
+    }
+
+    private String mapStatusLabel(String status) {
+        return "DangHoatDong".equalsIgnoreCase(status) ? "Đang hoạt động" : "Ngừng hoạt động";
+    }
+
+    private String mapStatusCode(String status) {
+        return "Đang hoạt động".equalsIgnoreCase(status) ? "DangHoatDong" : "NgungHoatDong";
     }
 
     private ImageIcon loadIcon(String filename, int width, int height) {

@@ -33,7 +33,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import kqlhotel.bus.KhachHangBus;
 import kqlhotel.entity.KhachHangBookingHistory;
@@ -135,7 +134,7 @@ public class KhachHangPanel extends JPanel {
         searchField.setBorder(null);
         searchField.setOpaque(false);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setText("");
+        searchField.setToolTipText("Tìm theo tên, số điện thoại hoặc mã khách hàng");
         searchField.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
@@ -222,7 +221,7 @@ public class KhachHangPanel extends JPanel {
         statusWrap.setOpaque(false);
         statusWrap.setLayout(new BoxLayout(statusWrap, BoxLayout.Y_AXIS));
 
-        JLabel badge = createStatusBadge(customer.isDangHoatDong() ? "Active" : "Inactive", customer.isDangHoatDong());
+        JLabel badge = createStatusBadge(customer.isDangHoatDong() ? "Đang hoạt động" : "Ngừng hoạt động", customer.isDangHoatDong());
         badge.setAlignmentX(Component.RIGHT_ALIGNMENT);
         JLabel arrow = new JLabel("›");
         arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -305,9 +304,9 @@ public class KhachHangPanel extends JPanel {
         JPanel meta = new JPanel();
         meta.setOpaque(false);
         meta.setLayout(new BoxLayout(meta, BoxLayout.X_AXIS));
-        meta.add(createStatusBadge(customer.isDangHoatDong() ? "Đang hoạt động" : "Inactive", customer.isDangHoatDong()));
+        meta.add(createStatusBadge(customer.isDangHoatDong() ? "Đang hoạt động" : "Ngừng hoạt động", customer.isDangHoatDong()));
         meta.add(Box.createHorizontalStrut(8));
-        meta.add(createMutedLabel("Từ " + formatDate(customer.getNgayDatGanNhat())));
+        meta.add(createMutedLabel("Gần nhất: " + formatDate(customer.getNgayDatGanNhat())));
 
         text.add(name);
         text.add(Box.createVerticalStrut(6));
@@ -325,7 +324,7 @@ public class KhachHangPanel extends JPanel {
         editButton.addActionListener(e -> showCustomerDialog(customer));
 
         JButton bookingButton = createOutlineButton("Đặt phòng mới");
-        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mở tab Đặt phòng để tạo booking mới cho khách này."));
+        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mở tab Đặt phòng để tạo booking mới cho khách hàng này."));
 
         actions.add(editButton);
         actions.add(Box.createHorizontalStrut(10));
@@ -341,7 +340,7 @@ public class KhachHangPanel extends JPanel {
         row.setOpaque(false);
         row.add(createStatCard("Tổng đặt phòng", String.valueOf(customer.getTongDatPhong())));
         row.add(createStatCard("Tổng chi tiêu", MONEY_FORMAT.format(customer.getTongChiTieu()) + "đ"));
-        row.add(createStatCard("Đặt phòng cuối", formatDate(customer.getNgayDatGanNhat())));
+        row.add(createStatCard("Đặt phòng gần nhất", formatDate(customer.getNgayDatGanNhat())));
         return row;
     }
 
@@ -495,12 +494,12 @@ public class KhachHangPanel extends JPanel {
         JTextField cccdField = createDialogField(editing ? existing.getCCCD() : "");
         JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
         JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
-        JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Viet Nam");
+        JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Việt Nam");
         JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinh()) : "01/01/1990");
-        JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nu"});
+        JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nữ"});
         genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
-        JComboBox<String> rankBox = new JComboBox<>(new String[]{"Dong", "Bac", "Vang", "KimCuong"});
-        rankBox.setSelectedItem(editing ? safe(existing.getHangKH()) : "Dong");
+        JComboBox<String> rankBox = new JComboBox<>(new String[]{"Đồng", "Bạc", "Vàng", "Kim cương"});
+        rankBox.setSelectedItem(mapRank(existing != null ? existing.getHangKH() : "Dong"));
 
         root.add(createDialogFieldGroup("Tên khách", nameField));
         root.add(Box.createVerticalStrut(10));
@@ -525,7 +524,7 @@ public class KhachHangPanel extends JPanel {
         actions.setOpaque(false);
         JButton cancelButton = createOutlineButton("Hủy");
         cancelButton.addActionListener(e -> dialog.dispose());
-        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách", "customers.png");
+        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách hàng", "customers.png");
         saveButton.addActionListener(e -> {
             KhachHangEntity payload = editing ? existing : new KhachHangEntity();
             payload.setTenKH(nameField.getText().trim());
@@ -535,7 +534,7 @@ public class KhachHangPanel extends JPanel {
             payload.setDiaChi(addressField.getText().trim());
             payload.setQuocTich(nationalityField.getText().trim());
             payload.setGioiTinh(String.valueOf(genderBox.getSelectedItem()));
-            payload.setHangKH(String.valueOf(rankBox.getSelectedItem()));
+            payload.setHangKH(mapRankToCode(String.valueOf(rankBox.getSelectedItem())));
             payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
 
             try {
@@ -555,7 +554,7 @@ public class KhachHangPanel extends JPanel {
                 dialog.dispose();
                 loadCustomers();
             } else {
-                JOptionPane.showMessageDialog(dialog, "Không thể lưu khách hàng. Kiểm tra dữ liệu hoặc ràng buộc database.");
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu khách hàng. Vui lòng kiểm tra dữ liệu hoặc ràng buộc trong cơ sở dữ liệu.");
             }
         });
 
@@ -702,12 +701,38 @@ public class KhachHangPanel extends JPanel {
 
     private String mapInvoiceStatus(String status) {
         if ("DaThanhToan".equalsIgnoreCase(status)) {
-            return "Đã trả phòng";
+            return "Đã thanh toán";
         }
         if ("ChuaThanhToan".equalsIgnoreCase(status)) {
             return "Chưa thanh toán";
         }
         return safe(status);
+    }
+
+    private String mapRank(String rank) {
+        if ("Bac".equalsIgnoreCase(rank)) {
+            return "Bạc";
+        }
+        if ("Vang".equalsIgnoreCase(rank)) {
+            return "Vàng";
+        }
+        if ("KimCuong".equalsIgnoreCase(rank)) {
+            return "Kim cương";
+        }
+        return "Đồng";
+    }
+
+    private String mapRankToCode(String rank) {
+        if ("Bạc".equalsIgnoreCase(rank)) {
+            return "Bac";
+        }
+        if ("Vàng".equalsIgnoreCase(rank)) {
+            return "Vang";
+        }
+        if ("Kim cương".equalsIgnoreCase(rank)) {
+            return "KimCuong";
+        }
+        return "Dong";
     }
 
     private Color pickAvatarColor(String seed) {
