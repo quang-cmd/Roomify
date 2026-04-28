@@ -1,7 +1,7 @@
 package kqlhotel.bus.booking;
 
 public final class BookingServiceProvider {
-    private static BookingService service = new MockBookingService();
+    private static BookingService service = new SqlBookingService();
 
     private BookingServiceProvider() {
     }

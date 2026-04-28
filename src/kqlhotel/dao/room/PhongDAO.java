@@ -16,7 +16,7 @@ public class PhongDAO {
     public List<Phong> getAll() {
         List<Phong> list = new ArrayList<>();
         String sql = "SELECT p.*, lp.tenLoaiPhong, lp.soLuongPhong, lp.giaPhong, lp.sucChuaToiDa, lp.dienTich, lp.moTa, lp.tienNghi " +
-                     "FROM Phong p JOIN LoaiPhong lp ON p.loaiPhong = lp.maLoaiPhong";
+                     "FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong";
 
         try {
             ConnectDB.getInstance().connect();
@@ -25,12 +25,12 @@ public class PhongDAO {
             return list;
         }
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 LoaiPhong lp = new LoaiPhong(
-                    rs.getString("loaiPhong"), // maLoaiPhong
+                    rs.getString("maLoaiPhong"), // maLoaiPhong
                     rs.getString("tenLoaiPhong"),
                     rs.getInt("soLuongPhong"),
                     rs.getDouble("giaPhong"),
@@ -42,7 +42,7 @@ public class PhongDAO {
 
                 Phong p = new Phong(
                     rs.getString("maPhong"),
-                    rs.getDouble("tienCoc"),
+                    0.0, // Phong table doesn't have tienCoc
                     lp,
                     rs.getInt("tang"),
                     rs.getString("trangThaiPhong")
@@ -60,7 +60,7 @@ public class PhongDAO {
         List<Phong> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT p.*, lp.tenLoaiPhong, lp.soLuongPhong, lp.giaPhong, lp.sucChuaToiDa, lp.dienTich, lp.moTa, lp.tienNghi " +
-            "FROM Phong p JOIN LoaiPhong lp ON p.loaiPhong = lp.maLoaiPhong WHERE 1=1"
+            "FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong WHERE 1=1"
         );
 
         if (maPhong != null && !maPhong.trim().isEmpty()) {
@@ -79,8 +79,8 @@ public class PhongDAO {
             return list;
         }
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
              
             int index = 1;
             if (maPhong != null && !maPhong.trim().isEmpty()) {
@@ -96,7 +96,7 @@ public class PhongDAO {
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     LoaiPhong lp = new LoaiPhong(
-                        rs.getString("loaiPhong"),
+                        rs.getString("maLoaiPhong"),
                         rs.getString("tenLoaiPhong"),
                         rs.getInt("soLuongPhong"),
                         rs.getDouble("giaPhong"),
@@ -108,7 +108,7 @@ public class PhongDAO {
 
                     Phong p = new Phong(
                         rs.getString("maPhong"),
-                        rs.getDouble("tienCoc"),
+                        0.0, // Phong table doesn't have tienCoc
                         lp,
                         rs.getInt("tang"),
                         rs.getString("trangThaiPhong")
@@ -120,5 +120,40 @@ public class PhongDAO {
             e.printStackTrace();
         }
         return list;
+    }
+    public boolean create(Phong p) {
+        String sql = "INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?)";
+        try {
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
+            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                pstmt.setString(1, p.getMaPhong());
+                pstmt.setString(2, p.getLoaiPhong().getMaLoaiPhong());
+                pstmt.setInt(3, p.getTang());
+                pstmt.setString(4, p.getTrangThaiPhong());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean update(Phong p) {
+        String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
+        try {
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
+            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                pstmt.setString(1, p.getLoaiPhong().getMaLoaiPhong());
+                pstmt.setInt(2, p.getTang());
+                pstmt.setString(3, p.getTrangThaiPhong());
+                pstmt.setString(4, p.getMaPhong());
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

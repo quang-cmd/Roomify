@@ -1,34 +1,54 @@
 package kqlhotel.entity;
 
+import java.time.LocalDate;
+
 public class Staff {
+    private String staffId;
+    private String fullName;
+    private String phone;
+    private Boolean gender;
+    private Account account;
+    private LocalDate ngayVao;
+    private Double luong;
 
-    private String maNV;
-    private String hoTenNV;
-    private String sdt;
-    private String tenDangNhap;
+    public Staff() {}
 
-    public Staff(String maNV, String hoTenNV, String sdt, String tenDangNhap) {
-        this.maNV = maNV;
-        this.hoTenNV = hoTenNV;
-        this.sdt = sdt;
-        this.tenDangNhap = tenDangNhap;
+    public Staff(String staffId, String fullName, String phone, Boolean gender, Account account) {
+        this.staffId  = staffId;
+        this.fullName = fullName;
+        this.phone    = phone;
+        this.gender   = gender;
+        this.account  = account;
     }
 
-    public String getMaNV() { return maNV; }
-    public String getHoTenNV() { return hoTenNV; }
-    public String getSdt() { return sdt; }
-    public String getTenDangNhap() { return tenDangNhap; }
-
-    // 🔥 THÊM CÁC HÀM NÀY
-    public String getFullName() {
-        return hoTenNV;
+    public Staff(String staffId, String fullName, String phone, Boolean gender,
+                 Account account, LocalDate ngayVao, Double luong) {
+        this(staffId, fullName, phone, gender, account);
+        this.ngayVao = ngayVao;
+        this.luong   = luong;
     }
 
-    public String getPhone() {
-        return sdt;
-    }
+    public String    getStaffId()  { return staffId;  }
+    public void      setStaffId(String staffId)  { this.staffId  = staffId;  }
 
-    public String getAccount() {
-        return tenDangNhap;
-    }
+    // Alias for compatibility
+    public String    getMaNV()     { return staffId; }
+
+    public String    getFullName() { return fullName; }
+    public void      setFullName(String fullName) { this.fullName = fullName; }
+
+    public String    getPhone()    { return phone;    }
+    public void      setPhone(String phone)    { this.phone    = phone;    }
+
+    public Boolean   getGender()   { return gender;   }
+    public void      setGender(Boolean gender) { this.gender   = gender;   }
+
+    public Account   getAccount()  { return account;  }
+    public void      setAccount(Account account)  { this.account  = account;  }
+
+    public LocalDate getNgayVao()  { return ngayVao;  }
+    public void      setNgayVao(LocalDate ngayVao) { this.ngayVao  = ngayVao;  }
+
+    public Double    getLuong()    { return luong;    }
+    public void      setLuong(Double luong)    { this.luong    = luong;    }
 }

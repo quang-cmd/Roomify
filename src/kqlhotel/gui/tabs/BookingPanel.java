@@ -6,6 +6,7 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -48,6 +49,7 @@ import net.miginfocom.swing.MigLayout;
 public class BookingPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int ROOMS_PER_SLIDE = 4;
 
     private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"T\u1ea5t c\u1ea3", "Deluxe", "Grand Premium", "Suite"});
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
@@ -57,12 +59,14 @@ public class BookingPanel extends JPanel {
     private int guestCount = 2;
     private JLabel guestCountLabel;
 
-    private final JLabel step1Label = new JLabel();
-    private final JLabel step2Label = new JLabel();
     private final CardLayout bookingCards = new CardLayout();
     private final JPanel bookingContent = new JPanel(bookingCards);
 
-    private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 12", "[grow,fill][grow,fill]", "[]"));
+    // Row height is fixed ("[205!]") so the 2x2 grid always occupies the same
+    // vertical space regardless of how many real cards (1..ROOMS_PER_SLIDE) are
+    // shown on the current slide. 205px is tuned tight against the densest card
+    // so the panel fits within the viewport leaving 24px whitespace at the bottom.
+    private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 10", "[grow,fill][grow,fill]", "[205!]"));
     private final JLabel selectedRoomsLabel = new JLabel("Ch\u01b0a ch\u1ecdn ph\u00f2ng");
     private final JLabel selectedDateLabel = new JLabel("Ng\u00e0y nh\u1eadn/tr\u1ea3: --");
     private final JLabel selectedGuestLabel = new JLabel("S\u1ed1 kh\u00e1ch: --");
@@ -77,7 +81,15 @@ public class BookingPanel extends JPanel {
     private final List<RoomCardData> displayedRooms = new ArrayList<>();
     private final JLabel selectionCountLabel = new JLabel("0 phòng đã chọn");
     private final JLabel selectionDetailLabel = new JLabel("Tổng: 0đ");
+    private final JLabel slideInfoLabel = new JLabel("Slide 1/1");
     private PrimaryButton continueToGuestButton;
+    private PrimaryButton searchButton;
+    private JButton prevSlideButton;
+    private JButton nextSlideButton;
+    private JButton guestMinusButton;
+    private JButton guestPlusButton;
+    private boolean filterLocked;
+    private int currentSlideIndex;
 
     public BookingPanel() {
         this.bookingService = BookingServiceProvider.get();
@@ -90,7 +102,10 @@ public class BookingPanel extends JPanel {
         RoundedPanel filterCard = createFilterCard();
         JPanel rightSide = createRightSide();
 
-        add(filterCard, "growy");
+        // Anchor filter card to the top so its inner whitespace doesn't expand
+        // to fill the entire page height (which made users feel there was hidden
+        // content scrollable below the search button).
+        add(filterCard, "aligny top");
         add(rightSide, "grow");
 
         renderInitialRooms();
@@ -164,8 +179,8 @@ public class BookingPanel extends JPanel {
         filterCard.add(note, "gapy 0 4");
 
         String searchText = "T\u00ecm ph\u00f2ng tr\u1ed1ng";
-        PrimaryButton searchButton = new PrimaryButton(searchText);
-        searchButton.setBackground(new Color(17, 24, 39));
+        searchButton = new PrimaryButton(searchText);
+        searchButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         searchButton.setForeground(Color.WHITE);
         searchButton.addActionListener(e -> runSearch());
         filterCard.add(searchButton, "h 44,gapy 6 0");
@@ -225,6 +240,9 @@ public class BookingPanel extends JPanel {
         MouseAdapter openPicker = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (filterLocked) {
+                    return;
+                }
                 showDatePicker(wrap, field);
             }
         };
@@ -371,50 +389,111 @@ public class BookingPanel extends JPanel {
 
     private JPanel createGuestStepper() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 230), 1));
-        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createLineBorder(new Color(193, 206, 231), 1));
+        panel.setBackground(new Color(244, 248, 255));
 
-        JButton minus = createStepperBtn("-");
-        JButton plus = createStepperBtn("+");
+        guestMinusButton = createStepperBtn("-");
+        guestPlusButton = createStepperBtn("+");
+        guestMinusButton.setToolTipText("Giảm số khách");
+        guestPlusButton.setToolTipText("Tăng số khách");
 
-        guestCountLabel = new JLabel("\u2022 " + guestCount + " kh\u00e1ch", SwingConstants.CENTER);
-        guestCountLabel.setForeground(new Color(30, 50, 80));
-        guestCountLabel.setFont(guestCountLabel.getFont().deriveFont(13f));
+        guestCountLabel = new JLabel(guestCount + " kh\u00e1ch", SwingConstants.CENTER);
+        guestCountLabel.setForeground(new Color(26, 49, 86));
+        guestCountLabel.setFont(guestCountLabel.getFont().deriveFont(Font.BOLD, 13f));
 
-        minus.addActionListener(e -> {
+        JPanel centerChip = new JPanel(new BorderLayout());
+        centerChip.setOpaque(true);
+        centerChip.setBackground(Color.WHITE);
+        centerChip.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 1, new Color(221, 231, 248)));
+        centerChip.add(guestCountLabel, BorderLayout.CENTER);
+
+        guestMinusButton.addActionListener(e -> {
+            if (filterLocked) {
+                return;
+            }
             if (guestCount > 1) {
                 guestCount--;
-                guestCountLabel.setText("\u2022 " + guestCount + " kh\u00e1ch");
+                guestCountLabel.setText(guestCount + " kh\u00e1ch");
                 syncGuestForms();
+                updateGuestStepperState();
             }
         });
-        plus.addActionListener(e -> {
+        guestPlusButton.addActionListener(e -> {
+            if (filterLocked) {
+                return;
+            }
             if (guestCount < 4) {
                 guestCount++;
-                guestCountLabel.setText("\u2022 " + guestCount + " kh\u00e1ch");
+                guestCountLabel.setText(guestCount + " kh\u00e1ch");
                 syncGuestForms();
+                updateGuestStepperState();
             }
         });
 
-        panel.add(minus, BorderLayout.WEST);
-        panel.add(guestCountLabel, BorderLayout.CENTER);
-        panel.add(plus, BorderLayout.EAST);
+        panel.add(guestMinusButton, BorderLayout.WEST);
+        panel.add(centerChip, BorderLayout.CENTER);
+        panel.add(guestPlusButton, BorderLayout.EAST);
+        updateGuestStepperState();
         return panel;
     }
 
     private JButton createStepperBtn(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 18f));
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 20f));
         btn.setPreferredSize(new Dimension(44, 44));
-        btn.setBackground(new Color(240, 244, 250));
-        btn.setForeground(new Color(50, 70, 100));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(new Color(36, 63, 106));
         btn.setFocusPainted(false);
+        btn.setContentAreaFilled(true);
+        btn.setOpaque(true);
         btn.setBorder(BorderFactory.createEmptyBorder());
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!btn.isEnabled()) {
+                    return;
+                }
+                btn.setBackground(new Color(231, 239, 252));
+                btn.setForeground(new Color(23, 55, 102));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                updateGuestStepperState();
+            }
+        });
         return btn;
     }
 
+    private void updateGuestStepperState() {
+        if (guestMinusButton == null || guestPlusButton == null || guestCountLabel == null) {
+            return;
+        }
+
+        guestCountLabel.setText(guestCount + " khách");
+
+        boolean minusEnabled = !filterLocked && guestCount > 1;
+        boolean plusEnabled = !filterLocked && guestCount < 4;
+
+        applyGuestStepperButtonState(guestMinusButton, minusEnabled);
+        applyGuestStepperButtonState(guestPlusButton, plusEnabled);
+
+        guestCountLabel.setForeground(filterLocked ? new Color(138, 149, 170) : new Color(26, 49, 86));
+    }
+
+    private void applyGuestStepperButtonState(JButton button, boolean enabled) {
+        button.setEnabled(enabled);
+        if (enabled) {
+            button.setBackground(Color.WHITE);
+            button.setForeground(new Color(36, 63, 106));
+        } else {
+            button.setBackground(new Color(236, 241, 249));
+            button.setForeground(new Color(158, 170, 194));
+        }
+    }
+
     private JPanel createRightSide() {
-        JPanel right = new JPanel(new MigLayout("wrap 1,insets 0,gap 12", "[grow,fill]", "[]"));
+        JPanel right = new JPanel(new MigLayout("wrap 1,insets 0,gap 10", "[grow,fill]", "[]"));
         right.setOpaque(false);
 
         // Stepper indicator
@@ -430,38 +509,151 @@ public class BookingPanel extends JPanel {
         return right;
     }
 
+    // Stepper UI: two rounded pills, each with a circle badge holding the step
+    // number. The active pill is dark navy + white text + white circle with
+    // navy number. The inactive pill is soft slate background + muted text.
+    private StepPill step1Pill;
+    private StepPill step2Pill;
+
     private JPanel createStepperPanel() {
-        JPanel stepper = new JPanel(new MigLayout("insets 6 10,gap 0", "[grow,fill][grow,fill]", "[]"));
+        JPanel stepper = new JPanel(new MigLayout("insets 0,gap 8", "[grow,fill][grow,fill]", "[]"));
         stepper.setOpaque(false);
-        stepper.setBorder(BorderFactory.createLineBorder(new Color(225, 231, 245), 1));
-        stepper.setBackground(new Color(242, 246, 252));
 
-        step1Label.setHorizontalAlignment(SwingConstants.CENTER);
-        step2Label.setHorizontalAlignment(SwingConstants.CENTER);
+        step1Pill = new StepPill("1", "Chọn phòng");
+        step2Pill = new StepPill("2", "Thông tin khách hàng");
 
-        JPanel s1Wrap = new JPanel(new BorderLayout());
-        s1Wrap.setOpaque(false);
-        s1Wrap.add(step1Label);
-
-        JLabel arrow = new JLabel(" > ", SwingConstants.CENTER);
-        arrow.setForeground(new Color(180, 190, 210));
-
-        JPanel s2Wrap = new JPanel(new BorderLayout());
-        s2Wrap.setOpaque(false);
-        s2Wrap.add(step2Label);
-
-        stepper.add(s1Wrap, "h 36");
-        stepper.add(s2Wrap, "h 36");
-
+        stepper.add(step1Pill, "h 38!");
+        stepper.add(step2Pill, "h 38!");
         return stepper;
     }
 
+    /**
+     * Rounded "pill" used for the booking stepper: circular numbered badge
+     * on the left + descriptive text on the right. The active state uses the
+     * brand navy background; inactive uses a calm slate tint. Paints its own
+     * rounded background so we can swap colours on activation.
+     */
+    private static class StepPill extends JPanel {
+        private static final int ARC = 12;
+        private final CircleBadge badge;
+        private final JLabel textLabel;
+        private Color bgColor = COLOR_PILL_INACTIVE_BG;
+        private Color borderColor = COLOR_PILL_BORDER;
+
+        StepPill(String number, String text) {
+            setOpaque(false);
+            // GridBagLayout centers a single child both horizontally and vertically
+            // with no extra constraints. We build [badge | text] as ONE group and
+            // drop it in the centre — this guarantees the group's vertical
+            // position is consistent (top + bottom margins equal) regardless of
+            // the pill's actual height.
+            setLayout(new java.awt.GridBagLayout());
+
+            badge = new CircleBadge(number);
+            textLabel = new JLabel(text);
+            textLabel.setFont(textLabel.getFont().deriveFont(Font.BOLD, 13f));
+
+            JPanel group = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[center]"));
+            group.setOpaque(false);
+            group.add(badge, "w 24!,h 24!");
+            group.add(textLabel);
+
+            add(group); // default GridBagConstraints centers the group
+            setActive(false);
+        }
+
+        void setActive(boolean active) {
+            if (active) {
+                bgColor = COLOR_PILL_ACTIVE_BG;
+                borderColor = COLOR_PILL_ACTIVE_BG;
+                textLabel.setForeground(COLOR_PILL_ACTIVE_TEXT);
+                badge.setColors(COLOR_PILL_ACTIVE_TEXT, COLOR_PILL_ACTIVE_BG);
+            } else {
+                bgColor = COLOR_PILL_INACTIVE_BG;
+                borderColor = COLOR_PILL_BORDER;
+                textLabel.setForeground(COLOR_PILL_INACTIVE_TEXT);
+                badge.setColors(COLOR_PILL_INACTIVE_BADGE_BG, COLOR_PILL_INACTIVE_BADGE_TEXT);
+            }
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bgColor);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            g2.setColor(borderColor);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /**
+     * Small circular badge that paints a coloured circle with a number drawn
+     * directly using FontMetrics so the number is precisely centered (a JLabel
+     * inside a BorderLayout drifts a pixel or two off due to font baseline).
+     */
+    private static class CircleBadge extends JPanel {
+        private static final Font BADGE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 12);
+        private Color bg = COLOR_PILL_INACTIVE_BADGE_BG;
+        private Color textColor = COLOR_PILL_INACTIVE_BADGE_TEXT;
+        private final String number;
+
+        CircleBadge(String number) {
+            this.number = number;
+            setOpaque(false);
+        }
+
+        void setColors(Color bgColor, Color textColor) {
+            this.bg = bgColor;
+            this.textColor = textColor;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Filled circle
+            g2.setColor(bg);
+            g2.fillOval(0, 0, w, h);
+
+            // Centered number using exact font metrics
+            g2.setColor(textColor);
+            g2.setFont(BADGE_FONT);
+            FontMetrics fm = g2.getFontMetrics();
+            int textW = fm.stringWidth(number);
+            int textH = fm.getAscent() - fm.getDescent();
+            int x = (w - textW) / 2;
+            int y = (h + textH) / 2;
+            g2.drawString(number, x, y);
+            g2.dispose();
+        }
+    }
+
+    // Stepper palette (aligned with PREMIUM brand navy)
+    private static final Color COLOR_PILL_ACTIVE_BG          = new Color(0x1E3A8A); // ThemeColors.PREMIUM_PRIMARY
+    private static final Color COLOR_PILL_ACTIVE_TEXT        = new Color(245, 248, 255);
+    private static final Color COLOR_PILL_INACTIVE_BG        = new Color(238, 243, 250);
+    private static final Color COLOR_PILL_INACTIVE_TEXT      = new Color(118, 134, 162);
+    private static final Color COLOR_PILL_INACTIVE_BADGE_BG  = new Color(208, 217, 234);
+    private static final Color COLOR_PILL_INACTIVE_BADGE_TEXT= new Color(118, 134, 162);
+    private static final Color COLOR_PILL_BORDER             = new Color(225, 231, 245);
+
     private JPanel createSelectRoomView() {
-        JPanel panel = new JPanel(new MigLayout("wrap 1,insets 0,gap 12", "[grow,fill]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("wrap 1,insets 0,gap 10", "[grow,fill]", "[]"));
         panel.setOpaque(false);
 
         RoundedPanel overview = new RoundedPanel(16, new Color(18, 35, 67), new Color(40, 64, 112), 1f);
-        overview.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
+        overview.setLayout(new MigLayout("wrap 1,insets 12 16", "[grow,fill]", "[]"));
 
         JPanel ovTitleRow = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
         ovTitleRow.setOpaque(false);
@@ -476,7 +668,7 @@ public class BookingPanel extends JPanel {
         }
         JLabel ovTitle = new JLabel("T\u1ed5ng quan ph\u00f2ng kh\u00e1ch s\u1ea1n");
         ovTitle.setForeground(new Color(245, 248, 255));
-        ovTitle.setFont(ovTitle.getFont().deriveFont(Font.BOLD, 22f));
+        ovTitle.setFont(ovTitle.getFont().deriveFont(Font.BOLD, 18f));
         ovTitleRow.add(star);
         ovTitleRow.add(ovTitle);
 
@@ -489,6 +681,7 @@ public class BookingPanel extends JPanel {
         roomList.setOpaque(false);
 
         panel.add(overview, "growx");
+        panel.add(createSlideControls(), "growx");
         panel.add(roomList, "grow");
 
         RoundedPanel selectionBar = new RoundedPanel(18, new Color(20, 31, 59), new Color(45, 66, 110), 1f);
@@ -505,7 +698,7 @@ public class BookingPanel extends JPanel {
         selectionTextWrap.add(selectionDetailLabel);
 
         continueToGuestButton = new PrimaryButton("Nhập thông tin khách");
-        continueToGuestButton.setBackground(new Color(58, 119, 246));
+        continueToGuestButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         continueToGuestButton.setForeground(Color.WHITE);
         continueToGuestButton.addActionListener(e -> openCustomerInfo());
 
@@ -515,6 +708,41 @@ public class BookingPanel extends JPanel {
 
         panel.add(selectionBar, "growx");
         return panel;
+    }
+
+    private JPanel createSlideControls() {
+        JPanel controls = new JPanel(new MigLayout("insets 4 0 0 0,gap 8", "[][grow,fill][]", "[]"));
+        controls.setOpaque(false);
+
+        prevSlideButton = new JButton("<");
+        prevSlideButton.setFocusable(false);
+        prevSlideButton.setPreferredSize(new Dimension(34, 30));
+        prevSlideButton.addActionListener(e -> {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                renderCurrentSlide();
+            }
+        });
+
+        nextSlideButton = new JButton(">");
+        nextSlideButton.setFocusable(false);
+        nextSlideButton.setPreferredSize(new Dimension(34, 30));
+        nextSlideButton.addActionListener(e -> {
+            int maxSlide = getMaxSlideIndex();
+            if (currentSlideIndex < maxSlide) {
+                currentSlideIndex++;
+                renderCurrentSlide();
+            }
+        });
+
+        slideInfoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        slideInfoLabel.setForeground(new Color(84, 104, 136));
+        slideInfoLabel.setFont(slideInfoLabel.getFont().deriveFont(Font.BOLD, 12f));
+
+        controls.add(prevSlideButton, "w 34!,h 30!");
+        controls.add(slideInfoLabel, "alignx center");
+        controls.add(nextSlideButton, "w 34!,h 30!");
+        return controls;
     }
 
     private JPanel createCustomerInfoView() {
@@ -547,15 +775,22 @@ public class BookingPanel extends JPanel {
             setStep(1);
         });
 
-        PrimaryButton confirmButton = new PrimaryButton("X\u00e1c nh\u1eadn \u0111\u1eb7t ph\u00f2ng");
-        confirmButton.setBackground(ThemeColors.ACCENT);
-        confirmButton.setForeground(Color.WHITE);
-        confirmButton.addActionListener(e -> submitBooking());
+        // Deposit = secondary CTA -> violet accent. Full payment = primary CTA -> navy.
+        PrimaryButton depositButton = new PrimaryButton("ĐẶT CỌC 30%");
+        depositButton.setBackground(ThemeColors.PREMIUM_ACCENT);
+        depositButton.setForeground(Color.WHITE);
+        depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", 0.30));
 
-        JPanel actions = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
+        PrimaryButton fullPaymentButton = new PrimaryButton("THANH TOÁN 100%");
+        fullPaymentButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
+        fullPaymentButton.setForeground(Color.WHITE);
+        fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", 1.0));
+
+        JPanel actions = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill][grow,fill]", "[]"));
         actions.setOpaque(false);
         actions.add(backButton, "h 44");
-        actions.add(confirmButton, "h 44");
+        actions.add(depositButton, "h 44");
+        actions.add(fullPaymentButton, "h 44");
 
         panel.add(title);
         panel.add(selectedCard);
@@ -571,8 +806,8 @@ public class BookingPanel extends JPanel {
 
     private JPanel roomCard(RoomCardData data) {
         boolean selected = selectedRooms.contains(data);
-        Color cardBg = selected ? new Color(234, 243, 255) : data.bg;
-        Color cardTone = selected ? new Color(58, 119, 246) : data.tone;
+        Color cardBg = selected ? ThemeColors.PREMIUM_PRIMARY_SOFT : data.bg;
+        Color cardTone = selected ? ThemeColors.PREMIUM_PRIMARY : data.tone;
 
         RoundedPanel card = new RoundedPanel(16, cardBg, cardTone, 1f);
         card.setLayout(new MigLayout("wrap 1,insets 14,gap 6", "[grow,fill]", "[]"));
@@ -603,8 +838,20 @@ public class BookingPanel extends JPanel {
         JLabel perNight = new JLabel(" /\u0111\u00eam");
         perNight.setForeground(new Color(100, 120, 150));
         perNight.setFont(perNight.getFont().deriveFont(13f));
+
+        JLabel capacityLbl = new JLabel("Tối đa " + data.capacity + " khách");
+        capacityLbl.setForeground(new Color(92, 111, 142));
+        capacityLbl.setFont(capacityLbl.getFont().deriveFont(Font.BOLD, 12f));
+
+        JPanel capacityBadge = new JPanel(new MigLayout("insets 3 8 3 8", "[]", "[]"));
+        capacityBadge.setOpaque(true);
+        capacityBadge.setBackground(new Color(226, 235, 250));
+        capacityBadge.setBorder(BorderFactory.createLineBorder(new Color(201, 216, 243), 1));
+        capacityBadge.add(capacityLbl);
+
         priceRow.add(priceLb);
         priceRow.add(perNight, "aligny bottom");
+        priceRow.add(capacityBadge, "alignx right,aligny center");
 
         // Progress bar row
         JPanel progressRow = new JPanel(new MigLayout("insets 0,gap 6", "[grow,fill][]", "[]"));
@@ -641,8 +888,8 @@ public class BookingPanel extends JPanel {
 
         String pickText = selected ? "\u2713 \u0110\u00e3 ch\u1ecdn" : "+ Th\u00eam ph\u00f2ng";
         PrimaryButton pickButton = new PrimaryButton(pickText);
-        pickButton.setBackground(selected ? new Color(58, 119, 246) : new Color(255, 255, 255, 200));
-        pickButton.setForeground(selected ? Color.WHITE : new Color(36, 58, 91));
+        pickButton.setBackground(selected ? ThemeColors.PREMIUM_PRIMARY : new Color(255, 255, 255, 200));
+        pickButton.setForeground(selected ? Color.WHITE : ThemeColors.PREMIUM_TEXT_SECONDARY);
         pickButton.addActionListener(e -> toggleRoomSelection(data));
 
         card.addMouseListener(new MouseAdapter() {
@@ -798,6 +1045,10 @@ public class BookingPanel extends JPanel {
     }
 
     private void runSearch() {
+        if (filterLocked) {
+            return;
+        }
+
         String selectedType = (String) roomTypeCombo.getSelectedItem();
         LocalDate checkInDate = selectedCheckInDate;
         LocalDate checkOutDate = selectedCheckOutDate;
@@ -834,6 +1085,7 @@ public class BookingPanel extends JPanel {
 
         BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, guestCount);
         lastSearchRequest = request;
+        currentSlideIndex = 0;
 
         selectedRooms.clear();
         List<RoomOptionDto> filtered = bookingService.searchAvailableRooms(request);
@@ -881,7 +1133,164 @@ public class BookingPanel extends JPanel {
         if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
             successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
         }
-        JOptionPane.showMessageDialog(this, successMessage, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, successMessage, "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void submitBookingWithPayment(String paymentPlanLabel, double paymentRatio) {
+        if (selectedRooms.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            setStep(1);
+            bookingCards.show(bookingContent, "select-room");
+            return;
+        }
+
+        List<GuestInfoDto> guestInfos = collectGuestInfos();
+        if (guestInfos == null) {
+            return;
+        }
+        if (!validateGuestData(guestInfos)) {
+            return;
+        }
+
+        LocalDate checkInDate = selectedCheckInDate;
+        LocalDate checkOutDate = selectedCheckOutDate;
+        if (checkInDate == null || checkOutDate == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lại ngày nhận/trả phòng hợp lệ.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Compute real total from selected rooms × nights
+        BookingSelectionSummary summary = bookingService.summarizeSelection(toSelectedRoomOptions(), getSummaryRequest());
+        long totalAmount = summary.getTotalAmount();
+        long paymentAmount = Math.round(totalAmount * paymentRatio);
+
+        // Choose payment method
+        String[] paymentLabels = {"Tiền mặt", "Chuyển khoản"};
+        String[] paymentCodes = {"TienMat", "ChuyenKhoan"};
+        int choice = JOptionPane.showOptionDialog(
+            this,
+            "<html>Phương án: <b>" + paymentPlanLabel + "</b><br>" +
+                "Tổng tiền phòng: <b>" + formatMoney(totalAmount) + "</b><br>" +
+                "Cần thu: <b>" + formatMoney(paymentAmount) + "</b><br><br>" +
+                "Chọn phương thức thanh toán:</html>",
+            "Phương thức thanh toán",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            paymentLabels,
+            paymentLabels[0]
+        );
+
+        if (choice == JOptionPane.CLOSED_OPTION) {
+            return;
+        }
+
+        String referenceNumber = "";
+        if (choice == 1) {
+            referenceNumber = JOptionPane.showInputDialog(this, "Nhập số tham chiếu chuyển khoản:", "");
+            if (referenceNumber == null) {
+                return;
+            }
+            referenceNumber = referenceNumber.trim();
+            if (referenceNumber.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Số tham chiếu không được để trống khi chuyển khoản.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        // Final confirmation
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "<html>Xác nhận đặt phòng?<br>" +
+                "Khách: <b>" + guestInfos.get(0).getFullName() + "</b><br>" +
+                "Số phòng: <b>" + selectedRooms.size() + "</b> · " + summary.getNights() + " đêm<br>" +
+                "Phương thức: <b>" + paymentLabels[choice] + "</b><br>" +
+                "Số tiền thu: <b>" + formatMoney(paymentAmount) + "</b> / Tổng " + formatMoney(totalAmount) + "</html>",
+            "Xác nhận thanh toán",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        CreateBookingCommand command = new CreateBookingCommand(
+            checkInDate,
+            checkOutDate,
+            guestCount,
+            guestInfos,
+            toSelectedRoomOptions(),
+            totalAmount,
+            paymentRatio,
+            paymentCodes[choice],
+            referenceNumber
+        );
+
+        BookingConfirmationResult result = bookingService.createBooking(command);
+        if (!result.isSuccess()) {
+            JOptionPane.showMessageDialog(this, result.getMessage(), "Không thể đặt phòng", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String leadGuestName = guestInfos.get(0).getFullName();
+        StringBuilder successMessage = new StringBuilder();
+        successMessage.append("Đặt phòng thành công!\n\n");
+        successMessage.append("Khách: ").append(leadGuestName).append("\n");
+        successMessage.append("Số phòng: ").append(selectedRooms.size()).append(" · ").append(summary.getNights()).append(" đêm\n");
+        successMessage.append("Phương thức: ").append(paymentLabels[choice]).append("\n");
+        successMessage.append("Đã thu (").append(paymentPlanLabel).append("): ").append(formatMoney(paymentAmount)).append("\n");
+        successMessage.append("Tổng hóa đơn: ").append(formatMoney(totalAmount)).append("\n");
+        if (!referenceNumber.isEmpty()) {
+            successMessage.append("Số tham chiếu: ").append(referenceNumber).append("\n");
+        }
+        if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
+            successMessage.append("Mã đặt phòng: ").append(result.getBookingCode()).append("\n");
+        }
+        if (result.getMessage() != null) {
+            successMessage.append("\n").append(result.getMessage());
+        }
+
+        JOptionPane.showMessageDialog(this, successMessage.toString(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+        // Reset form and refresh room list
+        selectedRooms.clear();
+        for (GuestFormRow row : guestFormRows) {
+            row.idField.setText("");
+            row.nameField.setText("");
+            row.phoneField.setText("");
+        }
+        setStep(1);
+        bookingCards.show(bookingContent, "select-room");
+        runSearch();
+    }
+
+    private boolean validateGuestData(List<GuestInfoDto> guestInfos) {
+        for (int i = 0; i < guestInfos.size(); i++) {
+            GuestInfoDto guest = guestInfos.get(i);
+            String idNo = guest.getIdNo();
+            String phone = guest.getPhone();
+            String name = guest.getFullName();
+
+            if (name == null || name.trim().length() < 2) {
+                JOptionPane.showMessageDialog(this,
+                    "Họ tên Khách " + (i + 1) + " không hợp lệ.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (idNo == null || !idNo.matches("\\d{9,12}")) {
+                JOptionPane.showMessageDialog(this,
+                    "CCCD/Hộ chiếu của Khách " + (i + 1) + " phải gồm 9-12 chữ số.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (phone == null || !phone.matches("0\\d{9,10}")) {
+                JOptionPane.showMessageDialog(this,
+                    "Số điện thoại của Khách " + (i + 1) + " phải bắt đầu bằng 0 và có 10-11 chữ số.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<GuestInfoDto> collectGuestInfos() {
@@ -988,11 +1397,17 @@ public class BookingPanel extends JPanel {
     }
 
     private void renderRooms(List<RoomCardData> data) {
-        roomList.removeAll();
         displayedRooms.clear();
         displayedRooms.addAll(data);
+        currentSlideIndex = Math.min(currentSlideIndex, getMaxSlideIndex());
+        renderCurrentSlide();
+        updateSelectionSummary();
+    }
 
-        if (data.isEmpty()) {
+    private void renderCurrentSlide() {
+        roomList.removeAll();
+
+        if (displayedRooms.isEmpty()) {
             RoundedPanel empty = new RoundedPanel(16, new Color(29, 46, 78), new Color(255, 255, 255, 20), 1f);
             empty.setLayout(new MigLayout("insets 20", "[grow,fill]", "[]"));
             JLabel msg = new JLabel("Kh\u00f4ng t\u00ecm th\u1ea5y lo\u1ea1i ph\u00f2ng ph\u00f9 h\u1ee3p.", SwingConstants.CENTER);
@@ -1000,14 +1415,25 @@ public class BookingPanel extends JPanel {
             empty.add(msg);
             roomList.add(empty, "span 2,growx");
         } else {
-            for (RoomCardData room : data) {
+            int start = currentSlideIndex * ROOMS_PER_SLIDE;
+            int end = Math.min(start + ROOMS_PER_SLIDE, displayedRooms.size());
+            List<RoomCardData> pageItems = displayedRooms.subList(start, end);
+            for (RoomCardData room : pageItems) {
                 roomList.add(roomCard(room));
+            }
+            // Pad remaining cells with invisible placeholders so the 2x2 grid
+            // shape is preserved (row height is enforced by the layout itself).
+            int filler = ROOMS_PER_SLIDE - pageItems.size();
+            for (int i = 0; i < filler; i++) {
+                JPanel placeholder = new JPanel();
+                placeholder.setOpaque(false);
+                roomList.add(placeholder);
             }
         }
 
         roomList.revalidate();
         roomList.repaint();
-        updateSelectionSummary();
+        updateSlideControls();
     }
 
     private void toggleRoomSelection(RoomCardData data) {
@@ -1017,7 +1443,33 @@ public class BookingPanel extends JPanel {
             selectedRooms.add(data);
         }
 
-        renderRooms(new ArrayList<>(displayedRooms));
+        renderCurrentSlide();
+        updateSelectionSummary();
+    }
+
+    private void updateSlideControls() {
+        int totalSlides = getTotalSlides();
+        int displaySlide = totalSlides == 0 ? 0 : currentSlideIndex + 1;
+        slideInfoLabel.setText("Slide " + displaySlide + "/" + totalSlides);
+
+        boolean hasMultipleSlides = totalSlides > 1;
+        if (prevSlideButton != null) {
+            prevSlideButton.setEnabled(hasMultipleSlides && currentSlideIndex > 0);
+        }
+        if (nextSlideButton != null) {
+            nextSlideButton.setEnabled(hasMultipleSlides && currentSlideIndex < getMaxSlideIndex());
+        }
+    }
+
+    private int getTotalSlides() {
+        if (displayedRooms.isEmpty()) {
+            return 1;
+        }
+        return (int) Math.ceil(displayedRooms.size() / (double) ROOMS_PER_SLIDE);
+    }
+
+    private int getMaxSlideIndex() {
+        return Math.max(0, getTotalSlides() - 1);
     }
 
     private void updateSelectionSummary() {
@@ -1032,8 +1484,8 @@ public class BookingPanel extends JPanel {
         );
 
         if (continueToGuestButton != null) {
-            continueToGuestButton.setEnabled(selectedCount > 0);
-            continueToGuestButton.setBackground(selectedCount > 0 ? new Color(58, 119, 246) : new Color(120, 140, 180));
+            continueToGuestButton.setEnabled(true);
+            continueToGuestButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         }
 
         selectedRoomsLabel.setText(buildSelectedRoomsSummary());
@@ -1104,6 +1556,7 @@ public class BookingPanel extends JPanel {
             formatMoney(room.getNightlyPrice()),
             room.getStatus(),
             calculateFreeRate(room.getStatus()),
+            room.getMaxGuests(),
             room.getAmenities(),
             bg,
             tone
@@ -1173,25 +1626,24 @@ public class BookingPanel extends JPanel {
     }
 
     private void setStep(int step) {
-        if (step == 1) {
-            step1Label.setText("1  Ch\u1ecdn ph\u00f2ng");
-            step2Label.setText("2  Th\u00f4ng tin kh\u00e1ch h\u00e0ng");
-            step1Label.setOpaque(true);
-            step2Label.setOpaque(true);
-            step1Label.setBackground(new Color(18, 35, 67));
-            step1Label.setForeground(new Color(245, 248, 255));
-            step2Label.setBackground(new Color(230, 238, 252));
-            step2Label.setForeground(new Color(119, 137, 168));
-        } else {
-            step1Label.setText("1  Ch\u1ecdn ph\u00f2ng");
-            step2Label.setText("2  Th\u00f4ng tin kh\u00e1ch h\u00e0ng");
-            step1Label.setOpaque(true);
-            step2Label.setOpaque(true);
-            step1Label.setBackground(new Color(230, 238, 252));
-            step1Label.setForeground(new Color(119, 137, 168));
-            step2Label.setBackground(new Color(18, 35, 67));
-            step2Label.setForeground(new Color(245, 248, 255));
+        boolean atStep1 = step == 1;
+        setFilterLocked(!atStep1);
+        if (step1Pill != null) step1Pill.setActive(atStep1);
+        if (step2Pill != null) step2Pill.setActive(!atStep1);
+    }
+
+    private void setFilterLocked(boolean locked) {
+        filterLocked = locked;
+        roomTypeCombo.setEnabled(!locked);
+        if (searchButton != null) {
+            searchButton.setEnabled(!locked);
         }
+
+        updateGuestStepperState();
+
+        Color fieldColor = locked ? new Color(140, 150, 170) : new Color(60, 80, 110);
+        checkInField.setForeground(fieldColor);
+        checkOutField.setForeground(fieldColor);
     }
 
     private static final class RoomCardData {
@@ -1200,16 +1652,18 @@ public class BookingPanel extends JPanel {
         private final String price;
         private final String status;
         private final String occupancyRate;
+        private final int capacity;
         private final List<String> amenities;
         private final Color bg;
         private final Color tone;
 
-        private RoomCardData(RoomOptionDto optionDto, String roomType, String price, String status, String occupancyRate, List<String> amenities, Color bg, Color tone) {
+        private RoomCardData(RoomOptionDto optionDto, String roomType, String price, String status, String occupancyRate, int capacity, List<String> amenities, Color bg, Color tone) {
             this.optionDto = optionDto;
             this.roomType = roomType;
             this.price = price;
             this.status = status;
             this.occupancyRate = occupancyRate;
+            this.capacity = capacity;
             this.amenities = amenities;
             this.bg = bg;
             this.tone = tone;

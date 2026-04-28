@@ -14,4 +14,9 @@ public class RoomTypeBUS {
     public List<RoomType> getAll() {
         return roomTypeDAO.getAll();
     }
+
+    public boolean addRoomType(RoomType rt) {
+        if (rt.getMaLoaiPhong() == null || rt.getMaLoaiPhong().trim().isEmpty()) return false;
+        return roomTypeDAO.create(rt);
+    }
 }

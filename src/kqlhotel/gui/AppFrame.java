@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import kqlhotel.gui.components.BackgroundPanel;
@@ -29,6 +30,7 @@ import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.tabs.BookingPanel;
+import kqlhotel.gui.tabs.CheckInPanel;
 import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
@@ -39,6 +41,9 @@ import kqlhotel.gui.tabs.RoomManagementPanel;
 import kqlhotel.gui.tabs.StaffPanel;
 import kqlhotel.gui.tabs.KhachHangPanel;
 import kqlhotel.gui.tabs.DichVuPanel;
+import kqlhotel.gui.tabs.CheckoutPanel;
+import kqlhotel.gui.tabs.PromotionsPanel;
+import kqlhotel.gui.tabs.InvoicesPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -93,16 +98,24 @@ public class AppFrame extends JFrame {
 
         screenPanel.setOpaque(false);
         screenPanel.add(new BookingPanel(), "booking");
-        screenPanel.add(new StatisticsPanel(), "statistics");
-        screenPanel.add(new UnderDevelopmentPanel("Trả phòng"), "checkout");
+        screenPanel.add(new CheckInPanel(), "check-in");
+        StatisticsPanel statisticsPanel = new StatisticsPanel();
+        JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
+        statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
+        statisticsScroll.getVerticalScrollBar().setUnitIncrement(16);
+        statisticsScroll.getHorizontalScrollBar().setUnitIncrement(16);
+        statisticsScroll.getViewport().setOpaque(false);
+        statisticsScroll.setOpaque(false);
+        screenPanel.add(statisticsScroll, "statistics");
+        screenPanel.add(new CheckoutPanel(), "checkout");
         screenPanel.add(new DoiPhongPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
         screenPanel.add(new RoomManagementPanel(), "room-management");
         screenPanel.add(new StaffPanel(), "staff");
         screenPanel.add(new KhachHangPanel(), "customers");
         screenPanel.add(new DichVuPanel(), "services");
-        screenPanel.add(new UnderDevelopmentPanel("Khuyến mãi"), "promotions");
-        screenPanel.add(new UnderDevelopmentPanel("Hóa đơn"), "invoices");
+        screenPanel.add(new PromotionsPanel(), "promotions");
+        screenPanel.add(new InvoicesPanel(), "invoices");
         activateRoute(currentRoute);
 
         contentWrap.add(screenPanel, BorderLayout.CENTER);
@@ -117,17 +130,19 @@ public class AppFrame extends JFrame {
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel(new MigLayout("wrap 1,insets 16,gap 4", "[grow,fill]", "[]push[]"));
         sidebar.setPreferredSize(new Dimension(240, 1));
-        sidebar.setBackground(new Color(26, 32, 44));
+        sidebar.setBackground(ThemeColors.PREMIUM_SIDEBAR_BG);
+        // Right edge separator (gives the light sidebar a clean delimiter)
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, ThemeColors.PREMIUM_SIDEBAR_BORDER));
 
         // Brand header with hotel icon
-        JPanel hotelIcon = createCircleAvatar(ThemeColors.ACCENT, "KH", 14f);
+        JPanel hotelIcon = createCircleAvatar(ThemeColors.PREMIUM_PRIMARY, "KH", 14f);
 
         JLabel brand = new JLabel("KQL HOTEL");
-        brand.setForeground(Color.WHITE);
+        brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
         brand.setFont(brand.getFont().deriveFont(Font.BOLD, 18f));
 
         JLabel brandSub = new JLabel("Management System");
-        brandSub.setForeground(ThemeColors.TEXT_MUTED);
+        brandSub.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
         brandSub.setFont(brandSub.getFont().deriveFont(11f));
 
         JPanel brandTextWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
@@ -142,11 +157,12 @@ public class AppFrame extends JFrame {
         sidebar.add(brandWrap, "gapy 4 14");
 
         JLabel menuLabel = new JLabel("MENU CH\u00cdNH");
-        menuLabel.setForeground(new Color(100, 116, 139));
+        menuLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
         menuLabel.setFont(menuLabel.getFont().deriveFont(Font.BOLD, 11f));
         sidebar.add(menuLabel, "gapy 4 2");
 
         registerPage("booking", "\u0110\u1eb7t ph\u00f2ng", "T\u00ecm ki\u1ebfm v\u00e0 \u0111\u1eb7t ph\u00f2ng cho kh\u00e1ch h\u00e0ng");
+        registerPage("check-in", "Nh\u1eadn ph\u00f2ng", "X\u00e1c nh\u1eadn kh\u00e1ch \u0111\u1ebfn nh\u1eadn ph\u00f2ng v\u00e0 k\u00edch ho\u1ea1t h\u00f3a \u0111\u01a1n");
         registerPage("checkout", "Tr\u1ea3 ph\u00f2ng", "\u0110ang x\u1eed l\u00fd quy tr\u00ecnh tr\u1ea3 ph\u00f2ng");
         registerPage("swap-room", "\u0110\u1ed5i ph\u00f2ng", "\u0110ang x\u1eed l\u00fd quy tr\u00ecnh \u0111\u1ed5i ph\u00f2ng");
         registerPage("cancel-room", "H\u1ee7y ph\u00f2ng", "\u0110ang x\u1eed l\u00fd y\u00eau c\u1ea7u h\u1ee7y ph\u00f2ng");
@@ -159,6 +175,7 @@ public class AppFrame extends JFrame {
         registerPage("statistics", "Th\u1ed1ng k\u00ea", "T\u1ed5ng quan doanh thu v\u00e0 c\u00f4ng su\u1ea5t ph\u00f2ng");
 
         sidebar.add(sidebarItem("\u25A1", new Color(49, 130, 206), "\u0110\u1eb7t ph\u00f2ng", "booking"));
+        sidebar.add(sidebarItem("\u2935", new Color(217, 119, 6),  "Nh\u1eadn ph\u00f2ng", "check-in"));
         sidebar.add(sidebarItem("\u21A9", new Color(56, 161, 105), "Tr\u1ea3 ph\u00f2ng", "checkout"));
         sidebar.add(sidebarItem("\u2194", new Color(100, 100, 220), "\u0110\u1ed5i ph\u00f2ng", "swap-room"));
         sidebar.add(sidebarItem("\u2715", new Color(200, 80, 80), "H\u1ee7y ph\u00f2ng", "cancel-room"));
@@ -170,37 +187,24 @@ public class AppFrame extends JFrame {
         sidebar.add(sidebarItem("\u2630", new Color(60, 130, 60), "H\u00f3a \u0111\u01a1n", "invoices"));
         sidebar.add(sidebarItem("\u25B2", new Color(180, 100, 40), "Th\u1ed1ng k\u00ea", "statistics"));
 
-        // User profile at bottom
-        sidebar.add(createSidebarUserProfile(), "gapy 10 0");
+        // (Sidebar profile removed: user info + logout now live in the topbar)
 
         return sidebar;
     }
 
     private JPanel sidebarItem(String iconChar, Color iconColor, String text, String route) {
-        JPanel item = new JPanel(new BorderLayout(8, 0));
-        item.setOpaque(true);
-        item.setBackground(new Color(31, 41, 57));
-        item.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
-        item.setPreferredSize(new Dimension(0, 36));
-        item.setMinimumSize(new Dimension(0, 36));
-        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        SidebarMenuItem item = new SidebarMenuItem();
+        item.setLayout(new BorderLayout(10, 0));
+        item.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 12));
+        item.setPreferredSize(new Dimension(0, 40));
+        item.setMinimumSize(new Dimension(0, 40));
+        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         item.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
-        // Small icon box
-        JPanel iconBox = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(iconColor.getRed(), iconColor.getGreen(), iconColor.getBlue(), 40));
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
+        // Icon container - flat, no chip background
+        JPanel iconBox = new JPanel(new BorderLayout());
         iconBox.setOpaque(false);
-        iconBox.setPreferredSize(new Dimension(24, 24));
-        iconBox.setLayout(new BorderLayout());
+        iconBox.setPreferredSize(new Dimension(20, 20));
 
         // Thử load PNG icon, fallback về Unicode
         String iconFilename = getMenuIconFilename(route);
@@ -211,13 +215,13 @@ public class AppFrame extends JFrame {
         } else {
             JLabel iconLbl = new JLabel(iconChar, SwingConstants.CENTER);
             iconLbl.setForeground(iconColor);
-            iconLbl.setFont(iconLbl.getFont().deriveFont(12f));
+            iconLbl.setFont(iconLbl.getFont().deriveFont(13f));
             iconBox.add(iconLbl, BorderLayout.CENTER);
         }
 
         JLabel textLbl = new JLabel(text);
-        textLbl.setForeground(new Color(200, 210, 225));
-        textLbl.setFont(textLbl.getFont().deriveFont(13f));
+        textLbl.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT);
+        textLbl.setFont(textLbl.getFont().deriveFont(Font.BOLD, 13.5f));
         textLbl.setHorizontalAlignment(SwingConstants.LEFT);
         textLbl.setVerticalAlignment(SwingConstants.CENTER);
 
@@ -232,13 +236,13 @@ public class AppFrame extends JFrame {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
                 if (!route.equals(currentRoute)) {
-                    item.setBackground(new Color(40, 52, 70));
+                    item.setHovered(true);
                 }
             }
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
                 if (!route.equals(currentRoute)) {
-                    item.setBackground(new Color(31, 41, 57));
+                    item.setHovered(false);
                 }
             }
         });
@@ -246,6 +250,50 @@ public class AppFrame extends JFrame {
         menuItems.put(route, item);
         menuTextLabels.put(route, textLbl);
         return item;
+    }
+
+    /**
+     * Sidebar menu item - flat by default, with hover/active states drawn manually.
+     * Active: solid bg + 3px amber bar at left.
+     */
+    private static class SidebarMenuItem extends JPanel {
+        private boolean active;
+        private boolean hovered;
+
+        SidebarMenuItem() {
+            setOpaque(false);
+        }
+
+        void setActive(boolean active) {
+            this.active = active;
+            repaint();
+        }
+
+        void setHovered(boolean hovered) {
+            this.hovered = hovered;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            if (active) {
+                // Solid navy pill on white sidebar — text + icon flip to white
+                g2.setColor(ThemeColors.PREMIUM_SIDEBAR_ACTIVE_BG);
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+            } else if (hovered) {
+                g2.setColor(ThemeColors.PREMIUM_SIDEBAR_HOVER);
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+            }
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 
     private ImageIcon loadMenuIcon(String filename, int width, int height) {
@@ -272,6 +320,7 @@ public class AppFrame extends JFrame {
     private String getMenuIconFilename(String route) {
         switch (route) {
             case "booking": return "booking.png";
+            case "check-in": return "check-in.png";
             case "checkout": return "checkout.png";
             case "swap-room": return "swap-room.png";
             case "cancel-room": return "cancel-room.png";
@@ -284,47 +333,6 @@ public class AppFrame extends JFrame {
             case "statistics": return "statistics.png";
             default: return null;
         }
-    }
-
-    private JPanel createSidebarUserProfile() {
-        JPanel divider = new JPanel();
-        divider.setBackground(new Color(45, 57, 75));
-        divider.setPreferredSize(new Dimension(0, 1));
-
-        JPanel profilePanel = new JPanel(new MigLayout("insets 10 8", "[][grow,fill][]", "[]"));
-        profilePanel.setOpaque(false);
-
-        JPanel avatar = createCircleAvatar(new Color(49, 130, 206), "NL", 12f);
-
-        JPanel textWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
-        textWrap.setOpaque(false);
-        JLabel name = new JLabel("Nguy\u1ec5n Kh\u1ea3 Lu\u00e2n");
-        name.setForeground(Color.WHITE);
-        name.setFont(name.getFont().deriveFont(Font.BOLD, 12f));
-        JLabel role = new JLabel("Qu\u1ea3n l\u00fd");
-        role.setForeground(ThemeColors.TEXT_MUTED);
-        role.setFont(role.getFont().deriveFont(11f));
-        textWrap.add(name);
-        textWrap.add(role);
-
-        JButton logoutBtn = new JButton("\u2192");
-        logoutBtn.setForeground(new Color(150, 168, 195));
-        logoutBtn.setFont(logoutBtn.getFont().deriveFont(16f));
-        logoutBtn.setContentAreaFilled(false);
-        logoutBtn.setBorderPainted(false);
-        logoutBtn.setFocusPainted(false);
-        logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t");
-        logoutBtn.addActionListener(e -> logout());
-
-        profilePanel.add(avatar, "w 34!,h 34!,aligny center");
-        profilePanel.add(textWrap, "aligny center");
-        profilePanel.add(logoutBtn, "aligny center");
-
-        JPanel wrapper = new JPanel(new MigLayout("wrap 1,insets 0,gap 0", "[grow,fill]", "[][]"));
-        wrapper.setOpaque(false);
-        wrapper.add(divider, "growx,h 1!");
-        wrapper.add(profilePanel);
-        return wrapper;
     }
 
     private JPanel createCircleAvatar(Color bg, String initials, float fontSize) {
@@ -351,12 +359,12 @@ public class AppFrame extends JFrame {
     private JPanel createTopbar() {
         JPanel topbar = new JPanel(new MigLayout("insets 12 18", "[grow,fill][]", "[]"));
         topbar.setOpaque(false);
-        topbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        topbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, ThemeColors.BORDER_SOFT));
 
         JPanel titleWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
         titleWrap.setOpaque(false);
 
-        pageTitleLabel.setForeground(new Color(34, 52, 84));
+        pageTitleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
         pageTitleLabel.setFont(pageTitleLabel.getFont().deriveFont(Font.BOLD, 22f));
 
         // Date below page title
@@ -380,7 +388,7 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createTopbarRight() {
-        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][][]", "[]"));
         panel.setOpaque(false);
 
         // Notification bell with badge
@@ -393,7 +401,7 @@ public class AppFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(240, 244, 250));
+                g2.setColor(ThemeColors.SURFACE_HOVER);
                 g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
                 g2.dispose();
                 super.paintComponent(g);
@@ -409,7 +417,7 @@ public class AppFrame extends JFrame {
             bellLbl.setIcon(bellPNG);
         } else {
             bellLbl.setText("\u25CE");
-            bellLbl.setForeground(new Color(80, 100, 130));
+            bellLbl.setForeground(ThemeColors.TEXT_SECONDARY);
             bellLbl.setFont(bellLbl.getFont().deriveFont(16f));
             bellLbl.setHorizontalAlignment(SwingConstants.CENTER);
         }
@@ -421,7 +429,7 @@ public class AppFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(220, 53, 69));
+                g2.setColor(ThemeColors.DANGER);
                 g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
                 g2.dispose();
                 super.paintComponent(g);
@@ -445,7 +453,7 @@ public class AppFrame extends JFrame {
         JPanel sep = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
-                g.setColor(new Color(220, 228, 240));
+                g.setColor(ThemeColors.BORDER_SOFT);
                 g.drawLine(0, 4, 0, getHeight() - 4);
             }
         };
@@ -461,7 +469,7 @@ public class AppFrame extends JFrame {
         JPanel userText = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
         userText.setOpaque(false);
         JLabel userName = new JLabel("Nguy\u1ec5n Kh\u1ea3 Lu\u00e2n");
-        userName.setForeground(new Color(34, 52, 84));
+        userName.setForeground(ThemeColors.TEXT_PRIMARY);
         userName.setFont(userName.getFont().deriveFont(Font.BOLD, 13f));
         JLabel userRole = new JLabel("Qu\u1ea3n l\u00fd");
         userRole.setForeground(ThemeColors.TEXT_MUTED);
@@ -472,9 +480,24 @@ public class AppFrame extends JFrame {
         userArea.add(avatar, "w 36!,h 36!,aligny center");
         userArea.add(userText, "aligny center");
 
+        // Logout button: outline style, subtle red — less aggressive than
+        // the previous solid red badge, harmonises with light topbar.
+        JButton logoutBtn = new JButton("\u0110\u0103ng xu\u1ea5t");
+        logoutBtn.setFont(logoutBtn.getFont().deriveFont(Font.BOLD, 12f));
+        logoutBtn.setForeground(ThemeColors.DANGER);
+        logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
+        logoutBtn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
+            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        logoutBtn.setFocusPainted(false);
+        logoutBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t kh\u1ecfi h\u1ec7 th\u1ed1ng");
+        logoutBtn.addActionListener(e -> logout());
+
         panel.add(bellWrap, "w 36!,h 36!,aligny center");
         panel.add(sep, "aligny center");
         panel.add(userArea, "aligny center");
+        panel.add(logoutBtn, "aligny center,gapleft 8");
         return panel;
     }
 
@@ -536,10 +559,10 @@ public class AppFrame extends JFrame {
         card.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JLabel logo = new JLabel("KH", SwingConstants.CENTER);
-        logo.setForeground(new Color(255, 138, 44));
+        logo.setForeground(ThemeColors.ACCENT);
         logo.setFont(logo.getFont().deriveFont(28f));
 
-        RoundedPanel logoBox = new RoundedPanel(14, new Color(20, 31, 59), new Color(255, 255, 255, 20), 1f);
+        RoundedPanel logoBox = new RoundedPanel(14, ThemeColors.SIDEBAR_BG, ThemeColors.withAlpha(Color.WHITE, 20), 1f);
         logoBox.setLayout(new BorderLayout());
         logoBox.add(logo, BorderLayout.CENTER);
 
@@ -576,6 +599,7 @@ public class AppFrame extends JFrame {
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
         vnTitles.put("booking", "\u0110\u1eb7t ph\u00f2ng");
+        vnTitles.put("check-in", "Nh\u1eadn ph\u00f2ng");
         vnTitles.put("checkout", "Tr\u1ea3 ph\u00f2ng");
         vnTitles.put("swap-room", "\u0110\u1ed5i ph\u00f2ng");
         vnTitles.put("cancel-room", "H\u1ee7y ph\u00f2ng");
@@ -591,11 +615,17 @@ public class AppFrame extends JFrame {
 
         for (Map.Entry<String, JPanel> entry : menuItems.entrySet()) {
             boolean active = entry.getKey().equals(route);
-            entry.getValue().setBackground(active ? new Color(237, 137, 54, 40) : new Color(31, 41, 57));
+            JPanel panel = entry.getValue();
+            if (panel instanceof SidebarMenuItem) {
+                ((SidebarMenuItem) panel).setActive(active);
+                ((SidebarMenuItem) panel).setHovered(false);
+            }
             JLabel lbl = menuTextLabels.get(entry.getKey());
             if (lbl != null) {
-                lbl.setForeground(active ? ThemeColors.ACCENT : new Color(200, 210, 225));
-                lbl.setFont(lbl.getFont().deriveFont(active ? Font.BOLD : Font.PLAIN, 13f));
+                // Light sidebar: active item -> white text on navy pill;
+                // inactive -> dark gray on white.
+                lbl.setForeground(active ? ThemeColors.PREMIUM_SIDEBAR_ACTIVE_TEXT : ThemeColors.PREMIUM_SIDEBAR_TEXT);
+                lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, active ? 14f : 13.5f));
             }
         }
 
