@@ -31,6 +31,9 @@ public class Staff {
     public String    getStaffId()  { return staffId;  }
     public void      setStaffId(String staffId)  { this.staffId  = staffId;  }
 
+    // Alias for compatibility
+    public String    getMaNV()     { return staffId; }
+
     public String    getFullName() { return fullName; }
     public void      setFullName(String fullName) { this.fullName = fullName; }
 

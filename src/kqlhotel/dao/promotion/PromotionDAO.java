@@ -74,8 +74,8 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
             pstmt.setString(2, km.getTenKM());
             pstmt.setString(3, km.getDieuKienApDung());
             pstmt.setString(4, km.getLoaiKM());
-            if (km.getGiaTriToiDa() > 0) pstmt.setDouble(5, km.getGiaTriToiDa()); else pstmt.setNull(5, Types.FLOAT);
-            if (km.getTienKhuyenMai() > 0) pstmt.setDouble(6, km.getTienKhuyenMai()); else pstmt.setNull(6, Types.FLOAT);
+            pstmt.setDouble(5, Math.max(0, km.getGiaTriToiDa()));
+            pstmt.setDouble(6, Math.max(0, km.getTienKhuyenMai()));
             pstmt.setTimestamp(7, Timestamp.valueOf(km.getNgayBatDau()));
             pstmt.setTimestamp(8, Timestamp.valueOf(km.getNgayKetThuc()));
             pstmt.setString(9, km.getTrangThaiKM());
@@ -96,8 +96,8 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
             pstmt.setString(1, km.getTenKM());
             pstmt.setString(2, km.getDieuKienApDung());
             pstmt.setString(3, km.getLoaiKM());
-            if (km.getGiaTriToiDa() > 0) pstmt.setDouble(4, km.getGiaTriToiDa()); else pstmt.setNull(4, Types.FLOAT);
-            if (km.getTienKhuyenMai() > 0) pstmt.setDouble(5, km.getTienKhuyenMai()); else pstmt.setNull(5, Types.FLOAT);
+            pstmt.setDouble(4, Math.max(0, km.getGiaTriToiDa()));
+            pstmt.setDouble(5, Math.max(0, km.getTienKhuyenMai()));
             pstmt.setTimestamp(6, Timestamp.valueOf(km.getNgayBatDau()));
             pstmt.setTimestamp(7, Timestamp.valueOf(km.getNgayKetThuc()));
             pstmt.setString(8, km.getTrangThaiKM());
@@ -125,15 +125,36 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
 
     private Promotion mapResultSetToPromotion(ResultSet rs) throws SQLException {
         Promotion km = new Promotion();
+
         km.setMaKM(rs.getString("maKM"));
         km.setTenKM(rs.getString("tenKM"));
         km.setDieuKienApDung(rs.getString("dieuKienApDung"));
         km.setLoaiKM(rs.getString("loaiKM"));
-        km.setGiaTriToiDa(rs.getDouble("giaTriToiDa"));
-        km.setTienKhuyenMai(rs.getDouble("tienKhuyenMai"));
-        km.setNgayBatDau(rs.getTimestamp("ngayBatDau").toLocalDateTime());
-        km.setNgayKetThuc(rs.getTimestamp("ngayKetThuc").toLocalDateTime());
+
+        double giaTriToiDa = rs.getDouble("giaTriToiDa");
+        if (rs.wasNull()) {
+            giaTriToiDa = 0;
+        }
+        km.setGiaTriToiDa(giaTriToiDa);
+
+        double tienKhuyenMai = rs.getDouble("tienKhuyenMai");
+        if (rs.wasNull()) {
+            tienKhuyenMai = 0;
+        }
+        km.setTienKhuyenMai(tienKhuyenMai);
+
+        Timestamp ngayBatDau = rs.getTimestamp("ngayBatDau");
+        if (ngayBatDau != null) {
+            km.setNgayBatDau(ngayBatDau.toLocalDateTime());
+        }
+
+        Timestamp ngayKetThuc = rs.getTimestamp("ngayKetThuc");
+        if (ngayKetThuc != null) {
+            km.setNgayKetThuc(ngayKetThuc.toLocalDateTime());
+        }
+
         km.setTrangThaiKM(rs.getString("trangThaiKM"));
+
         return km;
     }
 }
