@@ -31,15 +31,25 @@ public class DatePicker extends JPanel {
         textDateField.setPreferredSize(new Dimension(120, 36));
         textDateField.setFont(textDateField.getFont().deriveFont(14f));
         textDateField.setText(selectedDate.format(dtf));
-        
-        btnCalendar = new PrimaryButton("\uD83D\uDCC5"); // 📅
-        btnCalendar.setPreferredSize(new Dimension(40, 36));
-        btnCalendar.setArc(10);
-        btnCalendar.setFont(btnCalendar.getFont().deriveFont(Font.PLAIN, 18f));
-        btnCalendar.setBackground(ThemeColors.ACCENT);
-        
-        add(textDateField, BorderLayout.CENTER);
-        add(btnCalendar, BorderLayout.EAST);
+
+        ImageIcon icon = new ImageIcon(getClass().getResource("/kqlhotel/resources/icons/calendar.png"));
+        Image img = icon.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+
+        btnCalendar = new PrimaryButton("");
+        btnCalendar.setIcon(new ImageIcon(img));
+        btnCalendar.setPreferredSize(new Dimension(36, 36));
+        btnCalendar.setArc(8);
+        btnCalendar.setBackground(Color.WHITE);
+        btnCalendar.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 235)));
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.WHITE);
+        wrapper.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 235)));
+
+        wrapper.add(textDateField, BorderLayout.CENTER);
+        wrapper.add(btnCalendar, BorderLayout.EAST);
+
+        add(wrapper, BorderLayout.CENTER);
         
         popupMenu = new JPopupMenu();
         popupMenu.setLayout(new BorderLayout());

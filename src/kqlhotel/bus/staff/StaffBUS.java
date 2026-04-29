@@ -3,8 +3,6 @@ package kqlhotel.bus.staff;
 import kqlhotel.dao.Staff.StaffDAO;
 import kqlhotel.dao.account.AccountDAO;
 import kqlhotel.entity.Staff;
-import kqlhotel.entity.Account;
-import java.util.ArrayList;
 import java.util.List;
 
 public class StaffBUS {
@@ -20,54 +18,35 @@ public class StaffBUS {
         return staffDAO.getAll();
     }
 
-    public boolean insert(Staff staff) {
-        return staffDAO.insert(staff);
+    // Alias for compatibility
+    public void them(Staff s) {
+        addStaff(s);
     }
 
-    public boolean update(Staff staff) {
-        return staffDAO.update(staff);
+    // Alias for compatibility
+    public void xoa(String maNV) {
+        staffDAO.delete(maNV);
     }
 
     /**
      * Cập nhật nhân viên: update TaiKhoan trước, sau đó update NhanVien.
      */
     public boolean updateStaff(Staff staff) {
-        // 1. Update tài khoản trong bảng TaiKhoan
         boolean accountOk = accountDAO.update(staff.getAccount());
         if (!accountOk) {
-            System.err.println("[StaffBUS] Cập nhật tài khoản thất bại: " + staff.getAccount().getUsername());
             return false;
         }
-        System.out.println("[StaffBUS] Đã cập nhật tài khoản: " + staff.getAccount().getUsername());
-
-        // 2. Update nhân viên trong bảng NhanVien
-        boolean staffOk = staffDAO.update(staff);
-        if (!staffOk) {
-            System.err.println("[StaffBUS] Cập nhật nhân viên thất bại: " + staff.getStaffId());
-            return false;
-        }
-        System.out.println("[StaffBUS] Đã cập nhật nhân viên: " + staff.getStaffId());
-        return true;
+        return staffDAO.update(staff);
     }
+
     /**
      * Thêm nhân viên mới: insert TaiKhoan trước, sau đó insert NhanVien.
      */
     public boolean addStaff(Staff staff) {
-        // 1. Insert tài khoản vào bảng TaiKhoan
         boolean accountOk = accountDAO.insert(staff.getAccount());
         if (!accountOk) {
-            System.err.println("[StaffBUS] Thêm tài khoản thất bại: " + staff.getAccount().getUsername());
             return false;
         }
-        System.out.println("[StaffBUS] Đã thêm tài khoản: " + staff.getAccount().getUsername());
-
-        // 2. Insert nhân viên vào bảng NhanVien
-        boolean staffOk = staffDAO.insert(staff);
-        if (!staffOk) {
-            System.err.println("[StaffBUS] Thêm nhân viên thất bại: " + staff.getStaffId());
-            return false;
-        }
-        System.out.println("[StaffBUS] Đã thêm nhân viên: " + staff.getStaffId());
-        return true;
+        return staffDAO.insert(staff);
     }
 }

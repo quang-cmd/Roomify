@@ -2,64 +2,69 @@ package kqlhotel.gui.tabs;
 
 import java.awt.*;
 import java.net.URL;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.swing.*;
+
 import kqlhotel.bus.Invoice.InvoicesBUS;
+import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
-import kqlhotel.entity.Customer;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.DateUtils;
-import kqlhotel.utils.PDFInvoiceGenerator;
 import net.miginfocom.swing.MigLayout;
 
 public class InvoicesPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
     private final InvoicesBUS invoicesBUS = new InvoicesBUS();
     private final JPanel listPanel = new JPanel(new MigLayout("wrap 1,insets 0,gap 8", "[grow,fill]", "[]"));
     private final RoundedPanel detailContainer = new RoundedPanel(20, Color.WHITE, new Color(225, 231, 245), 1.5f);
     private final JPanel detailContent = new JPanel(
-            new MigLayout("wrap 1,insets 24 24 24 24, gap 18, fillx", "[grow,fill]", "[]")
+            new MigLayout("wrap 1,insets 20 20 20 20, gap 16, fillx", "[grow,fill]", "[]")
     );
     private final JLabel summaryLabel = new JLabel();
-    private final List<PrimaryButton> filterButtons = new java.util.ArrayList<>();
+    private final List<PrimaryButton> filterButtons = new ArrayList<>();
 
     private List<Invoice> currentList;
-    private String currentStatusFilter = "Tất cả";
 
     public InvoicesPanel() {
         setOpaque(false);
         setBackground(PAGE_BG);
         setLayout(new BorderLayout());
 
-        JPanel header = createHeader();
+        //JPanel header = createHeader();
 
         JPanel content = new JPanel(new MigLayout(
-                "insets 10 20 20 20, gap 16",
-                "[300::340,fill][grow,fill]",
+                "insets 0 14 14 14, gap 10, fill",
+                "[245::260,fill][grow,fill]",
                 "[grow,fill]"
         ));
         content.setOpaque(false);
-        
+
         JPanel leftSide = createLeftSide();
-        createRightSide(); // Initializes detailPanel
-        
-        content.add(leftSide, "growy");
-        
+        createRightSide();
+
+        content.add(leftSide, "growy, wmin 245, wmax 260");
+
         JScrollPane detailScroll = new JScrollPane(detailContainer);
         detailScroll.setBorder(BorderFactory.createEmptyBorder());
         detailScroll.setOpaque(false);
         detailScroll.getViewport().setOpaque(false);
         detailScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        detailScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         detailScroll.getVerticalScrollBar().setUnitIncrement(16);
-        
-        content.add(detailScroll, "grow");
 
-        add(header, BorderLayout.NORTH);
+        content.add(detailScroll, "grow, push");
+
+        //add(header, BorderLayout.NORTH);
         add(content, BorderLayout.CENTER);
 
         refreshData();
@@ -70,44 +75,71 @@ public class InvoicesPanel extends JPanel {
         summaryLabel.setText(invoicesBUS.getInvoiceSummary());
         updateFilterButtonStyles("Tất cả");
         renderList(currentList);
-        if (!currentList.isEmpty()) {
-            showDetail(currentList.get(0));
-        }
+        showFirstInvoiceIfAny();
     }
 
     private void filterData(String status, String btnText) {
-        this.currentList = invoicesBUS.filterInvoices(null, null, null, status);
+        List<Invoice> all = invoicesBUS.getAllInvoices();
+        List<Invoice> filtered = new ArrayList<>();
+
+        for (Invoice hd : all) {
+            String computed = invoicesBUS.getComputedStatus(hd);
+            if ("ALL".equals(status) || status.equals(computed)) {
+                filtered.add(hd);
+            }
+        }
+
+        this.currentList = filtered;
+        summaryLabel.setText(invoicesBUS.getInvoiceSummary());
         updateFilterButtonStyles(btnText);
         renderList(currentList);
+        showFirstInvoiceIfAny();
+    }
+
+    private void showFirstInvoiceIfAny() {
         if (!currentList.isEmpty()) {
             showDetail(currentList.get(0));
+        } else {
+            detailContent.removeAll();
+            detailContent.revalidate();
+            detailContent.repaint();
         }
     }
 
-    private void updateFilterButtonStyles(String activeText) {
-        for (PrimaryButton btn : filterButtons) {
-            if (btn.getText().equals(activeText)) {
-                btn.setBackground(new Color(24, 34, 52));
-                btn.setForeground(Color.WHITE);
-            } else {
-                btn.setBackground(Color.WHITE);
-                btn.setForeground(new Color(100, 115, 135));
-                btn.setBorder(BorderFactory.createLineBorder(new Color(225, 231, 245), 2)); // Increased from 1
-            }
+    private String getDisplayStatus(String status) {
+        if ("DaThanhToan".equals(status)) {
+            return "Đã thanh toán";
         }
+        if ("DangThanhToan".equals(status)) {
+            return "Đang thanh toán";
+        }
+        return "Chưa thanh toán";
+    }
+
+    private Color getDisplayStatusColor(String status) {
+        if ("DaThanhToan".equals(status)) {
+            return new Color(30, 180, 120);
+        }
+        if ("DangThanhToan".equals(status)) {
+            return new Color(255, 153, 0);
+        }
+        return new Color(220, 38, 38);
     }
 
     private JPanel createHeader() {
-        JPanel panel = new JPanel(new MigLayout("insets 20 24 0 24,gap 0", "[grow]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 10 24 0 24,gap 0", "[grow]", "[]"));
         panel.setOpaque(false);
-        
+
         JPanel titleBox = new JPanel(new MigLayout("insets 0, wrap 1", "[]", "[]"));
         titleBox.setOpaque(false);
+
         JLabel title = new JLabel("Hóa đơn");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
         title.setForeground(new Color(24, 40, 66));
+
         summaryLabel.setForeground(new Color(119, 137, 168));
         summaryLabel.setFont(summaryLabel.getFont().deriveFont(13f));
+
         titleBox.add(title);
         titleBox.add(summaryLabel);
 
@@ -116,19 +148,18 @@ public class InvoicesPanel extends JPanel {
     }
 
     private JPanel createLeftSide() {
-        JPanel left = new JPanel(new MigLayout("wrap 1,insets 0,gap 16", "[grow,fill]", "[][grow,fill]"));
+        JPanel left = new JPanel(new MigLayout("wrap 1,insets 0,gap 12,fillx", "[grow,fill]", "[][][grow,fill]"));
         left.setOpaque(false);
 
-        // Filters
-        JPanel filters1 = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
+        JPanel filters1 = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][grow,fill]", "[]"));
         filters1.setOpaque(false);
-        filters1.add(createFilterBtn("Tất cả", true, e -> refreshData()), "h 36!");
-        filters1.add(createFilterBtn("Đã thanh toán", false, e -> filterData("DaThanhToan", "Đã thanh toán")), "h 36!");
-        
-        JPanel filters2 = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
+        filters1.add(createFilterBtn("Tất cả", true, e -> filterData("ALL", "Tất cả")), "h 34!");
+        filters1.add(createFilterBtn("Đã thanh toán", false, e -> filterData("DaThanhToan", "Đã thanh toán")), "h 34!");
+
+        JPanel filters2 = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][grow,fill]", "[]"));
         filters2.setOpaque(false);
-        filters2.add(createFilterBtn("Chưa thanh toán", false, e -> filterData("ChuaThanhToan", "Chưa thanh toán")), "h 36!");
-        filters2.add(createFilterBtn("Đặt cọc", false, e -> filterData("DatCoc", "Đặt cọc")), "h 36!");
+        filters2.add(createFilterBtn("Chưa thanh toán", false, e -> filterData("ChuaThanhToan", "Chưa thanh toán")), "h 34!");
+        filters2.add(createFilterBtn("Đang thanh toán", false, e -> filterData("DangThanhToan", "Đang thanh toán")), "h 34!");
 
         listPanel.setOpaque(false);
 
@@ -138,11 +169,13 @@ public class InvoicesPanel extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.getVerticalScrollBar().setUnitIncrement(24); // Tăng tốc độ cuộn
+        scroll.getVerticalScrollBar().setUnitIncrement(24);
+        scroll.setPreferredSize(new Dimension(255, 0));
 
-        left.add(filters1);
-        left.add(filters2);
+        left.add(filters1, "growx");
+        left.add(filters2, "growx");
         left.add(scroll, "grow");
+
         return left;
     }
 
@@ -161,59 +194,80 @@ public class InvoicesPanel extends JPanel {
         return btn;
     }
 
+    private void updateFilterButtonStyles(String activeText) {
+        for (PrimaryButton btn : filterButtons) {
+            if (btn.getText().equals(activeText)) {
+                btn.setBackground(new Color(24, 34, 52));
+                btn.setForeground(Color.WHITE);
+            } else {
+                btn.setBackground(Color.WHITE);
+                btn.setForeground(new Color(100, 115, 135));
+                btn.setBorder(BorderFactory.createLineBorder(new Color(225, 231, 245), 2));
+            }
+        }
+    }
+
     private void renderList(List<Invoice> list) {
         listPanel.removeAll();
         for (Invoice data : list) {
-            listPanel.add(createListItem(data, false));
+            listPanel.add(createListItem(data, false), "growx");
         }
         listPanel.revalidate();
         listPanel.repaint();
     }
 
     private JPanel createListItem(Invoice hd, boolean selected) {
-        RoundedPanel item = new RoundedPanel(12, selected ? Color.WHITE : new Color(250, 252, 255), selected ? new Color(49, 106, 210) : new Color(230, 235, 245), selected ? 2.5f : 1.5f);
-        item.setLayout(new MigLayout("insets 16 12 16 12", "[][grow,fill][][]", "[]"));
+        RoundedPanel item = new RoundedPanel(
+                12,
+                selected ? Color.WHITE : new Color(250, 252, 255),
+                selected ? new Color(49, 106, 210) : new Color(230, 235, 245),
+                selected ? 2.5f : 1.5f
+        );
+        item.setLayout(new MigLayout("insets 14 12 14 12", "[][grow,fill][][]", "[]"));
 
-        // Icon part
+        String computedStatus = invoicesBUS.getComputedStatus(hd);
+
         JLabel icon = new JLabel();
-        if ("DaThanhToan".equals(hd.getTrangThai())) {
-            icon.setIcon(loadIcon("check-circle.png", 20, 20));
-        } else if ("ChuaThanhToan".equals(hd.getTrangThai())) {
-            icon.setIcon(loadIcon("alert-circle.png", 20, 20));
+        if ("DaThanhToan".equals(computedStatus)) {
+            icon.setIcon(loadIcon("check-circle.png", 18, 18));
+        } else if ("DangThanhToan".equals(computedStatus)) {
+            icon.setIcon(loadIcon("clock-circle.png", 18, 18));
         } else {
-            icon.setIcon(loadIcon("clock-circle.png", 20, 20));
+            icon.setIcon(loadIcon("alert-circle.png", 18, 18));
         }
 
-        // Info part
-        JPanel info = new JPanel(new MigLayout("wrap 1,insets 0", "[]", "[][]"));
+        JPanel info = new JPanel(new MigLayout("wrap 1,insets 0", "[grow,fill]", "[][]"));
         info.setOpaque(false);
+
         JLabel idLabel = new JLabel(hd.getMaHD());
         idLabel.setFont(idLabel.getFont().deriveFont(Font.BOLD, 14f));
         idLabel.setForeground(new Color(24, 40, 66));
-        
+
         Customer kh = invoicesBUS.getCustomerInfo(hd.getMaKhachHang());
         JLabel nameLabel = new JLabel(kh != null ? kh.getHoTenKH() : hd.getMaKhachHang());
         nameLabel.setForeground(new Color(110, 125, 145));
         nameLabel.setFont(nameLabel.getFont().deriveFont(12f));
+
         info.add(idLabel);
         info.add(nameLabel);
 
-        // Price part
-        JPanel pricePane = new JPanel(new MigLayout("wrap 1,insets 0", "[]", "[][]"));
+        JPanel pricePane = new JPanel(new MigLayout("wrap 1,insets 0", "[right]", "[][]"));
         pricePane.setOpaque(false);
+
         JLabel pLabel = new JLabel(CurrencyUtils.formatVND(hd.getTongTienThanhToan()));
         pLabel.setFont(pLabel.getFont().deriveFont(Font.BOLD, 14f));
         pLabel.setForeground(new Color(24, 40, 66));
         pLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        
-        JLabel sLabel = new JLabel(hd.getTrangThai());
-        sLabel.setForeground(new Color(30, 180, 120)); // Green for all as default for clean look, or switch case later
+
+        JLabel sLabel = new JLabel(getDisplayStatus(computedStatus));
+        sLabel.setForeground(getDisplayStatusColor(computedStatus));
         sLabel.setFont(sLabel.getFont().deriveFont(11f));
         sLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
         pricePane.add(pLabel, "alignx right");
         pricePane.add(sLabel, "alignx right");
 
-        JLabel arrow = new JLabel(" \u203A ");
+        JLabel arrow = new JLabel("›");
         arrow.setForeground(new Color(180, 190, 210));
 
         item.add(icon, "aligny center");
@@ -237,30 +291,71 @@ public class InvoicesPanel extends JPanel {
         detailContainer.add(detailContent);
     }
 
+    private double calculatePaidRoomAmount(List<InvoiceDetail> roomDetails) {
+        double total = 0;
+        for (InvoiceDetail ct : roomDetails) {
+            if (ct.getNgayTraThucTe() != null) {
+                total += ct.getThanhTien();
+            }
+        }
+        return total;
+    }
+
+    private int countPaidRooms(List<InvoiceDetail> roomDetails) {
+        int count = 0;
+        for (InvoiceDetail ct : roomDetails) {
+            if (ct.getNgayTraThucTe() != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private String getRoomStatus(InvoiceDetail ct) {
+        return ct.getNgayTraThucTe() != null ? "Đã trả" : "Chưa trả";
+    }
+
     private void showDetail(Invoice hd) {
         detailContent.removeAll();
 
-        // Top Action row
-        JPanel topRow = new JPanel(new MigLayout("insets 0", "[][grow,fill][][][]", "[]"));
+        Customer kh = invoicesBUS.getCustomerInfo(hd.getMaKhachHang());
+        List<InvoiceDetail> roomDetails = invoicesBUS.getRoomDetails(hd.getMaHD());
+        List<ServiceDetail> serviceDetails = invoicesBUS.getServiceDetails(hd.getMaHD());
+
+        double tienCoc = 0;
+        if (hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
+            tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
+        }
+
+        double tienPhongDaTra = calculatePaidRoomAmount(roomDetails);
+        double tongTruocGiam = hd.getTienPhong() + hd.getTienDichVu() + hd.getTienThue();
+        double tongSauKhuyenMai = Math.max(0, tongTruocGiam - hd.getTienKhuyenMai());
+        double conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc - tienPhongDaTra);
+
+        JPanel topRow = new JPanel(new MigLayout("insets 0,fillx", "[][grow,fill][][][]", "[]"));
         topRow.setOpaque(false);
 
         JPanel idBox = new JPanel(new MigLayout("wrap 1,insets 0", "[]", "[]"));
         idBox.setOpaque(false);
-        
+
         JPanel titleRow = new JPanel(new MigLayout("insets 0,gap 10", "[][]", "[]"));
         titleRow.setOpaque(false);
+
         JLabel lId = new JLabel(hd.getMaHD());
         lId.setFont(lId.getFont().deriveFont(Font.BOLD, 22f));
         lId.setForeground(new Color(24, 40, 66));
-        
-        JLabel lStatus = new JLabel(" \u2022 " + hd.getTrangThai());
-        lStatus.setForeground(new Color(30, 180, 120));
+
+        String computedStatus = invoicesBUS.getComputedStatus(hd);
+        JLabel lStatus = new JLabel(" • " + getDisplayStatus(computedStatus));
+        lStatus.setForeground(getDisplayStatusColor(computedStatus));
         lStatus.setFont(lStatus.getFont().deriveFont(Font.BOLD, 12f));
+
         titleRow.add(lId, "aligny bottom");
         titleRow.add(lStatus, "aligny bottom");
 
         JLabel lDate = new JLabel("Ngày tạo: " + DateUtils.format(hd.getNgayLapHD()));
         lDate.setForeground(new Color(110, 125, 145));
+
         idBox.add(titleRow);
         idBox.add(lDate);
 
@@ -268,130 +363,182 @@ public class InvoicesPanel extends JPanel {
         bConfirm.setBackground(ThemeColors.SUCCESS);
         bConfirm.setForeground(Color.WHITE);
         bConfirm.setIcon(loadIcon("check-circle.png", 16, 16));
-        bConfirm.setVisible("ChuaThanhToan".equals(hd.getTrangThai()) || "DatCoc".equals(hd.getTrangThai()));
+        bConfirm.setVisible(!"DaThanhToan".equals(computedStatus));
         bConfirm.addActionListener(e -> {
             if (invoicesBUS.confirmPayment(hd.getMaHD())) {
                 refreshData();
                 JOptionPane.showMessageDialog(this, "Đã xác nhận thanh toán thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Xác nhận thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
-        
+
         PrimaryButton bPdf = new PrimaryButton("Xuất PDF");
-        bPdf.setBackground(new Color(255, 193, 7)); // Yellow/Amber
+        bPdf.setIcon(loadIcon("print.png", 18, 18));
+        bPdf.setBackground(new Color(255, 193, 7));
         bPdf.setForeground(Color.WHITE);
         bPdf.setFocusPainted(false);
+        bPdf.setArc(12);
         bPdf.addActionListener(e -> {
-            PDFInvoiceGenerator.exportInvoice(hd, invoicesBUS.getRoomDetails(hd.getMaHD()), invoicesBUS.getServiceDetails(hd.getMaHD()));
-        });
-        
-        PrimaryButton bPrint = new PrimaryButton("");
-        bPrint.setIcon(loadIcon("print.png", 24, 24));
-        bPrint.setBackground(Color.WHITE);
-        bPrint.setBorder(BorderFactory.createLineBorder(new Color(180, 190, 210), 2));
-        bPrint.setToolTipText("In hóa đơn");
-        bPrint.setPreferredSize(new Dimension(38, 38));
-        bPrint.setArc(20);
-        bPrint.addActionListener(e -> {
-            PDFInvoiceGenerator.exportInvoice(hd, invoicesBUS.getRoomDetails(hd.getMaHD()), invoicesBUS.getServiceDetails(hd.getMaHD()));
+            new kqlhotel.gui.dialog.InvoicePreviewDialog(
+                    SwingUtilities.getWindowAncestor(this),
+                    hd,
+                    invoicesBUS.getCustomerInfo(hd.getMaKhachHang()),
+                    invoicesBUS.getStaffName(hd.getMaNhanVien()),
+                    invoicesBUS.getRoomDetails(hd.getMaHD()),
+                    invoicesBUS.getServiceDetails(hd.getMaHD()),
+                    invoicesBUS
+            ).setVisible(true);
         });
 
         topRow.add(idBox);
-        topRow.add(new JPanel(){{setOpaque(false);}}, "growx"); // spacer
+        topRow.add(new JPanel() {{ setOpaque(false); }}, "growx");
         topRow.add(bConfirm, "h 38!");
         topRow.add(bPdf, "h 38!");
-        topRow.add(bPrint, "h 38!,w 38!");
 
-        // Two boxes: KH, Phòng
-        Customer kh = invoicesBUS.getCustomerInfo(hd.getMaKhachHang());
-        List<InvoiceDetail> rooms = invoicesBUS.getRoomDetails(hd.getMaHD());
-        String roomStr = rooms.isEmpty() ? "N/A" : rooms.get(0).getMaPhong();
+        String roomText = roomDetails.isEmpty()
+                ? "Không có phòng"
+                : roomDetails.stream().map(InvoiceDetail::getMaPhong).collect(Collectors.joining(", "));
 
-        JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 20", "[grow,fill][grow,fill]", "[]"));
+        JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 12,fillx", "[grow,fill][grow,fill][grow,fill]", "[]"));
         infoRow.setOpaque(false);
-        infoRow.add(createBox("KHÁCH HÀNG", kh != null ? kh.getHoTenKH() : "Unknown", kh != null ? "SĐT: " + kh.getSdt() : ""));
-        infoRow.add(createBox("THÔNG TIN PHÒNG", "Phòng " + roomStr, "Mã HD: " + hd.getMaHD()));
 
-        // Table Title
-        JLabel tTitle = new JLabel("CHI TIẾT DỊCH VỤ");
+        infoRow.add(createBox(
+                "KHÁCH HÀNG",
+                kh != null ? kh.getHoTenKH() : "Unknown",
+                kh != null ? "SĐT: " + kh.getSdt() : ""
+        ));
+
+        infoRow.add(createBox(
+                "THÔNG TIN PHÒNG",
+                roomText,
+                "Số phòng: " + roomDetails.size() + " · Đã trả: " + countPaidRooms(roomDetails)
+        ));
+
+        infoRow.add(createBox(
+                "TIỀN CỌC",
+                CurrencyUtils.formatVND(tienCoc),
+                hd.getMaDatPhong() != null ? "Mã đặt: " + hd.getMaDatPhong() : "Không có mã đặt"
+        ));
+
+        String staffName = invoicesBUS.getStaffName(hd.getMaNhanVien());
+
+        infoRow.add(createBox(
+                "NHÂN VIÊN",
+                staffName != null ? staffName : hd.getMaNhanVien(),
+                hd.getMaNhanVien() != null ? "Mã NV: " + hd.getMaNhanVien() : "Chưa có nhân viên"
+        ));
+
+        JLabel tTitle = new JLabel("CHI TIẾT HÓA ĐƠN");
         tTitle.setForeground(new Color(130, 145, 165));
         tTitle.setFont(tTitle.getFont().deriveFont(Font.BOLD, 12f));
 
-        // Table
         RoundedPanel tablePanel = new RoundedPanel(12, Color.WHITE, new Color(225, 231, 245), 1f);
-        tablePanel.setLayout(new MigLayout("wrap 1,insets 0,gap 0", "[grow,fill]", "[]"));
-        
-        // Table header
+        tablePanel.setLayout(new MigLayout("wrap 1,insets 0,gap 0,fillx", "[grow,fill]", "[]"));
+
         JPanel tHeader = new JPanel(new MigLayout(
-    "insets 16 20 16 20, fillx",
-    "[grow,fill][60::80,right][90::120,right][110::150,right]",
-    "[]"
-));
+                "insets 14 16 14 16, fillx",
+                "[grow,fill][65::85,right][95::120,right][90::110,center][120::140,center][95::120,right]",
+                "[]"
+        ));
         tHeader.setBackground(new Color(250, 252, 255));
-        tHeader.add(makeTText("Dịch vụ", false));
-        tHeader.add(makeTText("Số lượng", true));
+        tHeader.add(makeTText("Hạng mục", false));
+        tHeader.add(makeTText("Số đêm/SL", true));
         tHeader.add(makeTText("Đơn giá", true));
+        tHeader.add(makeTText("Tình trạng", true));
+        tHeader.add(makeTText("Trả thực tế", true));
         tHeader.add(makeTText("Thành tiền", true));
-        
+
         tablePanel.add(tHeader, "growx");
-        
-        // Rows
-        List<InvoiceDetail> ctRooms = invoicesBUS.getRoomDetails(hd.getMaHD());
-        for (InvoiceDetail ct : ctRooms) {
-            tablePanel.add(createTRow("Tiền phòng " + ct.getMaPhong(), String.valueOf(ct.getSoDem()), "", CurrencyUtils.formatVND(ct.getThanhTien())));
-        }
-        
-        List<ServiceDetail> ctServices = invoicesBUS.getServiceDetails(hd.getMaHD());
-        for (ServiceDetail ct : ctServices) {
-            tablePanel.add(createTRow("Dịch vụ: " + ct.getMaDV(), String.valueOf(ct.getSoLuong()), CurrencyUtils.formatVND(ct.getDonGia()), CurrencyUtils.formatVND(ct.getThanhTien())));
+
+        for (InvoiceDetail ct : roomDetails) {
+            double donGiaTheoDem = ct.getSoDem() > 0 ? ct.getThanhTien() / ct.getSoDem() : 0;
+            String ngayTraText = ct.getNgayTraThucTe() != null
+                    ? ct.getNgayTraThucTe().format(DATE_TIME_FORMATTER)
+                    : "--";
+
+            tablePanel.add(createTRow(
+                    "Tiền phòng " + ct.getMaPhong(),
+                    ct.getSoDem() + " đêm",
+                    CurrencyUtils.formatVND(donGiaTheoDem),
+                    getRoomStatus(ct),
+                    ngayTraText,
+                    CurrencyUtils.formatVND(ct.getThanhTien())
+            ), "growx");
         }
 
-        // Footer in Table
+        for (ServiceDetail ct : serviceDetails) {
+            tablePanel.add(createTRow(
+                    "Dịch vụ: " + ct.getMaDV()
+                            + (invoicesBUS.getServiceName(ct.getMaDV()).isBlank()
+                            ? ""
+                            : " - " + invoicesBUS.getServiceName(ct.getMaDV())),
+                    String.valueOf(ct.getSoLuong()),
+                    CurrencyUtils.formatVND(ct.getDonGia()),
+                    "",
+                    "",
+                    CurrencyUtils.formatVND(ct.getThanhTien())
+            ), "growx");
+        }
+
         JPanel tFooter = new JPanel(new MigLayout(
-    "wrap 2,insets 20 20 20 20, fillx",
-    "[grow,fill][140::220,right]",
-    "[]"
-));
+                "wrap 2,insets 18 16 18 16, fillx",
+                "[grow,fill][180::240,right]",
+                "[]"
+        ));
         tFooter.setBackground(Color.WHITE);
-        
+
         tFooter.add(makeTText("Tiền phòng", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienPhong()), true), "alignx right");
-        
+
         tFooter.add(makeTText("Tiền dịch vụ", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienDichVu()), true), "alignx right");
 
         tFooter.add(makeTText("Thuế VAT (10%)", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienThue()), true), "alignx right");
 
+        tFooter.add(makeTText("Tổng trước giảm", false), "alignx left");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(tongTruocGiam), true), "alignx right");
+
         tFooter.add(makeTText("Khuyến mãi", false), "alignx left");
         tFooter.add(makeTText("-" + CurrencyUtils.formatVND(hd.getTienKhuyenMai()), true), "alignx right");
-        
-        JPanel divider = new JPanel(); divider.setBackground(new Color(230, 235, 245));
+
+        tFooter.add(makeTText("Tổng hóa đơn", false), "alignx left");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(tongSauKhuyenMai), true), "alignx right");
+
+        tFooter.add(makeTText("Tiền cọc đã cọc", false), "alignx left");
+        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienCoc), true), "alignx right");
+
+        tFooter.add(makeTText("Tiền phòng đã trả", false), "alignx left");
+        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienPhongDaTra), true), "alignx right");
+
+        JPanel divider = new JPanel();
+        divider.setBackground(new Color(230, 235, 245));
         tFooter.add(divider, "span 2, growx, h 1!, gapy 12 12");
-        
-        JLabel lTotal = new JLabel("Tổng cộng");
-        lTotal.setFont(lTotal.getFont().deriveFont(Font.BOLD, 16f));
-        lTotal.setForeground(new Color(24, 40, 66));
-        
-        JLabel valTotal = new JLabel(CurrencyUtils.formatVND(hd.getTongTienThanhToan()));
-        valTotal.setFont(valTotal.getFont().deriveFont(Font.BOLD, 20f));
-        valTotal.setForeground(new Color(220, 38, 38));
-        valTotal.setHorizontalAlignment(SwingConstants.RIGHT);
-        
-        tFooter.add(lTotal, "alignx left");
-        tFooter.add(valTotal, "alignx right");
+
+        JLabel lConLai = new JLabel("Còn phải thanh toán");
+        lConLai.setFont(lConLai.getFont().deriveFont(Font.BOLD, 16f));
+        lConLai.setForeground(new Color(24, 40, 66));
+
+        JLabel valConLai = new JLabel(CurrencyUtils.formatVND(conPhaiThanhToan));
+        valConLai.setFont(valConLai.getFont().deriveFont(Font.BOLD, 22f));
+        valConLai.setForeground(new Color(220, 38, 38));
+        valConLai.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        tFooter.add(lConLai, "alignx left");
+        tFooter.add(valConLai, "alignx right");
 
         tablePanel.add(tFooter, "growx");
 
-        // Generated Label
         JLabel lGen = new JLabel("KQL HOTEL - Hóa đơn được tạo bởi hệ thống quản lý tự động", SwingConstants.CENTER);
         lGen.setForeground(new Color(150, 165, 185));
         lGen.setFont(lGen.getFont().deriveFont(11f));
 
         detailContent.add(topRow, "growx");
         detailContent.add(infoRow, "growx");
-        detailContent.add(tTitle, "gapy 10 0");
+        detailContent.add(tTitle, "gapy 8 0");
         detailContent.add(tablePanel, "growx");
-        detailContent.add(lGen, "growx, gapy 20 0");
+        detailContent.add(lGen, "growx, gapy 16 0");
 
         detailContent.revalidate();
         detailContent.repaint();
@@ -399,47 +546,83 @@ public class InvoicesPanel extends JPanel {
 
     private JPanel createBox(String title, String val1, String val2) {
         RoundedPanel p = new RoundedPanel(12, new Color(250, 252, 255), new Color(230, 235, 245), 1f);
-        p.setLayout(new MigLayout("wrap 1,insets 16,gap 4", "[grow,fill]", "[]"));
-        
+        p.setLayout(new MigLayout("wrap 1,insets 14,gap 4,fillx", "[grow,fill]", "[]"));
+
         JLabel t = new JLabel(title);
         t.setForeground(new Color(130, 145, 165));
         t.setFont(t.getFont().deriveFont(Font.BOLD, 11f));
-        
+
         JLabel v1 = new JLabel(val1);
         v1.setFont(v1.getFont().deriveFont(Font.BOLD, 14f));
         v1.setForeground(new Color(24, 40, 66));
-        
+
         JLabel v2 = new JLabel(val2);
         v2.setForeground(new Color(110, 125, 145));
-        
+
         p.add(t, "gapy 0 8");
         p.add(v1);
         p.add(v2);
-        
+
         return p;
     }
 
     private JLabel makeTText(String t, boolean right) {
         JLabel l = new JLabel(t);
         l.setForeground(new Color(100, 115, 135));
-        if (right) l.setHorizontalAlignment(SwingConstants.RIGHT);
+        if (right) {
+            l.setHorizontalAlignment(SwingConstants.RIGHT);
+        }
         return l;
     }
 
-    private JPanel createTRow(String n, String q, String p, String t) {
-        JPanel row = new JPanel(new MigLayout("insets 14 20 14 20", "[grow,fill][100!][150!][150!]", "[]"));
+    private JPanel createTRow(String name, String qty, String price, String roomStatus, String actualCheckout, String total) {
+        JPanel row = new JPanel(new MigLayout(
+                "insets 12 16 12 16, fillx",
+                "[grow,fill][65::85,right][95::120,right][90::110,center][120::140,center][95::120,right]",
+                "[]"
+        ));
         row.setBackground(Color.WHITE);
         row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 245, 250)));
-        
-        JLabel ln = new JLabel(n); ln.setForeground(new Color(50, 65, 80));
-        JLabel lq = new JLabel(q); lq.setForeground(new Color(50, 65, 80)); lq.setHorizontalAlignment(SwingConstants.RIGHT);
-        JLabel lp = new JLabel(p); lp.setForeground(new Color(50, 65, 80)); lp.setHorizontalAlignment(SwingConstants.RIGHT);
-        JLabel lt = new JLabel(t); lt.setForeground(new Color(24, 40, 66)); lt.setFont(lt.getFont().deriveFont(Font.BOLD)); lt.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        row.add(ln);
-        row.add(lq);
-        row.add(lp);
-        row.add(lt);
+        JLabel ln = new JLabel(name);
+        ln.setForeground(new Color(50, 65, 80));
+
+        JLabel lq = new JLabel(qty);
+        lq.setForeground(new Color(50, 65, 80));
+        lq.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JLabel lp = new JLabel(price);
+        lp.setForeground(new Color(50, 65, 80));
+        lp.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JLabel ls = new JLabel(roomStatus);
+        ls.setHorizontalAlignment(SwingConstants.CENTER);
+        if ("Đã trả".equals(roomStatus)) {
+            ls.setForeground(new Color(30, 180, 120));
+            ls.setFont(ls.getFont().deriveFont(Font.BOLD));
+        } else if ("Chưa trả".equals(roomStatus)) {
+            ls.setForeground(new Color(220, 38, 38));
+            ls.setFont(ls.getFont().deriveFont(Font.BOLD));
+        } else {
+            ls.setForeground(new Color(100, 115, 135));
+        }
+
+        JLabel la = new JLabel(actualCheckout);
+        la.setForeground(new Color(50, 65, 80));
+        la.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel lt = new JLabel(total);
+        lt.setForeground(new Color(24, 40, 66));
+        lt.setFont(lt.getFont().deriveFont(Font.BOLD));
+        lt.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        row.add(ln, "growx");
+        row.add(lq, "alignx right");
+        row.add(lp, "alignx right");
+        row.add(ls, "alignx center");
+        row.add(la, "alignx center");
+        row.add(lt, "alignx right");
+
         return row;
     }
 
@@ -448,21 +631,16 @@ public class InvoicesPanel extends JPanel {
             URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
             if (resource == null) {
                 java.io.File file = new java.io.File("src/kqlhotel/resources/icons/" + filename);
-                if (file.exists()) resource = file.toURI().toURL();
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
             }
             if (resource != null) {
                 ImageIcon icon = new ImageIcon(resource);
                 return new ImageIcon(icon.getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
             }
-        } catch (Exception ignored) {}
-        return null;
-    }
-
-    private static class InvoiceData {
-        String id, customer, price, status;
-        Color statusColor;
-        InvoiceData(String id, String c, String p, String s, Color c2) {
-            this.id = id; customer = c; price = p; status = s; statusColor = c2; 
+        } catch (Exception ignored) {
         }
+        return null;
     }
 }
