@@ -27,8 +27,6 @@ public class PhongBUS {
         switch (guiStatus) {
             case "Trống": return "Trong";
             case "Đang sử dụng": return "DangSuDung";
-            case "Đã đặt": return "DaDat";
-            case "Đang dọn": return "DangDon";
             case "Bảo trì": return "BaoTri";
             default: return guiStatus; // e.g. "Tất cả trạng thái"
         }
@@ -39,8 +37,6 @@ public class PhongBUS {
         switch (dbStatus) {
             case "Trong":      return "Trống";
             case "DangSuDung": return "Đang sử dụng";
-            case "DaDat":      return "Đã đặt";
-            case "DangDon":    return "Đang dọn";
             case "BaoTri":     return "Bảo trì";
             default: return dbStatus;
         }

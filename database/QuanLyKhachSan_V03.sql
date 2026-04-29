@@ -1,4 +1,4 @@
-SET NOCOUNT ON;
+﻿SET NOCOUNT ON;
 
 IF DB_ID(N'QLKhachSan') IS NULL CREATE DATABASE QLKhachSan;
 GO
@@ -107,7 +107,7 @@ CREATE TABLE Phong (
     maLoaiPhong     CHAR(5)     NOT NULL,
     tang            INT         NOT NULL CHECK (tang > 0),
     trangThaiPhong  VARCHAR(20) NOT NULL DEFAULT 'Trong'
-                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri', 'DangDon', 'DaDat')),
+                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri')),
     CONSTRAINT FK_Phong_LoaiPhong FOREIGN KEY (maLoaiPhong) REFERENCES LoaiPhong(maLoaiPhong)
 );
 GO

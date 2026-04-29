@@ -37,9 +37,7 @@ public class RoomManagementPanel extends JPanel {
 
     // Status colors
     private static final Color COLOR_TRONG = new Color(30, 180, 120);
-    private static final Color COLOR_DADAT = new Color(49, 130, 206);
     private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
-    private static final Color COLOR_DANGDON = new Color(143, 97, 255);
     private static final Color COLOR_DANGSUDUNG = new Color(239, 68, 68);
 
     private final PhongBUS phongBUS = new PhongBUS();
@@ -209,9 +207,7 @@ public class RoomManagementPanel extends JPanel {
         long total = phongList.size();
         long tr = phongBUS.countByStatus(phongList, "Trong");
         long dsd = phongBUS.countByStatus(phongList, "DangSuDung");
-        long dd = phongBUS.countByStatus(phongList, "DaDat");
         long bt = phongBUS.countByStatus(phongList, "BaoTri");
-        long dn = phongBUS.countByStatus(phongList, "DangDon");
 
         subtitle.setText(total + " phòng tổng cộng - " + tr + " phòng trống");
 
@@ -219,9 +215,7 @@ public class RoomManagementPanel extends JPanel {
         statsRow.removeAll();
         statsRow.add(createStatCard("Trống", String.valueOf(tr), getPct(tr, total), COLOR_TRONG));
         statsRow.add(createStatCard("Đang sử dụng", String.valueOf(dsd), getPct(dsd, total), COLOR_DANGSUDUNG));
-        statsRow.add(createStatCard("Đã đặt", String.valueOf(dd), getPct(dd, total), COLOR_DADAT));
         statsRow.add(createStatCard("Bảo trì", String.valueOf(bt), getPct(bt, total), COLOR_BAOTRI));
-        statsRow.add(createStatCard("Đang dọn", String.valueOf(dn), getPct(dn, total), COLOR_DANGDON));
         statsRow.revalidate(); statsRow.repaint();
 
         // Update Filter Row
@@ -229,9 +223,7 @@ public class RoomManagementPanel extends JPanel {
         filterRow.add(createFilterBtn("Tất cả", String.valueOf(total - bt), true));
         filterRow.add(createFilterBtn("Trống", String.valueOf(tr), false));
         filterRow.add(createFilterBtn("Đang sử dụng", String.valueOf(dsd), false));
-        filterRow.add(createFilterBtn("Đã đặt", String.valueOf(dd), false));
         filterRow.add(createFilterBtn("Bảo trì", String.valueOf(bt), false));
-        filterRow.add(createFilterBtn("Đang dọn", String.valueOf(dn), false));
         filterRow.revalidate(); filterRow.repaint();
 
         applyFilter("Tất cả");
@@ -291,9 +283,7 @@ public class RoomManagementPanel extends JPanel {
         kqlhotel.entity.LoaiPhong lp = p.getLoaiPhong();
         String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
         Color statusColor = COLOR_TRONG;
-        if (guiStatus.equals("Đã đặt")) statusColor = COLOR_DADAT;
-        else if (guiStatus.equals("Bảo trì")) statusColor = COLOR_BAOTRI;
-        else if (guiStatus.equals("Đang dọn")) statusColor = COLOR_DANGDON;
+        if (guiStatus.equals("Bảo trì")) statusColor = COLOR_BAOTRI;
         else if (guiStatus.equals("Đang sử dụng")) statusColor = COLOR_DANGSUDUNG;
 
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1f);

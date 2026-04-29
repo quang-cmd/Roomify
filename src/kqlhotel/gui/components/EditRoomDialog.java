@@ -158,7 +158,7 @@ public class EditRoomDialog extends JDialog {
         tfTienCoc = styledField();
         tfTienCoc.putClientProperty("JTextField.placeholderText", "0");
         
-        cbTrangThai = new JComboBox<>(new String[]{"Trống", "Đang sử dụng", "Đã đặt", "Bảo trì", "Đang dọn"});
+        cbTrangThai = new JComboBox<>(new String[]{"Trống", "Đang sử dụng", "Bảo trì"});
         styleCombo(cbTrangThai);
         
         form.add(tfTienCoc, "h 38!");
