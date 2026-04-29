@@ -96,8 +96,8 @@ public class PromotionDialog extends JDialog {
         btnCancel.setBorder(BorderFactory.createLineBorder(new Color(225, 231, 245), 2));
         btnCancel.addActionListener(e -> dispose());
 
-        actionPanel.add(btnCancel, "w 100!, alignx right");
-        actionPanel.add(btnSave, "w 120!");
+        actionPanel.add(btnCancel, "w 130!, h 38!");
+        actionPanel.add(btnSave, "w 130!, h 38!");
 
         panel.add(actionPanel);
         
@@ -121,7 +121,11 @@ public class PromotionDialog extends JDialog {
     private void loadData() {
         txtMaKM.setText(editingKM.getMaKM());
         txtTenKM.setText(editingKM.getTenKM());
-        cbLoaiKM.setSelectedItem(editingKM.getLoaiKM().equals("%") ? "%" : "VNĐ");
+        if ("TheoPhanTram".equals(editingKM.getLoaiKM())) {
+            cbLoaiKM.setSelectedItem("%");
+        } else {
+            cbLoaiKM.setSelectedItem("VNĐ");
+        }
         txtTienKM.setText(String.valueOf((int) editingKM.getTienKhuyenMai()));
         txtGiaTriToiDa.setText(String.valueOf((int) editingKM.getGiaTriToiDa()));
         dpNgayBatDau.setSelectedDate(editingKM.getNgayBatDau().toLocalDate());
@@ -131,27 +135,67 @@ public class PromotionDialog extends JDialog {
     }
 
     private void savePromotion() {
-        if (txtMaKM.getText().isBlank() || txtTenKM.getText().isBlank() || cbLoaiKM.getSelectedIndex() == 0 || txtTienKM.getText().isBlank()) {
+        if (txtMaKM.getText().isBlank()
+                || txtTenKM.getText().isBlank()
+                || cbLoaiKM.getSelectedIndex() == 0
+                || txtTienKM.getText().isBlank()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ các trường bắt buộc (*)", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (dpNgayBatDau.getSelectedDate() == null || dpNgayKetThuc.getSelectedDate() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày bắt đầu và ngày kết thúc.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         try {
             Promotion km = isEditMode ? editingKM : new Promotion();
+
             km.setMaKM(txtMaKM.getText().trim().toUpperCase());
             km.setTenKM(txtTenKM.getText().trim());
-            km.setLoaiKM(cbLoaiKM.getSelectedItem().equals("%") ? "%" : "VND");
-            km.setTienKhuyenMai(Double.parseDouble(txtTienKM.getText().trim()));
-            km.setGiaTriToiDa(txtGiaTriToiDa.getText().isBlank() ? 0 : Double.parseDouble(txtGiaTriToiDa.getText().trim()));
+
+            String loai = cbLoaiKM.getSelectedItem().toString();
+            if ("%".equals(loai)) {
+                km.setLoaiKM("TheoPhanTram");
+            } else {
+                km.setLoaiKM("TheoTien");
+            }
+
+            double mucGiam = Double.parseDouble(txtTienKM.getText().trim());
+            double giamToiDa = txtGiaTriToiDa.getText().isBlank()
+                    ? 0
+                    : Double.parseDouble(txtGiaTriToiDa.getText().trim());
+
+            if (mucGiam < 0 || giamToiDa < 0) {
+                JOptionPane.showMessageDialog(this, "Mức giảm và giảm tối đa không được âm.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if ("TheoPhanTram".equals(km.getLoaiKM()) && mucGiam > 100) {
+                JOptionPane.showMessageDialog(this, "Giảm theo phần trăm không được lớn hơn 100%.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            km.setTienKhuyenMai(mucGiam);
+            km.setGiaTriToiDa(giamToiDa);
+
             km.setNgayBatDau(dpNgayBatDau.getSelectedDate().atStartOfDay());
             km.setNgayKetThuc(dpNgayKetThuc.getSelectedDate().atTime(23, 59, 59));
+
+            if (!km.getNgayKetThuc().isAfter(km.getNgayBatDau())) {
+                JOptionPane.showMessageDialog(this, "Ngày kết thúc phải sau ngày bắt đầu.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             km.setTrangThaiKM(cbTrangThai.getSelectedItem().toString());
             km.setDieuKienApDung(txtDieuKien.getText().trim());
 
             boolean success = isEditMode ? bus.updatePromotion(km) : bus.createPromotion(km);
 
             if (success) {
-                if (onSuccess != null) onSuccess.run();
+                if (onSuccess != null) {
+                    onSuccess.run();
+                }
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Cập nhật thất bại. Vui lòng kiểm tra lại thông tin hoặc mã bị trùng.", "Lỗi", JOptionPane.ERROR_MESSAGE);

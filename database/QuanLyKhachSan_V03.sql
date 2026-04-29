@@ -1,4 +1,4 @@
-SET NOCOUNT ON;
+﻿SET NOCOUNT ON;
 
 IF DB_ID(N'QLKhachSan') IS NULL CREATE DATABASE QLKhachSan;
 GO
@@ -52,7 +52,7 @@ CREATE TABLE KhachHang (
     hoTenKH     NVARCHAR(100)  NOT NULL,
     gioiTinh    BIT            NOT NULL DEFAULT 1,
     ngaySinh    DATETIME2      NULL,
-    email       VARCHAR(100)   NULL,g
+    email       VARCHAR(100)   NULL,
     sdt         VARCHAR(15)    NOT NULL UNIQUE,
     CCCD        VARCHAR(20)    NOT NULL UNIQUE,
     quocTich    NVARCHAR(50)   NOT NULL DEFAULT N'Viet Nam',
