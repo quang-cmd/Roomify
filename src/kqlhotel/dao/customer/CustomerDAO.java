@@ -114,7 +114,10 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         customer.setMaKH(rs.getString("maKH"));
         customer.setHoTenKH(rs.getString("hoTenKH"));
         customer.setGioiTinh(rs.getBoolean("gioiTinh"));
-        customer.setNgaySinh(rs.getTimestamp("ngaySinh").toLocalDateTime());
+        Timestamp ns = rs.getTimestamp("ngaySinh");
+        if (ns != null) {
+            customer.setNgaySinh(ns.toLocalDateTime());
+        }
         customer.setEmail(rs.getString("email"));
         customer.setSdt(rs.getString("sdt"));
         customer.setCCCD(rs.getString("CCCD"));

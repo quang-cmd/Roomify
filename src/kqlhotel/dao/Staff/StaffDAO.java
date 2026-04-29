@@ -14,8 +14,10 @@ public class StaffDAO {
         List<Staff> list = new ArrayList<>();
         String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap";
         
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             Statement stmt = con.createStatement();
+        Connection con = ConnectDB.getInstance().getConnection();
+        if (con == null) return list;
+        
+        try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Account acc = new Account(
@@ -41,7 +43,7 @@ public class StaffDAO {
                 }
                 list.add(staff);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             System.err.println("Lỗi truy vấn: " + e.getMessage());
             e.printStackTrace();
         }
@@ -50,8 +52,10 @@ public class StaffDAO {
 
     public boolean insert(Staff staff) {
         String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, tenDangNhap, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        if (con == null) return false;
+
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getStaffId());
             pstmt.setString(2, staff.getFullName());
             pstmt.setString(3, staff.getPhone());
@@ -66,7 +70,7 @@ public class StaffDAO {
                 pstmt.setDouble(7, 0.0);
             }
             return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             System.err.println("Lỗi thêm nhân viên: " + e.getMessage());
             e.printStackTrace();
         }
@@ -75,8 +79,10 @@ public class StaffDAO {
 
     public boolean update(Staff staff) {
         String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, ngayVao = ?, luong = ?, tenDangNhap = ? WHERE maNV = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        if (con == null) return false;
+
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getFullName());
             pstmt.setString(2, staff.getPhone());
             pstmt.setBoolean(3, staff.getGender() != null ? staff.getGender() : true);
@@ -91,7 +97,7 @@ public class StaffDAO {
             pstmt.setString(6, staff.getAccount().getUsername());
             pstmt.setString(7, staff.getStaffId());
             return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             System.err.println("Lỗi cập nhật nhân viên: " + e.getMessage());
             e.printStackTrace();
         }
@@ -100,11 +106,13 @@ public class StaffDAO {
 
     public boolean delete(String maNV) {
         String sql = "DELETE FROM NhanVien WHERE maNV = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+        Connection con = ConnectDB.getInstance().getConnection();
+        if (con == null) return false;
+
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, maNV);
             return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return false;
