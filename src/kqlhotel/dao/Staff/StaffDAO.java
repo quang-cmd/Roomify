@@ -9,16 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StaffDAO {
+
     public List<Staff> getAll() {
         List<Staff> list = new ArrayList<>();
         String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap";
-        try {
-            ConnectDB.getInstance().connect();
-        } catch (SQLException | ClassNotFoundException e) {
-            System.err.println("Lỗi kết nối database: " + e.getMessage());
-            return list;
-        }
-
+        
         try (Connection con = ConnectDB.getInstance().getConnection();
              Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -27,7 +22,7 @@ public class StaffDAO {
                     rs.getString("tenDangNhap"),
                     rs.getString("matKhau"),
                     rs.getString("vaiTro"),
-                    rs.getString("TrangThaiTK")
+                    rs.getString("trangThaiTK")
                 );
                 Staff staff = new Staff(
                     rs.getString("maNV"),
@@ -36,7 +31,6 @@ public class StaffDAO {
                     rs.getBoolean("gioiTinh"),
                     acc
                 );
-                // Đọc ngàyVào và lương nếu có
                 Date ngayVaoDate = rs.getDate("ngayVao");
                 if (ngayVaoDate != null) {
                     staff.setNgayVao(ngayVaoDate.toLocalDate());
@@ -56,25 +50,16 @@ public class StaffDAO {
 
     public boolean insert(Staff staff) {
         String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, tenDangNhap, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
-        try {
-            ConnectDB.getInstance().connect();
-        } catch (SQLException | ClassNotFoundException e) {
-            System.err.println("Lỗi kết nối database: " + e.getMessage());
-            return false;
-        }
-
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getStaffId());
             pstmt.setString(2, staff.getFullName());
             pstmt.setString(3, staff.getPhone());
-            pstmt.setBoolean(4, staff.getGender());
+            pstmt.setBoolean(4, staff.getGender() != null ? staff.getGender() : true);
             pstmt.setString(5, staff.getAccount().getUsername());
-            // ngàyVao
             pstmt.setDate(6, staff.getNgayVao() != null
                 ? Date.valueOf(staff.getNgayVao())
                 : Date.valueOf(LocalDate.now()));
-            // lương
             if (staff.getLuong() != null) {
                 pstmt.setDouble(7, staff.getLuong());
             } else {
@@ -90,18 +75,11 @@ public class StaffDAO {
 
     public boolean update(Staff staff) {
         String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, ngayVao = ?, luong = ?, tenDangNhap = ? WHERE maNV = ?";
-        try {
-            ConnectDB.getInstance().connect();
-        } catch (SQLException | ClassNotFoundException e) {
-            System.err.println("Lỗi kết nối database: " + e.getMessage());
-            return false;
-        }
-
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, staff.getFullName());
             pstmt.setString(2, staff.getPhone());
-            pstmt.setBoolean(3, staff.getGender());
+            pstmt.setBoolean(3, staff.getGender() != null ? staff.getGender() : true);
             pstmt.setDate(4, staff.getNgayVao() != null
                 ? Date.valueOf(staff.getNgayVao())
                 : Date.valueOf(LocalDate.now()));
@@ -115,6 +93,18 @@ public class StaffDAO {
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi cập nhật nhân viên: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean delete(String maNV) {
+        String sql = "DELETE FROM NhanVien WHERE maNV = ?";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setString(1, maNV);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;

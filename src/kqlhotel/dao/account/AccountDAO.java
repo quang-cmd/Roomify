@@ -18,7 +18,7 @@ public class AccountDAO {
                         rs.getString("tenDangNhap"),
                         rs.getString("matKhau"),
                         rs.getString("vaiTro"),
-                        rs.getString("TrangThaiTK")
+                        rs.getString("trangThaiTK")
                 );
                 list.add(acc);
             }
@@ -29,13 +29,7 @@ public class AccountDAO {
     }
 
     public boolean insert(Account acc) {
-        String sql = "INSERT INTO TaiKhoan(tenDangNhap, matKhau, vaiTro, TrangThaiTK) VALUES(?, ?, ?, ?)";
-        try {
-            ConnectDB.getInstance().connect();
-        } catch (Exception e) {
-            System.err.println("Lỗi kết nối database: " + e.getMessage());
-            return false;
-        }
+        String sql = "INSERT INTO TaiKhoan(tenDangNhap, matKhau, vaiTro, trangThaiTK) VALUES(?, ?, ?, ?)";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, acc.getUsername());
@@ -50,7 +44,7 @@ public class AccountDAO {
     }
 
     public boolean update(Account acc) {
-        String sql = "UPDATE TaiKhoan SET matKhau = ?, vaiTro = ?, TrangThaiTK = ? WHERE tenDangNhap = ?";
+        String sql = "UPDATE TaiKhoan SET matKhau = ?, vaiTro = ?, trangThaiTK = ? WHERE tenDangNhap = ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, acc.getPassword());
@@ -62,5 +56,26 @@ public class AccountDAO {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public Account getById(String username) {
+        String sql = "SELECT * FROM TaiKhoan WHERE tenDangNhap = ?";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Account(
+                            rs.getString("tenDangNhap"),
+                            rs.getString("matKhau"),
+                            rs.getString("vaiTro"),
+                            rs.getString("trangThaiTK")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
