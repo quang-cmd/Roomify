@@ -15,10 +15,10 @@ import kqlhotel.bus.booking.model.RoomOptionDto;
 
 public class MockBookingService implements BookingService {
     private final List<RoomOptionDto> mockRooms = Arrays.asList(
-        new RoomOptionDto("Deluxe", 1_200_000L, "2/5 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
-        new RoomOptionDto("Grand Premium 1", 2_200_000L, "2/4 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
-        new RoomOptionDto("Grand Premium 2", 3_200_000L, "2/3 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
-        new RoomOptionDto("Suite", 5_500_000L, "2/3 trống", 2, Arrays.asList("Wifi", "Minibar", "Phòng khách"))
+        new RoomOptionDto("Deluxe", 1_200_000L, 2, "2/5 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
+        new RoomOptionDto("Grand Premium 1", 2_200_000L, 2, "2/4 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
+        new RoomOptionDto("Grand Premium 2", 3_200_000L, 2, "2/3 trống", 2, Arrays.asList("Wifi", "Minibar", "Ban công")),
+        new RoomOptionDto("Suite", 5_500_000L, 2, "2/3 trống", 2, Arrays.asList("Wifi", "Minibar", "Phòng khách"))
     );
 
     @Override

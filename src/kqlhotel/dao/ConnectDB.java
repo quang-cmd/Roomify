@@ -36,15 +36,15 @@ public class ConnectDB {
         }
     }
 
-    public Connection getConnection() {
+    public static Connection getConnection() {
         try {
-            if (connection == null || connection.isClosed()) {
-                connect();
+            if (instance.connection == null || instance.connection.isClosed()) {
+                instance.connect();
             }
         } catch (Exception e) {
             System.err.println("ConnectDB.getConnection() – tự kết nối lại thất bại: " + e.getMessage());
         }
-        return connection;
+        return instance.connection;
     }
 
     // Static helper for convenience
