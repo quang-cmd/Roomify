@@ -72,7 +72,6 @@ public class DichVuPanel extends JPanel {
 
         countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         countLabel.setForeground(new Color(100, 116, 139));
-
         titleWrap.add(countLabel);
 
         JButton addButton = createPrimaryButton("Thêm dịch vụ", "services.png");
