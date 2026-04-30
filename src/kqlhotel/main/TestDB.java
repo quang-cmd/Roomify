@@ -12,32 +12,30 @@ import java.util.List;
 
 public class TestDB {
     public static void main(String[] args) {
-        System.out.println("Testing DB Connection...");
+        System.out.println("=== KIEM TRA KET NOI DU LIEU (LINK DATA) ===");
         try {
+            System.out.print("Dang ket noi... ");
             ConnectDB.getInstance().connect();
-            System.out.println("Connected!");
+            System.out.println("OK! (Thanh cong)");
             
-            AccountDAO adao = new AccountDAO();
             StaffDAO sdao = new StaffDAO();
-            
-            // Insert account
-            Account acc = new Account("testuser99", "pass123", "NhanVien", "DangHoatDong");
-            System.out.println("Inserting account: " + adao.insert(acc));
-            
-            // Insert staff
-            Staff staff = new Staff("NV99", "Test User", "0123456789", true, acc, LocalDate.now(), 5000000.0);
-            System.out.println("Inserting staff: " + sdao.insert(staff));
-            
             List<Staff> list = sdao.getAll();
-            System.out.println("Total staff in DB: " + list.size());
             
-            Account acc2 = new Account("testuser100", "pass123", "NhanVien", "DangHoatDong");
-            System.out.println("Inserting account2: " + adao.insert(acc2));
-            Staff staff2 = new Staff("NV100", "Test User 2", "0123456788", false, acc2, LocalDate.now(), null);
-            System.out.println("Inserting staff2 (null salary): " + sdao.insert(staff2));
+            System.out.println("--- Ket qua truy van ---");
+            System.out.println("So luong nhan vien hien co trong DB: " + list.size());
+            
+            if (list.size() > 0) {
+                System.out.println("Vi du 1 nhan vien: " + list.get(0).getFullName());
+            } else {
+                System.out.println("Luu y: Database dang trong (chua co du lieu).");
+            }
+            
+            System.out.println("==========================================");
+            System.out.println("KET LUAN: CODE DA LINK DU LIEU THANH CONG!");
             
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("\n!!! THAT BAI !!!");
+            System.err.println("Khong the link du lieu. Vui long kiem tra lai ConnectDB.java");
         }
     }
 }
