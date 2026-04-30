@@ -29,7 +29,7 @@ public class DoiPhongDao {
             "AND (? = '' OR ctdp.maPhong LIKE ?) " +
             "ORDER BY dp.ngayNhanDuKien DESC, dp.maDatPhong DESC";
 
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maDatPhong);
             ps.setString(2, "%" + maDatPhong + "%");
@@ -80,7 +80,7 @@ public class DoiPhongDao {
             "ORDER BY CASE WHEN p.maLoaiPhong = ? THEN 0 ELSE 1 END, " +
             "lp.sucChuaToiDa ASC, p.tang ASC, p.maPhong ASC";
 
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, booking == null ? "" : booking.getMaPhongHienTai());
             ps.setInt(2, booking == null ? 1 : Math.max(1, booking.getSoLuongNguoiO()));
@@ -111,7 +111,7 @@ public class DoiPhongDao {
         String updateOldRoomSql = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?";
         String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?";
 
-        try (Connection conn = ConnectDB.getConnection()) {
+        try (Connection conn = ConnectDB.getInstance().getConnection()) {
             boolean autoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
             try {

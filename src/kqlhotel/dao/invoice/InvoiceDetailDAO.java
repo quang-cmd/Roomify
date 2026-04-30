@@ -59,19 +59,20 @@ public class InvoiceDetailDAO {
         return list;
     }
 
-    public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double thanhTien) {
+    public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double phuThu, double thanhTien) {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
-                    "SET ngayTraThucTe = ?, soDem = ?, thanhTien = ? " +
+                    "SET ngayTraThucTe = ?, soDem = ?, phuThu = ?, thanhTien = ? " +
                     "WHERE maHD = ? AND maPhong = ?";
 
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setTimestamp(1, Timestamp.valueOf(ngayTraThucTe));
             pstmt.setInt(2, soDem);
-            pstmt.setDouble(3, thanhTien);
-            pstmt.setString(4, maHD);
-            pstmt.setString(5, maPhong);
+            pstmt.setDouble(3, phuThu);
+            pstmt.setDouble(4, thanhTien);
+            pstmt.setString(5, maHD);
+            pstmt.setString(6, maPhong);
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

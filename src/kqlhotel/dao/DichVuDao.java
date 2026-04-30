@@ -13,7 +13,7 @@ public class DichVuDao {
         List<DichVuEntity> list = new ArrayList<>();
         String sql = "SELECT * FROM DichVu ORDER BY tenDV";
 
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -37,7 +37,7 @@ public class DichVuDao {
 
     public boolean insert(DichVuEntity dichVu) {
         String sql = "INSERT INTO DichVu(maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES(?,?,?,?,?)";
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, generateNextServiceId(conn));
             ps.setString(2, dichVu.getTenDV());
@@ -53,7 +53,7 @@ public class DichVuDao {
 
     public boolean update(DichVuEntity dichVu) {
         String sql = "UPDATE DichVu SET tenDV=?, donGia=?, moTaDV=?, trangThaiDV=? WHERE maDV=?";
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, dichVu.getTenDV());
             ps.setDouble(2, dichVu.getGia());
@@ -69,7 +69,7 @@ public class DichVuDao {
 
     public boolean updateStatus(String maDV, String trangThai) {
         String sql = "UPDATE DichVu SET trangThaiDV=? WHERE maDV=?";
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, normalizeStatus(trangThai));
             ps.setString(2, maDV);

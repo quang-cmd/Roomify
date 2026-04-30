@@ -130,13 +130,15 @@ public class CheckoutBUS {
                 days = 1;
             }
 
-            double fee = days * lp.getGiaPhong() + ct.getPhuThu();
+            double phuThu = calculateLateFee(ct.getNgayTraPhong(), now, lp.getGiaPhong());
+            double fee = days * lp.getGiaPhong() + phuThu;
 
             boolean updateDetail = invoiceDetailDAO.updateCheckoutInfo(
                     hd.getMaHD(),
                     ct.getMaPhong(),
                     now,
                     (int) days,
+                    phuThu,
                     fee
             );
 
@@ -263,12 +265,13 @@ public class CheckoutBUS {
                             "FROM HoaDon hd " +
                             "JOIN DatPhong dp ON hd.maDatPhong = dp.maDatPhong " +
                             "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
-                            "LEFT JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
                             "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
                             "WHERE hd.trangThai = 'ChuaThanhToan' " +
-                            "AND (cthd.ngayTraThucTe IS NULL) "
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
+                            "AND cthd.ngayTraThucTe IS NULL "
             );
 
             if (roomCode != null && !roomCode.isEmpty()) {
@@ -386,5 +389,22 @@ public class CheckoutBUS {
         }
 
         return null;
+    }
+    private double calculateLateFee(LocalDateTime expectedCheckout, LocalDateTime actualCheckout, double roomPrice) {
+        if (expectedCheckout == null || actualCheckout == null || !actualCheckout.isAfter(expectedCheckout)) {
+            return 0;
+        }
+
+        long lateMinutes = Duration.between(expectedCheckout, actualCheckout).toMinutes();
+
+        if (lateMinutes <= 120) {
+            return roomPrice * 0.10;
+        }
+
+        if (lateMinutes <= 360) {
+            return roomPrice * 0.30;
+        }
+
+        return roomPrice;
     }
 }
