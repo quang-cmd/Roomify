@@ -21,7 +21,7 @@ public class DoiPhongBus {
         return dao.getAvailableRooms(booking);
     }
 
-    public boolean changeRoom(String maChiTietDatPhong, String newRoom) {
-        return dao.changeRoom(maChiTietDatPhong, newRoom);
+    public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom) {
+        return dao.changeRoom(maDatPhong, oldRoom, newRoom);
     }
 }

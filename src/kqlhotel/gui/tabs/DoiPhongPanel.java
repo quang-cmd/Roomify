@@ -715,7 +715,7 @@ public class DoiPhongPanel extends JPanel {
             return;
         }
 
-        boolean success = doiPhongBus.changeRoom(result.getMaChiTietDatPhong(), room.getMaPhong());
+        boolean success = doiPhongBus.changeRoom(result.getMaDatPhong(), result.getMaPhongHienTai(), room.getMaPhong());
         if (!success) {
             JOptionPane.showMessageDialog(this, "Khong the doi phong. Vui long kiem tra lai du lieu trong database.", "Loi", JOptionPane.ERROR_MESSAGE);
             return;

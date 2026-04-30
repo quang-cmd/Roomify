@@ -15,7 +15,7 @@ public class DoiPhongDao {
     public List<DoiPhongSearchResult> searchBookings(String maDatPhong, String tenKhach, String soDienThoai, String maPhong) {
         List<DoiPhongSearchResult> results = new ArrayList<>();
         String sql =
-            "SELECT ctdp.maCTDP, dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
+            "SELECT dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
             "ctdp.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, " +
             "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
             "FROM ChiTietDatPhong ctdp " +
@@ -43,7 +43,7 @@ public class DoiPhongDao {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DoiPhongSearchResult item = new DoiPhongSearchResult();
-                    item.setMaChiTietDatPhong(rs.getString("maCTDP"));
+                    item.setMaChiTietDatPhong(rs.getString("maDatPhong") + ":" + rs.getString("maPhong"));
                     item.setMaDatPhong(rs.getString("maDatPhong"));
                     item.setMaKhachHang(rs.getString("maKH"));
                     item.setTenKhachHang(rs.getString("hoTenKH"));
@@ -105,9 +105,8 @@ public class DoiPhongDao {
         return rooms;
     }
 
-    public boolean changeRoom(String maChiTietDatPhong, String newRoom) {
-        String selectSql = "SELECT maPhong FROM ChiTietDatPhong WHERE maCTDP = ?";
-        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maCTDP = ?";
+    public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom) {
+        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maDatPhong = ? AND maPhong = ?";
         String updateOldRoomSql = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?";
         String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?";
 
@@ -115,24 +114,18 @@ public class DoiPhongDao {
             boolean autoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
             try {
-                String oldRoom;
-                try (PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
-                    selectPs.setString(1, maChiTietDatPhong);
-                    try (ResultSet rs = selectPs.executeQuery()) {
-                        if (!rs.next()) {
-                            conn.rollback();
-                            return false;
-                        }
-                        oldRoom = rs.getString("maPhong");
-                    }
-                }
-
                 try (PreparedStatement updateDetailPs = conn.prepareStatement(updateDetailSql);
                      PreparedStatement updateOldRoomPs = conn.prepareStatement(updateOldRoomSql);
                      PreparedStatement updateNewRoomPs = conn.prepareStatement(updateNewRoomSql)) {
                     updateDetailPs.setString(1, newRoom);
-                    updateDetailPs.setString(2, maChiTietDatPhong);
-                    updateDetailPs.executeUpdate();
+                    updateDetailPs.setString(2, maDatPhong);
+                    updateDetailPs.setString(3, oldRoom);
+                    int affected = updateDetailPs.executeUpdate();
+                    
+                    if (affected == 0) {
+                        conn.rollback();
+                        return false;
+                    }
 
                     updateOldRoomPs.setString(1, oldRoom);
                     updateOldRoomPs.executeUpdate();
