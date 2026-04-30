@@ -18,7 +18,7 @@ public class InvoiceDetailDAO {
         List<InvoiceDetail> list = new ArrayList<>();
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien " +
                     "FROM ChiTietHoaDon WHERE maHD = ? ORDER BY maPhong";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -61,7 +61,7 @@ public class InvoiceDetailDAO {
 
     public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double phuThu, double thanhTien) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
                     "SET ngayTraThucTe = ?, soDem = ?, phuThu = ?, thanhTien = ? " +
                     "WHERE maHD = ? AND maPhong = ?";
@@ -83,7 +83,7 @@ public class InvoiceDetailDAO {
 
     public boolean markAllRemainingRoomsCheckedOut(String maHD, LocalDateTime checkoutTime) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
                     "SET ngayTraThucTe = COALESCE(ngayTraThucTe, ?) " +
                     "WHERE maHD = ? AND ngayTraThucTe IS NULL";
@@ -107,7 +107,7 @@ public class InvoiceDetailDAO {
         }
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = """
             SELECT maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat
             FROM ChiTietDatPhong
@@ -168,7 +168,7 @@ public class InvoiceDetailDAO {
         }
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             String sql =
                     "INSERT INTO ChiTietHoaDon " +

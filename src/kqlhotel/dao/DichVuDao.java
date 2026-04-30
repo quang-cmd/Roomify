@@ -93,7 +93,7 @@ public class DichVuDao {
     }
 
     private String encodeDescription(String category, String description) {
-        String normalizedCategory = category == null || category.isBlank() ? "Tien ich" : category;
+        String normalizedCategory = category == null || category.isBlank() ? "Tiện ích" : category;
         String normalizedDescription = description == null ? "" : description.trim();
         return "[CAT:" + normalizedCategory + "] " + normalizedDescription;
     }
@@ -107,19 +107,19 @@ public class DichVuDao {
         }
 
         String lowerName = tenDV == null ? "" : tenDV.toLowerCase();
-        if (lowerName.contains("giat") || lowerName.contains("don phong")) {
-            return "Buong phong";
+        if (lowerName.contains("giặt") || lowerName.contains("dọn phòng")) {
+            return "Buồng phòng";
         }
-        if (lowerName.contains("nuoc") || lowerName.contains("buffet") || lowerName.contains("mi") || lowerName.contains("an")) {
-            return "An uong";
+        if (lowerName.contains("nước") || lowerName.contains("buffet") || lowerName.contains("mì") || lowerName.contains("ăn")) {
+            return "Ăn uống";
         }
         if (lowerName.contains("spa") || lowerName.contains("massage") || lowerName.contains("gym")) {
-            return "Thu gian";
+            return "Thư giãn";
         }
-        if (lowerName.contains("dua don") || lowerName.contains("xe")) {
-            return "Van chuyen";
+        if (lowerName.contains("đưa đón") || lowerName.contains("xe")) {
+            return "Vận chuyển";
         }
-        return "Tien ich";
+        return "Tiện ích";
     }
 
     private String cleanDescription(String description) {

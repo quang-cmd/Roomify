@@ -84,16 +84,9 @@ public class DoiPhongPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Doi phong");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
-        title.setForeground(TEXT_PRIMARY);
-
-        JLabel subtitle = new JLabel("Tim booking dang luu tru, chon phong trong phu hop va cap nhat ngay tren du lieu hien co.");
+        JLabel subtitle = new JLabel("Tìm booking đang lưu trú, chọn phòng trống phù hợp và cập nhật ngay trên dữ liệu hiện có.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitle.setForeground(TEXT_MUTED);
-
-        titleWrap.add(title);
-        titleWrap.add(Box.createVerticalStrut(6));
         titleWrap.add(subtitle);
 
         header.add(titleWrap, BorderLayout.WEST);
@@ -192,13 +185,15 @@ public class DoiPhongPanel extends JPanel {
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
         top.setBorder(new EmptyBorder(18, 20, 12, 20));
 
-        JLabel title = new JLabel("Bo loc tim khach dang o");
+        JLabel title = new JLabel("Bộ lọc tìm khách đang ở");
         title.setFont(new Font("Segoe UI", Font.BOLD, 17));
         title.setForeground(TEXT_PRIMARY);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel sub = new JLabel("Nhap it nhat 1 thong tin. He thong se tim tren booking va phong hien tai trong database.");
+        JLabel sub = new JLabel("Nhập ít nhất 1 thông tin. Hệ thống sẽ tìm trên booking và phòng hiện tại.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         sub.setForeground(TEXT_MUTED);
+        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         top.add(title);
         top.add(Box.createVerticalStrut(6));
@@ -209,23 +204,24 @@ public class DoiPhongPanel extends JPanel {
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBorder(new EmptyBorder(10, 20, 20, 20));
 
-        form.add(createFieldGroup("Ma dat phong", inpMaDatPhong));
+        form.add(createFieldGroup("Mã đặt phòng", inpMaDatPhong));
         form.add(Box.createVerticalStrut(12));
-        form.add(createFieldGroup("Ten khach", inpTenKhach));
+        form.add(createFieldGroup("Tên khách", inpTenKhach));
         form.add(Box.createVerticalStrut(12));
-        form.add(createFieldGroup("So dien thoai", inpSoDienThoai));
+        form.add(createFieldGroup("Số điện thoại", inpSoDienThoai));
         form.add(Box.createVerticalStrut(12));
-        form.add(createFieldGroup("So phong hien tai", inpSoPhong));
+        form.add(createFieldGroup("Số phòng hiện tại", inpSoPhong));
         form.add(Box.createVerticalStrut(18));
 
         JPanel buttonRow = new JPanel(new GridLayout(1, 2, 10, 0));
         buttonRow.setOpaque(false);
         buttonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        buttonRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton searchButton = createPrimaryButton("Tim booking", "search.png", new Color(17, 24, 39));
+        JButton searchButton = createPrimaryButton("Tìm booking", "search.png", new Color(17, 24, 39));
         searchButton.addActionListener(e -> performSearch());
 
-        JButton resetButton = createSecondaryButton("Xoa loc");
+        JButton resetButton = createSecondaryButton("Xóa lọc");
         resetButton.addActionListener(e -> resetSearch());
 
         buttonRow.add(searchButton);
@@ -251,7 +247,7 @@ public class DoiPhongPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Danh sach booking");
+        JLabel title = new JLabel("Danh sách booking");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
         title.setForeground(TEXT_PRIMARY);
 
@@ -283,10 +279,14 @@ public class DoiPhongPanel extends JPanel {
         JPanel group = new JPanel();
         group.setOpaque(false);
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(new Color(71, 85, 105));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         group.add(label);
         group.add(Box.createVerticalStrut(7));
@@ -364,10 +364,10 @@ public class DoiPhongPanel extends JPanel {
         resultListPanel.removeAll();
 
         if (currentResults.isEmpty()) {
-            resultCountLabel.setText("Chua co ket qua phu hop");
+            resultCountLabel.setText("Chưa có kết quả phù hợp");
             resultListPanel.add(createEmptyListMessage());
         } else {
-            resultCountLabel.setText(currentResults.size() + " booking phu hop");
+            resultCountLabel.setText(currentResults.size() + " booking phù hợp");
             for (DoiPhongSearchResult result : currentResults) {
                 resultListPanel.add(createBookingCard(result));
                 resultListPanel.add(Box.createVerticalStrut(10));
@@ -384,7 +384,7 @@ public class DoiPhongPanel extends JPanel {
         panel.setLayout(new BorderLayout());
         panel.setBorder(new EmptyBorder(20, 16, 20, 16));
 
-        JLabel label = new JLabel("<html><div style='text-align:center;'>Nhap thong tin o bo loc de hien booking tai day.</div></html>", SwingConstants.CENTER);
+        JLabel label = new JLabel("<html><div style='text-align:center;'>Nhập thông tin ở bộ lọc để hiện booking tại đây.</div></html>", SwingConstants.CENTER);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(TEXT_MUTED);
         panel.add(label, BorderLayout.CENTER);
@@ -480,7 +480,7 @@ public class DoiPhongPanel extends JPanel {
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Chi tiet doi phong");
+        JLabel title = new JLabel("Chi tiết đổi phòng");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(TEXT_PRIMARY);
 
@@ -510,14 +510,14 @@ public class DoiPhongPanel extends JPanel {
         left.setLayout(new GridLayout(0, 2, 12, 12));
         left.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        left.add(createInfoItem("Ma dat phong", result.getMaDatPhong()));
-        left.add(createInfoItem("Khach hang", result.getTenKhachHang()));
-        left.add(createInfoItem("So dien thoai", result.getSoDienThoai()));
+        left.add(createInfoItem("Mã đặt phòng", result.getMaDatPhong()));
+        left.add(createInfoItem("Khách hàng", result.getTenKhachHang()));
+        left.add(createInfoItem("Số điện thoại", result.getSoDienThoai()));
         left.add(createInfoItem("CCCD", result.getCccd()));
-        left.add(createInfoItem("Phong hien tai", result.getMaPhongHienTai()));
-        left.add(createInfoItem("Loai phong", result.getLoaiPhongHienTai()));
-        left.add(createInfoItem("Ngay nhan", formatDateTime(result.getNgayNhan())));
-        left.add(createInfoItem("Ngay tra", formatDateTime(result.getNgayTra())));
+        left.add(createInfoItem("Phòng hiện tại", result.getMaPhongHienTai()));
+        left.add(createInfoItem("Loại phòng", result.getLoaiPhongHienTai()));
+        left.add(createInfoItem("Ngày nhận", formatDateTime(result.getNgayNhan())));
+        left.add(createInfoItem("Ngày trả", formatDateTime(result.getNgayTra())));
 
         RoundedBlockPanel right = new RoundedBlockPanel(18, new Color(239, 246, 255), new Color(191, 219, 254), 1f, new Color(15, 23, 42, 0), 0);
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
@@ -584,11 +584,11 @@ public class DoiPhongPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Phong trong de doi");
+        JLabel title = new JLabel("Phòng trống để đổi");
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(TEXT_PRIMARY);
 
-        JLabel sub = new JLabel("Danh sach duoc loc tu du lieu hien co: cung uu tien loai phong va du suc chua.");
+        JLabel sub = new JLabel("Danh sách được lọc từ dữ liệu hiện có: cùng ưu tiên loại phòng và đủ sức chứa.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         sub.setForeground(TEXT_MUTED);
 
@@ -630,7 +630,7 @@ public class DoiPhongPanel extends JPanel {
         panel.setLayout(new GridBagLayout());
         panel.setBorder(new EmptyBorder(22, 16, 22, 16));
 
-        JLabel label = new JLabel("Khong co phong trong phu hop de doi.");
+        JLabel label = new JLabel("Không có phòng trống phù hợp để đổi.");
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(new Color(185, 28, 28));
         panel.add(label);
@@ -715,7 +715,7 @@ public class DoiPhongPanel extends JPanel {
             return;
         }
 
-        boolean success = doiPhongBus.changeRoom(result.getMaChiTietDatPhong(), room.getMaPhong());
+        boolean success = doiPhongBus.changeRoom(result.getMaDatPhong(), result.getMaPhongHienTai(), room.getMaPhong());
         if (!success) {
             JOptionPane.showMessageDialog(this, "Khong the doi phong. Vui long kiem tra lai du lieu trong database.", "Loi", JOptionPane.ERROR_MESSAGE);
             return;
@@ -741,12 +741,12 @@ public class DoiPhongPanel extends JPanel {
         JPanel iconBox = createLargeStateIcon();
         iconBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel title = new JLabel("San sang doi phong");
+        JLabel title = new JLabel("Sẵn sàng đổi phòng");
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("<html><div style='text-align:center;'>Tim mot booking dang luu tru o cot ben trai.<br>Sau khi chon, danh sach phong trong hop le se hien ra tai day.</div></html>");
+        JLabel subtitle = new JLabel("<html><div style='text-align:center;'>Tìm một booking đang lưu trú ở cột bên trái.<br>Sau khi chọn, danh sách phòng trống hợp lệ sẽ hiện ra tại đây.</div></html>");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);

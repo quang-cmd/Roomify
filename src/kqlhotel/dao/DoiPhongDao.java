@@ -15,7 +15,7 @@ public class DoiPhongDao {
     public List<DoiPhongSearchResult> searchBookings(String maDatPhong, String tenKhach, String soDienThoai, String maPhong) {
         List<DoiPhongSearchResult> results = new ArrayList<>();
         String sql =
-            "SELECT ctdp.maCTDP, dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
+            "SELECT dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
             "ctdp.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, " +
             "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
             "FROM ChiTietDatPhong ctdp " +
@@ -43,7 +43,7 @@ public class DoiPhongDao {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DoiPhongSearchResult item = new DoiPhongSearchResult();
-                    item.setMaChiTietDatPhong(rs.getString("maCTDP"));
+                    item.setMaChiTietDatPhong(rs.getString("maDatPhong") + ":" + rs.getString("maPhong"));
                     item.setMaDatPhong(rs.getString("maDatPhong"));
                     item.setMaKhachHang(rs.getString("maKH"));
                     item.setTenKhachHang(rs.getString("hoTenKH"));
@@ -105,34 +105,39 @@ public class DoiPhongDao {
         return rooms;
     }
 
-    public boolean changeRoom(String maChiTietDatPhong, String newRoom) {
-        String selectSql = "SELECT maPhong FROM ChiTietDatPhong WHERE maCTDP = ?";
-        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maCTDP = ?";
+    public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom) {
+        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maDatPhong = ? AND maPhong = ?";
+        // Quan trọng: Phải cập nhật cả ChiTietHoaDon vì khách có thể đang ở
+        String updateInvoiceSql = "UPDATE ChiTietHoaDon SET maPhong = ? WHERE maPhong = ? AND maHD IN (SELECT maHD FROM HoaDon WHERE maDatPhong = ?)";
+        
         String updateOldRoomSql = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?";
-        String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DaDat' WHERE maPhong = ?";
+        String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DangSuDung' WHERE maPhong = ?";
 
         try (Connection conn = ConnectDB.getInstance().getConnection()) {
             boolean autoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
             try {
-                String oldRoom;
-                try (PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
-                    selectPs.setString(1, maChiTietDatPhong);
-                    try (ResultSet rs = selectPs.executeQuery()) {
-                        if (!rs.next()) {
-                            conn.rollback();
-                            return false;
-                        }
-                        oldRoom = rs.getString("maPhong");
-                    }
-                }
-
                 try (PreparedStatement updateDetailPs = conn.prepareStatement(updateDetailSql);
+                     PreparedStatement updateInvoicePs = conn.prepareStatement(updateInvoiceSql);
                      PreparedStatement updateOldRoomPs = conn.prepareStatement(updateOldRoomSql);
                      PreparedStatement updateNewRoomPs = conn.prepareStatement(updateNewRoomSql)) {
+                    
                     updateDetailPs.setString(1, newRoom);
-                    updateDetailPs.setString(2, maChiTietDatPhong);
-                    updateDetailPs.executeUpdate();
+                    updateDetailPs.setString(2, maDatPhong);
+                    updateDetailPs.setString(3, oldRoom);
+                    int affected = updateDetailPs.executeUpdate();
+                    
+                    if (affected == 0) {
+                        System.err.println("DoiPhongDao: Không tìm thấy booking " + maDatPhong + " với phòng " + oldRoom + " trong ChiTietDatPhong.");
+                        conn.rollback();
+                        return false;
+                    }
+
+                    // Cập nhật ChiTietHoaDon nếu có
+                    updateInvoicePs.setString(1, newRoom);
+                    updateInvoicePs.setString(2, oldRoom);
+                    updateInvoicePs.setString(3, maDatPhong);
+                    updateInvoicePs.executeUpdate(); // Có thể = 0 nếu khách chưa check-in, không sao cả
 
                     updateOldRoomPs.setString(1, oldRoom);
                     updateOldRoomPs.executeUpdate();
@@ -147,9 +152,11 @@ public class DoiPhongDao {
             } catch (SQLException ex) {
                 conn.rollback();
                 conn.setAutoCommit(autoCommit);
-                throw ex;
+                System.err.println("Lỗi SQL khi đổi phòng: " + ex.getMessage());
+                ex.printStackTrace();
             }
         } catch (Exception e) {
+            System.err.println("Lỗi chung khi đổi phòng: " + e.getMessage());
             e.printStackTrace();
         }
 

@@ -70,15 +70,8 @@ public class DichVuPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Dịch vụ");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(new Color(15, 23, 42));
-
         countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         countLabel.setForeground(new Color(100, 116, 139));
-
-        titleWrap.add(title);
-        titleWrap.add(Box.createVerticalStrut(6));
         titleWrap.add(countLabel);
 
         JButton addButton = createPrimaryButton("Thêm dịch vụ", "services.png");
@@ -247,19 +240,24 @@ public class DichVuPanel extends JPanel {
         JDialog dialog = new JDialog();
         dialog.setModal(true);
         dialog.setTitle(editing ? "Sửa dịch vụ" : "Thêm dịch vụ");
-        dialog.setSize(390, 380);
+        dialog.setSize(440, 580);
         dialog.setLocationRelativeTo(this);
 
         JPanel root = new JPanel();
         root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBorder(new EmptyBorder(18, 18, 18, 18));
+        root.setBorder(new EmptyBorder(18, 45, 18, 45));
 
         JTextField nameField = createDialogField(editing ? existing.getTenDV() : "");
         JTextField priceField = createDialogField(editing ? String.valueOf((long) existing.getGia()) : "");
         JComboBox<String> categoryBox = new JComboBox<>(new String[]{"Buồng phòng", "Ăn uống", "Thư giãn", "Vận chuyển", "Tiện ích"});
         categoryBox.setSelectedItem(editing ? normalizeCategory(existing.getLoaiDV()) : "Tiện ích");
+        categoryBox.setPreferredSize(new Dimension(340, 38));
+        categoryBox.setMaximumSize(new Dimension(340, 38));
+
         JComboBox<String> statusBox = new JComboBox<>(new String[]{"Đang hoạt động", "Ngừng hoạt động"});
         statusBox.setSelectedItem(mapStatusLabel(editing ? existing.getTrangThai() : "DangHoatDong"));
+        statusBox.setPreferredSize(new Dimension(340, 38));
+        statusBox.setMaximumSize(new Dimension(340, 38));
         JTextArea descriptionArea = new JTextArea(editing ? safe(existing.getMoTa()) : "");
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
@@ -269,8 +267,8 @@ public class DichVuPanel extends JPanel {
             new EmptyBorder(10, 12, 10, 12)
         ));
         JScrollPane descriptionScroll = new JScrollPane(descriptionArea);
-        descriptionScroll.setMaximumSize(new Dimension(320, 88));
-        descriptionScroll.setPreferredSize(new Dimension(320, 88));
+        descriptionScroll.setMaximumSize(new Dimension(340, 80));
+        descriptionScroll.setPreferredSize(new Dimension(340, 80));
 
         root.add(createDialogFieldGroup("Tên dịch vụ", nameField));
         root.add(Box.createVerticalStrut(10));
@@ -285,6 +283,8 @@ public class DichVuPanel extends JPanel {
 
         JPanel actions = new JPanel(new BorderLayout(10, 0));
         actions.setOpaque(false);
+        actions.setMaximumSize(new Dimension(340, 40));
+        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
         JButton cancelButton = createOutlineButton("Hủy");
         cancelButton.addActionListener(e -> dialog.dispose());
         JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu dịch vụ", "services.png");
@@ -331,25 +331,25 @@ public class DichVuPanel extends JPanel {
         group.setOpaque(false);
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(51, 65, 85));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setHorizontalAlignment(SwingConstants.LEFT);
         if (field instanceof javax.swing.JComponent) {
             ((javax.swing.JComponent) field).setAlignmentX(Component.LEFT_ALIGNMENT);
         }
         group.add(label);
         group.add(Box.createVerticalStrut(6));
         group.add(field);
+        group.setAlignmentX(Component.LEFT_ALIGNMENT);
         return group;
     }
 
     private JTextField createDialogField(String value) {
         JTextField field = new JTextField(value);
-        field.setMaximumSize(new Dimension(320, 36));
-        field.setPreferredSize(new Dimension(320, 36));
+        field.setMaximumSize(new Dimension(340, 38));
+        field.setPreferredSize(new Dimension(340, 38));
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(8, 10, 8, 10)
+            new EmptyBorder(8, 12, 8, 12)
         ));
         return field;
     }
@@ -388,7 +388,7 @@ public class DichVuPanel extends JPanel {
         button.setBackground(new Color(15, 23, 42));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
-        button.setBorder(new EmptyBorder(12, 18, 12, 18));
+        button.setBorder(new EmptyBorder(10, 16, 10, 16));
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         return button;
     }
@@ -400,7 +400,7 @@ public class DichVuPanel extends JPanel {
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(12, 18, 12, 18)
+            new EmptyBorder(10, 16, 10, 16)
         ));
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         return button;

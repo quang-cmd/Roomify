@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,6 +21,9 @@ import kqlhotel.bus.checkin.model.CheckInResult;
 import kqlhotel.dao.ConnectDB;
 
 public class SqlCheckInService implements CheckInService {
+    private static final LocalTime EARLY_CHECKIN_START = LocalTime.of(5, 0);
+    private static final LocalTime EARLY_CHECKIN_50 = LocalTime.of(9, 0);
+    private static final LocalTime CHECKIN_STANDARD = LocalTime.of(14, 0);
 
     @Override
     public List<ArrivalDto> findArrivals(LocalDate from, LocalDate to, String keyword) {
@@ -154,10 +158,10 @@ public class SqlCheckInService implements CheckInService {
             LocalDateTime now = LocalDateTime.now();
             BigDecimal totalRoom = BigDecimal.ZERO;
 
-            String insertSql =
+                String insertSql =
                     "INSERT INTO ChiTietHoaDon " +
                             "(maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) " +
-                            "VALUES (?, ?, ?, ?, NULL, ?, 0, ?)";
+                        "VALUES (?, ?, ?, ?, NULL, ?, ?, ?)";
 
             try (PreparedStatement ps = con.prepareStatement(insertSql)) {
                 for (Object[] row : rooms) {
@@ -178,7 +182,8 @@ public class SqlCheckInService implements CheckInService {
                                     ngayTraDuKien.toLocalDate()
                             ));
 
-                    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soDem));
+                    BigDecimal phuThu = calculateEarlyCheckInFee(donGia, ngayNhanThucTe);
+                    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soDem)).add(phuThu);
                     totalRoom = totalRoom.add(thanhTien);
 
                     ps.setString(1, maHD);
@@ -186,7 +191,8 @@ public class SqlCheckInService implements CheckInService {
                     ps.setTimestamp(3, Timestamp.valueOf(ngayNhanThucTe));
                     ps.setTimestamp(4, Timestamp.valueOf(ngayTraDuKien));
                     ps.setInt(5, soDem);
-                    ps.setBigDecimal(6, thanhTien);
+                    ps.setBigDecimal(6, phuThu);
+                    ps.setBigDecimal(7, thanhTien);
                     ps.addBatch();
                 }
 
@@ -331,6 +337,23 @@ public class SqlCheckInService implements CheckInService {
             ps.setString(5, maHD);
             ps.executeUpdate();
         }
+    }
+
+    private BigDecimal calculateEarlyCheckInFee(BigDecimal nightlyRate, LocalDateTime checkInTime) {
+        if (nightlyRate == null || checkInTime == null) {
+            return BigDecimal.ZERO;
+        }
+        LocalTime time = checkInTime.toLocalTime();
+        if (!time.isBefore(CHECKIN_STANDARD)) {
+            return BigDecimal.ZERO;
+        }
+        if (time.isBefore(EARLY_CHECKIN_START)) {
+            return BigDecimal.ZERO;
+        }
+        if (!time.isBefore(EARLY_CHECKIN_50)) {
+            return nightlyRate.multiply(BigDecimal.valueOf(0.3));
+        }
+        return nightlyRate.multiply(BigDecimal.valueOf(0.5));
     }
 
     private Map<String, List<String>> loadRoomCodes(Connection con, java.util.Set<String> bookingIds) throws SQLException {
