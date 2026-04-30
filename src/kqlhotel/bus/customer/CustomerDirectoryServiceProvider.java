@@ -1,7 +1,7 @@
 package kqlhotel.bus.customer;
 
 public final class CustomerDirectoryServiceProvider {
-    private static CustomerDirectoryService service = new PendingCustomerDirectoryService();
+    private static CustomerDirectoryService service = new SqlCustomerDirectoryService();
 
     private CustomerDirectoryServiceProvider() {
     }
