@@ -370,11 +370,11 @@ public class SqlCheckInService implements CheckInService {
     }
 
     private Connection openConnection() {
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try {
             if (con == null || con.isClosed()) {
                 ConnectDB.getInstance().connect();
-                con = ConnectDB.getInstance().getConnection();
+                con = ConnectDB.getConnection();
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -198,9 +198,8 @@ public class KhachHangPanel extends JPanel {
         JLabel avatar = createAvatar(customer.getTenKH(), selected ? new Color(16, 185, 129) : pickAvatarColor(customer.getMaKH()));
         row.add(avatar, BorderLayout.WEST);
 
-        JPanel textWrap = new JPanel();
+        JPanel textWrap = new JPanel(new GridLayout(2, 1, 0, 2));
         textWrap.setOpaque(false);
-        textWrap.setLayout(new BoxLayout(textWrap, BoxLayout.Y_AXIS));
 
         JLabel name = new JLabel(customer.getTenKH());
         name.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -211,7 +210,6 @@ public class KhachHangPanel extends JPanel {
         phone.setForeground(new Color(148, 163, 184));
 
         textWrap.add(name);
-        textWrap.add(Box.createVerticalStrut(4));
         textWrap.add(phone);
         row.add(textWrap, BorderLayout.CENTER);
 
@@ -283,40 +281,35 @@ public class KhachHangPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
 
-        JPanel left = new JPanel();
+        JPanel left = new JPanel(new BorderLayout(14, 0));
         left.setOpaque(false);
-        left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
 
         JLabel avatar = createAvatar(customer.getTenKH(), new Color(16, 185, 129));
         avatar.setPreferredSize(new Dimension(52, 52));
         avatar.setMinimumSize(new Dimension(52, 52));
+        avatar.setMaximumSize(new Dimension(52, 52));
 
-        JPanel text = new JPanel();
+        JPanel text = new JPanel(new GridLayout(2, 1, 0, 6));
         text.setOpaque(false);
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 
         JLabel name = new JLabel(customer.getTenKH());
         name.setFont(new Font("Segoe UI", Font.BOLD, 18));
         name.setForeground(new Color(15, 23, 42));
 
-        JPanel meta = new JPanel();
+        JPanel meta = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
         meta.setOpaque(false);
-        meta.setLayout(new BoxLayout(meta, BoxLayout.X_AXIS));
         meta.add(createStatusBadge(customer.isDangHoatDong() ? "Đang hoạt động" : "Ngừng hoạt động", customer.isDangHoatDong()));
         meta.add(Box.createHorizontalStrut(8));
         meta.add(createMutedLabel("Gần nhất: " + formatDate(customer.getNgayDatGanNhat())));
 
         text.add(name);
-        text.add(Box.createVerticalStrut(6));
         text.add(meta);
 
-        left.add(avatar);
-        left.add(Box.createHorizontalStrut(14));
-        left.add(text);
+        left.add(avatar, BorderLayout.WEST);
+        left.add(text, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel();
+        JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
-        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
 
         JButton editButton = createPrimaryButton("Sửa khách hàng", "customers.png");
         editButton.addActionListener(e -> showCustomerDialog(customer));
@@ -325,11 +318,11 @@ public class KhachHangPanel extends JPanel {
         bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mở tab Đặt phòng để tạo booking mới cho khách hàng này."));
 
         actions.add(editButton);
-        actions.add(Box.createHorizontalStrut(10));
         actions.add(bookingButton);
 
         header.add(left, BorderLayout.WEST);
         header.add(actions, BorderLayout.EAST);
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
         return header;
     }
 
@@ -388,9 +381,8 @@ public class KhachHangPanel extends JPanel {
             icon.setText("•");
         }
 
-        JPanel text = new JPanel();
+        JPanel text = new JPanel(new GridLayout(2, 1, 0, 2));
         text.setOpaque(false);
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 
         JLabel label = new JLabel(title);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -401,7 +393,6 @@ public class KhachHangPanel extends JPanel {
         content.setForeground(new Color(15, 23, 42));
 
         text.add(label);
-        text.add(Box.createVerticalStrut(4));
         text.add(content);
 
         card.add(icon, BorderLayout.WEST);
@@ -438,9 +429,8 @@ public class KhachHangPanel extends JPanel {
         row.setLayout(new BorderLayout());
         row.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        JPanel left = new JPanel();
+        JPanel left = new JPanel(new GridLayout(2, 1, 0, 2));
         left.setOpaque(false);
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
         JLabel booking = new JLabel("Đơn " + safe(history.getMaDatPhong()) + " · Hóa đơn " + safe(history.getMaHoaDon()));
         booking.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -451,7 +441,6 @@ public class KhachHangPanel extends JPanel {
         date.setForeground(new Color(148, 163, 184));
 
         left.add(booking);
-        left.add(Box.createVerticalStrut(4));
         left.add(date);
 
         JPanel right = new JPanel();
