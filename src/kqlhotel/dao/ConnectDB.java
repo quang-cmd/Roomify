@@ -8,8 +8,7 @@ public class ConnectDB {
     private static ConnectDB instance = new ConnectDB();
     private Connection connection;
 
-    private ConnectDB() {
-    }
+    private ConnectDB() {}
 
     public static ConnectDB getInstance() {
         return instance;
