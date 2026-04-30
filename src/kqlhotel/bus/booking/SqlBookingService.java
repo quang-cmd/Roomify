@@ -25,6 +25,8 @@ import kqlhotel.dao.booking.RoomDaoSqlServer;
 import kqlhotel.entity.RoomEntity;
 
 public class SqlBookingService implements BookingService {
+    private static final int CHECK_IN_HOUR = 14;
+    private static final int CHECK_OUT_HOUR = 12;
     private final RoomDao roomDao;
 
     public SqlBookingService() {
@@ -148,8 +150,9 @@ public class SqlBookingService implements BookingService {
 
             // 4. Insert DatPhong
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime checkInTs = command.getCheckInDate().atStartOfDay();
-            LocalDateTime checkOutTs = command.getCheckOutDate().atStartOfDay();
+            // Policy khách sạn: nhận phòng 14:00, trả phòng 12:00 ngày tra.
+            LocalDateTime checkInTs = command.getCheckInDate().atTime(CHECK_IN_HOUR, 0);
+            LocalDateTime checkOutTs = command.getCheckOutDate().atTime(CHECK_OUT_HOUR, 0);
             // ngayNhanDuKien must be >= ngayDat; if user picks today, set ngayDat = now and shift checkInTs forward if needed
             LocalDateTime ngayDat = now;
             if (checkInTs.isBefore(ngayDat)) {
