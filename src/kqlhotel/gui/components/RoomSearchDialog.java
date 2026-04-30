@@ -77,7 +77,19 @@ public class RoomSearchDialog extends JDialog {
             }
         };
         iconPanel.setOpaque(false);
-        JLabel iconLbl = new JLabel("🔍", SwingConstants.CENTER);
+        JLabel iconLbl = new JLabel("", SwingConstants.CENTER);
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/search.png");
+            if (url != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
+                java.awt.Image img = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
+                iconLbl.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                iconLbl.setText("🔍");
+            }
+        } catch (Exception ex) {
+            iconLbl.setText("🔍");
+        }
         iconLbl.setForeground(Color.WHITE);
         iconLbl.setFont(iconLbl.getFont().deriveFont(18f));
         iconPanel.add(iconLbl);
@@ -181,7 +193,7 @@ public class RoomSearchDialog extends JDialog {
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> performSearch());
 
-        JButton btnReset = new JButton("🔄 Làm mới");
+        JButton btnReset = new JButton("Làm mới");
         btnReset.setFont(btnReset.getFont().deriveFont(13f));
         btnReset.setForeground(ThemeColors.TEXT_MUTED);
         btnReset.setBackground(Color.WHITE);
