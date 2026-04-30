@@ -42,7 +42,7 @@ public class ConnectDB {
                 instance.connect();
             }
         } catch (Exception e) {
-            System.err.println("ConnectDB.getConnection() – tự kết nối lại thất bại: " + e.getMessage());
+            System.err.println("ConnectDB.getInstance().getConnection() – tự kết nối lại thất bại: " + e.getMessage());
         }
         return instance.connection;
     }

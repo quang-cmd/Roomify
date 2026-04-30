@@ -312,7 +312,7 @@ public class CheckoutBUS {
 
                 list.add(new kqlhotel.gui.tabs.CheckoutPanel.CheckoutData(
                         id, rName, cName, phone, dateIn, dateOut, price, statusText, statusColor
-                ));
+                )); 
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();

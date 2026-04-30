@@ -1391,6 +1391,8 @@ public class BookingPanel extends JPanel {
             private void autoFillIfMatched() {
                 String idNo = idField.getText().trim();
                 if (idNo.length() < 9) {
+                    nameField.setText("");
+                    phoneField.setText("");
                     return;
                 }
 
@@ -1399,6 +1401,9 @@ public class BookingPanel extends JPanel {
                     GuestInfoDto customer = found.get();
                     nameField.setText(customer.getHoTenNV());
                     phoneField.setText(customer.getSdt());
+                } else {
+                    nameField.setText("");
+                    phoneField.setText("");
                 }
             }
         });

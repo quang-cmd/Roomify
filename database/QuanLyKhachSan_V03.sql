@@ -1,4 +1,4 @@
-﻿SET NOCOUNT ON;
+SET NOCOUNT ON;
 
 IF DB_ID(N'QLKhachSan') IS NULL CREATE DATABASE QLKhachSan;
 GO
@@ -345,11 +345,11 @@ GO
 
 -- ----- DichVu (5) + KhuyenMai (3) -----
 INSERT INTO DichVu (maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES
-('DV001', N'An sang buffet',      120000.00, N'Buffet sang theo nguoi',         'DangHoatDong'),
-('DV002', N'Giat ui',              60000.00, N'Giat ui theo kg',                'DangHoatDong'),
-('DV003', N'Don phong them',       80000.00, N'Don phong ngoai gio',            'DangHoatDong'),
-('DV004', N'Nuoc minibar',         30000.00, N'Tinh theo so chai tieu thu',     'DangHoatDong'),
-('DV005', N'Dua don san bay',     250000.00, N'Xe rieng dua don san bay',       'DangHoatDong');
+('DV001', N'Ăn sáng buffet',      120000.00, N'Buffet sáng theo người',         'DangHoatDong'),
+('DV002', N'Giặt ủi',              60000.00, N'Giặt ủi theo kg',                'DangHoatDong'),
+('DV003', N'Dọn phòng thêm',       80000.00, N'Dọn phòng ngoài giờ',            'DangHoatDong'),
+('DV004', N'Nước minibar',         30000.00, N'Tính theo số chai tiêu thụ',     'DangHoatDong'),
+('DV005', N'Đưa đón sân bay',     250000.00, N'Xe riêng đưa đón sân bay',       'DangHoatDong');
 GO
 
 INSERT INTO KhuyenMai (maKM, tenKM, dieuKienApDung, loaiKM, giaTriToiDa, tienKhuyenMai, ngayBatDau, ngayKetThuc, trangThaiKM) VALUES

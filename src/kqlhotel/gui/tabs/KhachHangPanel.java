@@ -77,8 +77,6 @@ public class KhachHangPanel extends JPanel {
         countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         countLabel.setForeground(new Color(100, 116, 139));
 
-        titleWrap.add(title);
-        titleWrap.add(Box.createVerticalStrut(6));
         titleWrap.add(countLabel);
 
         JButton addButton = createPrimaryButton("Thêm khách hàng", "customers.png");
@@ -482,12 +480,13 @@ public class KhachHangPanel extends JPanel {
         JDialog dialog = new JDialog();
         dialog.setModal(true);
         dialog.setTitle(editing ? "Sửa khách hàng" : "Thêm khách hàng");
-        dialog.setSize(390, 470);
+        dialog.setSize(420, 600);
         dialog.setLocationRelativeTo(this);
 
-        JPanel root = new JPanel();
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBorder(new EmptyBorder(18, 18, 18, 18));
+        JPanel fieldContainer = new JPanel();
+        fieldContainer.setLayout(new BoxLayout(fieldContainer, BoxLayout.Y_AXIS));
+        fieldContainer.setBorder(new EmptyBorder(18, 18, 18, 18));
+        fieldContainer.setBackground(Color.WHITE);
 
         JTextField nameField = createDialogField(editing ? existing.getTenKH() : "");
         JTextField phoneField = createDialogField(editing ? existing.getSdt() : "");
@@ -501,24 +500,23 @@ public class KhachHangPanel extends JPanel {
         JComboBox<String> rankBox = new JComboBox<>(new String[]{"Đồng", "Bạc", "Vàng", "Kim cương"});
         rankBox.setSelectedItem(mapRank(existing != null ? existing.getHangKH() : "Dong"));
 
-        root.add(createDialogFieldGroup("Tên khách", nameField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Số điện thoại", phoneField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("CCCD", cccdField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Email", emailField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Địa chỉ", addressField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Quốc tịch", nationalityField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Ngày sinh (dd/MM/yyyy)", birthField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Giới tính", genderBox));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
-        root.add(Box.createVerticalStrut(18));
+        fieldContainer.add(createDialogFieldGroup("Tên khách", nameField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Số điện thoại", phoneField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("CCCD", cccdField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Email", emailField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Địa chỉ", addressField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Quốc tịch", nationalityField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Ngày sinh (dd/MM/yyyy)", birthField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Giới tính", genderBox));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
 
         JPanel actions = new JPanel(new BorderLayout(10, 0));
         actions.setOpaque(false);
@@ -560,9 +558,18 @@ public class KhachHangPanel extends JPanel {
 
         actions.add(cancelButton, BorderLayout.WEST);
         actions.add(saveButton, BorderLayout.EAST);
-        root.add(actions);
+        actions.setBorder(new EmptyBorder(12, 18, 18, 18));
+        actions.setBackground(Color.WHITE);
 
-        dialog.setContentPane(root);
+        JScrollPane scrollPane = new JScrollPane(fieldContainer);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(actions, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
         dialog.setVisible(true);
     }
 
