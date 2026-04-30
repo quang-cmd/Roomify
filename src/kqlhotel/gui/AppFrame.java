@@ -1,11 +1,9 @@
 package kqlhotel.gui;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -34,7 +32,6 @@ import kqlhotel.gui.tabs.CheckInPanel;
 import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
-import kqlhotel.gui.tabs.UnderDevelopmentPanel;
 import kqlhotel.gui.tabs.DoiPhongPanel;
 import kqlhotel.gui.tabs.CancelRoomPanel;
 import kqlhotel.gui.tabs.RoomManagementPanel;
@@ -514,10 +511,10 @@ public class AppFrame extends JFrame {
         }
     }
 
-    private void showMainApp() {
-        rootCards.show(rootPanel, "app");
-        activateRoute(currentRoute);
-    }
+    // private void showMainApp() {
+    //     rootCards.show(rootPanel, "app");
+    //     activateRoute(currentRoute);
+    // }
 
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
