@@ -123,7 +123,16 @@ public class RoomManagementPanel extends JPanel {
 
         reloadData(); // Load real data
 
-        JPanel gridWrapper = new JPanel(new BorderLayout());
+        class ScrollableWrapper extends JPanel implements javax.swing.Scrollable {
+            public ScrollableWrapper() { super(new BorderLayout()); }
+            @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+            @Override public int getScrollableUnitIncrement(java.awt.Rectangle r, int o, int d) { return 16; }
+            @Override public int getScrollableBlockIncrement(java.awt.Rectangle r, int o, int d) { return 100; }
+            @Override public boolean getScrollableTracksViewportWidth() { return true; }
+            @Override public boolean getScrollableTracksViewportHeight() { return false; }
+        }
+
+        JPanel gridWrapper = new ScrollableWrapper();
         gridWrapper.setOpaque(false);
         gridWrapper.add(gridContainer, BorderLayout.NORTH);
 
@@ -131,6 +140,7 @@ public class RoomManagementPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         // ===== Assemble =====
