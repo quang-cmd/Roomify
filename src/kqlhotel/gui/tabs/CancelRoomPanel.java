@@ -98,7 +98,7 @@ public class CancelRoomPanel extends JPanel {
         header.add(stepper, "alignx right");
 
         // ===== 2. Body Area (Split 2 Columns) =====
-        JPanel body = new JPanel(new MigLayout("insets 20 0,gap 40", "[450!][grow,fill]", "[grow,fill]"));
+        JPanel body = new JPanel(new MigLayout("insets 20 0,gap 20", "[310!][grow,fill]", "[grow,fill]"));
         body.setOpaque(false);
 
         leftCardPanel.setOpaque(false);
@@ -344,7 +344,7 @@ public class CancelRoomPanel extends JPanel {
     }
 
     private JPanel createSearchResultCard(boolean isConfirming) {
-        JPanel wrap = new JPanel(new MigLayout("wrap 1,insets 0 20 0 20", "[fill]", "[][][grow,fill]"));
+        JPanel wrap = new JPanel(new MigLayout("wrap 1,insets 0 0 0 0", "[fill]", "[][][grow,fill]"));
         wrap.setOpaque(false);
         
         JPanel titleRow = new JPanel(new MigLayout("insets 0", "[]", "[]"));
