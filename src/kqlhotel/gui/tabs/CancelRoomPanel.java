@@ -60,10 +60,10 @@ public class CancelRoomPanel extends JPanel {
         JLabel title = new JLabel("Hủy phòng");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
         title.setForeground(new Color(24, 40, 66));
-        JLabel subtitle = new JLabel("Tìm kiếm đặt phòng và thực hiện hủy theo chính sách hoàn/trừ cọc");
-        subtitle.setForeground(new Color(150, 165, 190));
-        titlePanel.add(title);
-        titlePanel.add(subtitle);
+//        JLabel subtitle = new JLabel("Tìm kiếm đặt phòng và thực hiện hủy theo chính sách hoàn/trừ cọc");
+//        subtitle.setForeground(new Color(150, 165, 190));
+        // titlePanel.add(title); // Bỏ title bị trùng
+//        titlePanel.add(subtitle);
 
         // Stepper
         JPanel stepper = new JPanel(new MigLayout("insets 6 16,gap 10", "[][][]", "[]"));

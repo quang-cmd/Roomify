@@ -62,6 +62,7 @@ public class AppFrame extends JFrame {
     private final Map<String, String> pageSubtitles = new LinkedHashMap<>();
     private String currentRoute = "booking";
     private String pendingCardName;
+    private RoomManagementPanel roomManagementPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -110,7 +111,8 @@ public class AppFrame extends JFrame {
         screenPanel.add(new CheckoutPanel(), "checkout");
         screenPanel.add(new DoiPhongPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
-        screenPanel.add(new RoomManagementPanel(), "room-management");
+        roomManagementPanel = new RoomManagementPanel();
+        screenPanel.add(roomManagementPanel, "room-management");
         screenPanel.add(new StaffPanel(), "staff");
         screenPanel.add(new KhachHangPanel(), "customers");
         screenPanel.add(new DichVuPanel(), "services");
@@ -499,6 +501,16 @@ public class AppFrame extends JFrame {
         panel.add(userArea, "aligny center");
         panel.add(logoutBtn, "aligny center,gapleft 8");
         return panel;
+    }
+
+    public void navigateTo(String route) {
+        activateRoute(route);
+    }
+
+    public void refreshRoomManagementData() {
+        if (roomManagementPanel != null) {
+            roomManagementPanel.reloadData();
+        }
     }
 
     private void showMainApp() {
