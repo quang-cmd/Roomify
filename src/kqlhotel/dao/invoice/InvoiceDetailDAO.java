@@ -18,7 +18,7 @@ public class InvoiceDetailDAO {
         List<InvoiceDetail> list = new ArrayList<>();
 
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien " +
                     "FROM ChiTietHoaDon WHERE maHD = ? ORDER BY maPhong";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -61,7 +61,7 @@ public class InvoiceDetailDAO {
 
     public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double phuThu, double thanhTien) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
                     "SET ngayTraThucTe = ?, soDem = ?, phuThu = ?, thanhTien = ? " +
                     "WHERE maHD = ? AND maPhong = ?";
@@ -83,7 +83,7 @@ public class InvoiceDetailDAO {
 
     public boolean markAllRemainingRoomsCheckedOut(String maHD, LocalDateTime checkoutTime) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
                     "SET ngayTraThucTe = COALESCE(ngayTraThucTe, ?) " +
                     "WHERE maHD = ? AND ngayTraThucTe IS NULL";
@@ -102,61 +102,47 @@ public class InvoiceDetailDAO {
     public List<InvoiceDetail> getByBooking(String maHD, String maDatPhong) {
         List<InvoiceDetail> list = new ArrayList<>();
 
-        if (maDatPhong == null || maDatPhong.isBlank()) {
-            return list;
-        }
-
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = """
-            SELECT maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat
-            FROM ChiTietDatPhong
-            WHERE maDatPhong = ?
-            ORDER BY maPhong
+        SELECT maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat
+        FROM ChiTietDatPhong
+        WHERE maDatPhong = ?
         """;
 
-            PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, maDatPhong);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maDatPhong);
+            ResultSet rs = ps.executeQuery();
 
-            ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 InvoiceDetail ct = new InvoiceDetail();
 
                 ct.setMaHD(maHD);
                 ct.setMaPhong(rs.getString("maPhong"));
 
-                Timestamp ngayNhan = rs.getTimestamp("ngayNhanDuKien");
-                Timestamp ngayTra = rs.getTimestamp("ngayTraDuKien");
+                LocalDateTime expectedIn = rs.getTimestamp("ngayNhanDuKien").toLocalDateTime();
+                LocalDateTime expectedOut = rs.getTimestamp("ngayTraDuKien").toLocalDateTime();
 
-                if (ngayNhan != null) {
-                    ct.setNgayNhanPhong(ngayNhan.toLocalDateTime());
-                }
+                ct.setNgayNhanPhong(expectedIn); // 👉 dùng dự kiến
+                ct.setNgayTraPhong(expectedOut);
 
-                if (ngayTra != null) {
-                    ct.setNgayTraPhong(ngayTra.toLocalDateTime());
-                }
+                long days = java.time.temporal.ChronoUnit.DAYS.between(
+                        expectedIn.toLocalDate(),
+                        expectedOut.toLocalDate()
+                );
 
-                int soDem = 1;
-                if (ct.getNgayNhanPhong() != null && ct.getNgayTraPhong() != null) {
-                    soDem = (int) Math.max(
-                            1,
-                            java.time.temporal.ChronoUnit.DAYS.between(
-                                    ct.getNgayNhanPhong().toLocalDate(),
-                                    ct.getNgayTraPhong().toLocalDate()
-                            )
-                    );
-                }
+                if (days <= 0) days = 1;
 
-                double donGia = rs.getDouble("donGiaDat");
+                double price = rs.getDouble("donGiaDat");
 
-                ct.setNgayTraThucTe(null);
-                ct.setSoDem(soDem);
+                ct.setSoDem((int) days);
                 ct.setPhuThu(0);
-                ct.setThanhTien(donGia * soDem);
+                ct.setThanhTien(days * price);
 
                 list.add(ct);
             }
-        } catch (SQLException e) {
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -168,7 +154,7 @@ public class InvoiceDetailDAO {
         }
 
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
 
             String sql =
                     "INSERT INTO ChiTietHoaDon " +
