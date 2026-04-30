@@ -35,12 +35,12 @@ import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
 import kqlhotel.gui.tabs.UnderDevelopmentPanel;
-import kqlhotel.gui.tabs.SwapRoomPanel;
+import kqlhotel.gui.tabs.DoiPhongPanel;
 import kqlhotel.gui.tabs.CancelRoomPanel;
 import kqlhotel.gui.tabs.RoomManagementPanel;
 import kqlhotel.gui.tabs.StaffPanel;
-import kqlhotel.gui.tabs.CustomersPanel;
-import kqlhotel.gui.tabs.ServicesPanel;
+import kqlhotel.gui.tabs.KhachHangPanel;
+import kqlhotel.gui.tabs.DichVuPanel;
 import kqlhotel.gui.tabs.CheckoutPanel;
 import kqlhotel.gui.tabs.PromotionsPanel;
 import kqlhotel.gui.tabs.InvoicesPanel;
@@ -62,12 +62,14 @@ public class AppFrame extends JFrame {
     private final Map<String, String> pageSubtitles = new LinkedHashMap<>();
     private String currentRoute = "booking";
     private String pendingCardName;
+    private RoomManagementPanel roomManagementPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1366, 768));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         rootPanel.setOpaque(false);
 
@@ -108,12 +110,13 @@ public class AppFrame extends JFrame {
         statisticsScroll.setOpaque(false);
         screenPanel.add(statisticsScroll, "statistics");
         screenPanel.add(new CheckoutPanel(), "checkout");
-        screenPanel.add(new SwapRoomPanel(), "swap-room");
+        screenPanel.add(new DoiPhongPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
-        screenPanel.add(new RoomManagementPanel(), "room-management");
+        roomManagementPanel = new RoomManagementPanel();
+        screenPanel.add(roomManagementPanel, "room-management");
         screenPanel.add(new StaffPanel(), "staff");
-        screenPanel.add(new CustomersPanel(), "customers");
-        screenPanel.add(new ServicesPanel(), "services");
+        screenPanel.add(new KhachHangPanel(), "customers");
+        screenPanel.add(new DichVuPanel(), "services");
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
         activateRoute(currentRoute);
@@ -499,6 +502,16 @@ public class AppFrame extends JFrame {
         panel.add(userArea, "aligny center");
         panel.add(logoutBtn, "aligny center,gapleft 8");
         return panel;
+    }
+
+    public void navigateTo(String route) {
+        activateRoute(route);
+    }
+
+    public void refreshRoomManagementData() {
+        if (roomManagementPanel != null) {
+            roomManagementPanel.reloadData();
+        }
     }
 
     private void showMainApp() {

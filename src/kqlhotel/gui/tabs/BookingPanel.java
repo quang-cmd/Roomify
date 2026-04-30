@@ -687,7 +687,15 @@ public class BookingPanel extends JPanel {
         RoundedPanel selectionBar = new RoundedPanel(18, new Color(20, 31, 59), new Color(45, 66, 110), 1f);
         selectionBar.setLayout(new MigLayout("insets 14 16,gap 12", "[][grow,fill][]", "[]"));
 
-        JPanel selectionIcon = makeBadgeIcon(new Color(35, 53, 92), new Color(81, 130, 255), "\u25A1");
+        JPanel selectionIcon = new JPanel(new BorderLayout());
+        selectionIcon.setOpaque(false);
+        selectionIcon.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        ImageIcon selectionPng = loadIcon("bed.png", 28, 28);
+        if (selectionPng != null) {
+            selectionIcon.add(new JLabel(selectionPng, SwingConstants.CENTER), BorderLayout.CENTER);
+        } else {
+            selectionIcon = makeBadgeIcon(new Color(35, 53, 92), new Color(81, 130, 255), "\u25A1");
+        }
         selectionCountLabel.setForeground(Color.WHITE);
         selectionCountLabel.setFont(selectionCountLabel.getFont().deriveFont(Font.BOLD, 15f));
         selectionDetailLabel.setForeground(new Color(170, 188, 220));
@@ -1128,7 +1136,7 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        String leadGuestName = guestInfos.get(0).getFullName();
+        String leadGuestName = guestInfos.get(0).getHoTenNV();
         String successMessage = "Đặt phòng thành công cho khách " + leadGuestName + " (" + selectedRooms.size() + " phòng)";
         if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
             successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
@@ -1389,8 +1397,8 @@ public class BookingPanel extends JPanel {
                 Optional<GuestInfoDto> found = CustomerDirectoryServiceProvider.get().findByIdNo(idNo);
                 if (found.isPresent()) {
                     GuestInfoDto customer = found.get();
-                    nameField.setText(customer.getFullName());
-                    phoneField.setText(customer.getPhone());
+                    nameField.setText(customer.getHoTenNV());
+                    phoneField.setText(customer.getSdt());
                 }
             }
         });
