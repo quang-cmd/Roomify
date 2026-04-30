@@ -14,7 +14,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.Image;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -177,8 +179,13 @@ public class CancelRoomPanel extends JPanel {
             }
         };
         iconSearch.setOpaque(false);
-        JLabel sIco = new JLabel("🔍", SwingConstants.CENTER);
-        sIco.setForeground(new Color(220, 53, 69));
+        JLabel sIco = new JLabel("", SwingConstants.CENTER);
+        java.net.URL searchURL = getClass().getResource("/kqlhotel/resources/icons/search.png");
+        if (searchURL != null) {
+            ImageIcon rawIcon = new ImageIcon(searchURL);
+            Image scaled = rawIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+            sIco.setIcon(new ImageIcon(scaled));
+        }
         iconSearch.add(sIco);
 
         JPanel ht = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
@@ -199,21 +206,21 @@ public class CancelRoomPanel extends JPanel {
 
         card.add(createLabel("Mã đặt phòng"));
         txtMaDatPhong.putClientProperty("JTextField.placeholderText", "Ví dụ: DP001");
-        card.add(createFieldEnclosure("🏷", txtMaDatPhong), "h 42!");
+        card.add(createFieldEnclosure("", txtMaDatPhong), "h 42!");
 
         card.add(createLabel("Tên khách hàng"));
         txtTenKhach.putClientProperty("JTextField.placeholderText", "Nhập tên khách");
-        card.add(createFieldEnclosure("👤", txtTenKhach), "h 42!");
+        card.add(createFieldEnclosure("", txtTenKhach), "h 42!");
 
         card.add(createLabel("Số điện thoại"));
         txtSdt.putClientProperty("JTextField.placeholderText", "0912 345 678");
-        card.add(createFieldEnclosure("📞", txtSdt), "h 42!");
+        card.add(createFieldEnclosure("", txtSdt), "h 42!");
 
         card.add(createLabel("Ngày nhận phòng"));
         txtNgayNhan.putClientProperty("JTextField.placeholderText", "dd/mm/yyyy");
-        card.add(createFieldEnclosure("📅", txtNgayNhan), "h 42!");
+        card.add(createFieldEnclosure("", txtNgayNhan), "h 42!");
 
-        PrimaryButton btnSearch = new PrimaryButton("🔍 Tìm đặt phòng");
+        PrimaryButton btnSearch = new PrimaryButton("Tìm đặt phòng");
         btnSearch.setBackground(new Color(17, 24, 39));
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> {
@@ -221,7 +228,7 @@ public class CancelRoomPanel extends JPanel {
             setState("RESULT");
         });
 
-        JButton btnReset = new JButton("↻ Làm mới");
+        JButton btnReset = new JButton("Làm mới");
         btnReset.setFont(btnReset.getFont().deriveFont(Font.BOLD, 12f));
         btnReset.setForeground(new Color(100, 115, 140));
         btnReset.setBackground(new Color(245, 248, 252));
@@ -262,14 +269,14 @@ public class CancelRoomPanel extends JPanel {
         btnBack.addActionListener(e -> setState("RESULT"));
         wrap.add(btnBack, "gapy 0 4");
 
-        JLabel title = new JLabel("⊗ Xác nhận hủy phòng");
+        JLabel title = new JLabel("Xác nhận hủy phòng");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setForeground(new Color(220, 50, 60));
         wrap.add(title);
 
         RoundedPanel blueBox = new RoundedPanel(10, new Color(235, 245, 255), new Color(180, 200, 240), 1);
         blueBox.setLayout(new MigLayout("insets 10, gap 10", "[][grow]", "[]"));
-        JLabel blueIcon = new JLabel("🛏");
+        JLabel blueIcon = new JLabel();
         blueIcon.setFont(blueIcon.getFont().deriveFont(18f));
         blueIcon.setForeground(ThemeColors.PRIMARY);
         JPanel blueText = new JPanel(new MigLayout("insets 0, wrap 1", "[]", "[]"));
@@ -284,7 +291,7 @@ public class CancelRoomPanel extends JPanel {
 
         wrap.add(createLabel("Thời điểm yêu cầu hủy *"));
         JTextField txtTime = new JTextField("11/04/2026 10:06 CH");
-        wrap.add(createFieldEnclosure("⏱", txtTime), "h 36!");
+        wrap.add(createFieldEnclosure("", txtTime), "h 36!");
 
         wrap.add(createLabel("Lý do hủy (tùy chọn)"));
         JTextArea txtReason = new JTextArea(2, 20);
@@ -301,7 +308,7 @@ public class CancelRoomPanel extends JPanel {
 
         RoundedPanel policyBox = new RoundedPanel(10, new Color(255, 245, 245), new Color(250, 200, 200), 1);
         policyBox.setLayout(new MigLayout("insets 10, wrap 1, gap 6", "[grow,fill]", "[]"));
-        JLabel polTitle = new JLabel("⚠ Chính sách áp dụng");
+        JLabel polTitle = new JLabel("Chính sách áp dụng");
         polTitle.setFont(polTitle.getFont().deriveFont(Font.BOLD, 13f));
         polTitle.setForeground(new Color(220, 50, 60));
         JLabel polSub = new JLabel("Đã quá giờ nhận phòng: không hoàn lại tiền cọc");
@@ -324,7 +331,7 @@ public class CancelRoomPanel extends JPanel {
         policyBox.add(polEnd);
         wrap.add(policyBox);
 
-        PrimaryButton btnConfirm = new PrimaryButton("⊗ Xác nhận hủy phòng");
+        PrimaryButton btnConfirm = new PrimaryButton("Xác nhận hủy phòng");
         btnConfirm.setBackground(new Color(220, 50, 60));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> {
@@ -457,10 +464,10 @@ public class CancelRoomPanel extends JPanel {
         
         RoundedPanel infoBox = new RoundedPanel(8, new Color(248, 250, 253), new Color(230, 235, 245), 1);
         infoBox.setLayout(new MigLayout("insets 12, wrap 1, gap 4", "[]", "[]"));
-        infoBox.add(createIconText("👤", cusName, true));
-        infoBox.add(createIconText("📞", "0912345678", false));
-        infoBox.add(createIconText("📅", "10/04/2026 14:00", false));
-        infoBox.add(createIconText("👥", "2 khách", false));
+        infoBox.add(createIconText("", cusName, true));
+        infoBox.add(createIconText("", "0912345678", false));
+        infoBox.add(createIconText("", "10/04/2026 14:00", false));
+        infoBox.add(createIconText("", "2 khách", false));
         card.add(infoBox, "gapy 8 8");
 
         JPanel moneyRow = new JPanel(new MigLayout("insets 0, gap 12", "[grow,fill][grow,fill]", "[]"));
@@ -479,13 +486,13 @@ public class CancelRoomPanel extends JPanel {
             JPanel btnConfirming = new RoundedPanel(20, new Color(255, 235, 235), null, 0);
             btnConfirming.setLayout(new BorderLayout());
             btnConfirming.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
-            JLabel lblConfirming = new JLabel("✔ Đã chọn", SwingConstants.CENTER);
+            JLabel lblConfirming = new JLabel("Đã chọn", SwingConstants.CENTER);
             lblConfirming.setFont(lblConfirming.getFont().deriveFont(Font.BOLD, 12f));
             lblConfirming.setForeground(new Color(220, 50, 60));
             btnConfirming.add(lblConfirming);
             botRow.add(btnConfirming, "aligny center, alignx right");
         } else {
-            JButton btnCancel = new JButton("⊗ Hủy phòng này");
+            JButton btnCancel = new JButton("Hủy phòng này");
             btnCancel.setFont(btnCancel.getFont().deriveFont(Font.BOLD, 12f));
             btnCancel.setForeground(new Color(220, 50, 60));
             btnCancel.setBackground(new Color(255, 235, 235));
@@ -594,10 +601,10 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel guides = new JPanel(new MigLayout("wrap 1,insets 0,gap 10", "[400!]", "[]"));
         guides.setOpaque(false);
-        guides.add(createGuideItem("🔍", "Tìm đặt phòng theo mã hoặc thông tin khách"));
-        guides.add(createGuideItem("📋", "Chọn đúng đặt phòng cần hủy"));
-        guides.add(createGuideItem("⏱", "Nhập thời điểm yêu cầu hủy"));
-        guides.add(createGuideItem("🏢", "Hệ thống tính hoàn/trả cọc tự động"));
+        guides.add(createGuideItem("", "Tìm đặt phòng theo mã hoặc thông tin khách"));
+        guides.add(createGuideItem("", "Chọn đúng đặt phòng cần hủy"));
+        guides.add(createGuideItem("", "Nhập thời điểm yêu cầu hủy"));
+        guides.add(createGuideItem("", "Hệ thống tính hoàn/trả cọc tự động"));
 
         wrap.add(illust, "alignx center,gapy 0 40");
         wrap.add(guides, "alignx center");
