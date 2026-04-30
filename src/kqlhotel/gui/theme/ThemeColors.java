@@ -105,10 +105,6 @@ public final class ThemeColors {
                 return "Trong";
             case "DangSuDung":
             case "Đang sử dụng":
-            case "DaDat":
-            case "Đã đặt":
-            case "DangDon":
-            case "Đang dọn":
                 return "DangSuDung";
             case "BaoTri":
             case "Bảo trì":
@@ -126,7 +122,7 @@ public final class ThemeColors {
         if (code == null) return TEXT_MUTED;
         switch (code) {
             case "Trong":      return SUCCESS;
-            case "DangSuDung": return DANGER;
+            case "DangSuDung": return new Color(239, 68, 68); // Red-500
             case "BaoTri":     return WARNING;
             default:           return TEXT_MUTED;
         }
@@ -140,7 +136,7 @@ public final class ThemeColors {
         if (code == null) return BG_SECONDARY;
         switch (code) {
             case "Trong":      return SUCCESS_SOFT;
-            case "DangSuDung": return DANGER_SOFT;
+            case "DangSuDung": return new Color(254, 226, 226); // Red-100
             case "BaoTri":     return WARNING_SOFT;
             default:           return BG_SECONDARY;
         }
