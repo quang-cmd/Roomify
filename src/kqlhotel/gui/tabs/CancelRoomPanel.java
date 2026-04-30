@@ -4,9 +4,11 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -20,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
@@ -358,30 +361,30 @@ public class CancelRoomPanel extends JPanel {
         wrap.add(titleRow, "gapy 0 4");
         wrap.add(sub, "gapy 0 16");
 
-        // Đặt wrap 2 để hiển thị chính xác 2 phòng trên 1 hàng rồi mới xuống dòng
-        JPanel listPnl = new JPanel(new MigLayout("insets 0, wrap 2, gap 16", "[][]", "[]"));
+        // Scrollable panel: ép chiều rộng theo viewport (không bể), cuộn dọc khi nhiều phòng
+        JPanel listPnl = new ScrollablePanel(new MigLayout("insets 0, wrap 2, gap 16", "[grow,fill][grow,fill]", "[]"));
         listPnl.setOpaque(false);
 
         int count = 0;
 
         if (isConfirming) {
-            listPnl.add(createSingleRoomCard(selectedRoomId, selectedRoomType, selectedFloor, selectedCusName, isConfirming), "w 320!");
+            listPnl.add(createSingleRoomCard(selectedRoomId, selectedRoomType, selectedFloor, selectedCusName, isConfirming));
             count = 1;
         } else {
             if (checkMatch("DP001", "Nguyễn Văn A", "0912345678")) {
-                listPnl.add(createSingleRoomCard("DP001", "Phòng 201 - Deluxe", "Tầng 2", "Nguyễn Văn A", isConfirming), "w 320!");
+                listPnl.add(createSingleRoomCard("DP001", "Phòng 201 - Deluxe", "Tầng 2", "Nguyễn Văn A", isConfirming));
                 count++;
             }
             if (checkMatch("DP002", "Trần Thị B", "0987654321")) {
-                listPnl.add(createSingleRoomCard("DP002", "Phòng 305 - Suite", "Tầng 3", "Trần Thị B", isConfirming), "w 320!");
+                listPnl.add(createSingleRoomCard("DP002", "Phòng 305 - Suite", "Tầng 3", "Trần Thị B", isConfirming));
                 count++;
             }
             if (checkMatch("DP003", "Lê Văn C", "0123456789")) {
-                listPnl.add(createSingleRoomCard("DP003", "Phòng 502 - Standard", "Tầng 5", "Lê Văn C", isConfirming), "w 320!");
+                listPnl.add(createSingleRoomCard("DP003", "Phòng 502 - Standard", "Tầng 5", "Lê Văn C", isConfirming));
                 count++;
             }
             if (checkMatch("DP004", "Phạm Văn D", "0999888777")) {
-                listPnl.add(createSingleRoomCard("DP004", "Phòng 101 - Basic", "Tầng 1", "Phạm Văn D", isConfirming), "w 320!");
+                listPnl.add(createSingleRoomCard("DP004", "Phòng 101 - Basic", "Tầng 1", "Phạm Văn D", isConfirming));
                 count++;
             }
         }
@@ -392,11 +395,9 @@ public class CancelRoomPanel extends JPanel {
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
-        // Bật cuộn dọc cho danh sách nhiều tầng, cuộn ngang chỉ hiện khi màn hình quá nhỏ
-        sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.getVerticalScrollBar().setUnitIncrement(16);
-        sp.getHorizontalScrollBar().setUnitIncrement(16);
 
         wrap.add(sp, "grow");
         
@@ -613,5 +614,39 @@ public class CancelRoomPanel extends JPanel {
         p.add(ico);
         p.add(txt);
         return p;
+    }
+    /**
+     * JPanel that implements Scrollable to track viewport width (no horizontal overflow)
+     * while allowing vertical scrolling when content exceeds the visible area.
+     */
+    private static class ScrollablePanel extends JPanel implements Scrollable {
+        public ScrollablePanel(java.awt.LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 64;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true; // Ép chiều rộng theo viewport → không bể layout
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false; // Cho phép cuộn dọc khi nội dung dài hơn viewport
+        }
     }
 }
