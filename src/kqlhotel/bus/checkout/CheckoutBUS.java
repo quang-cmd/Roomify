@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
 
 public class CheckoutBUS {
     private final InvoiceDAO invoiceDAO = new InvoiceDAO();
@@ -214,14 +215,28 @@ public class CheckoutBUS {
         LocalDateTime now = LocalDateTime.now();
         List<InvoiceDetail> details = invoiceDetailDAO.getByInvoice(hd.getMaHD());
 
-        if ((details == null || details.isEmpty())
-                && hd.getMaDatPhong() != null
-                && !hd.getMaDatPhong().isBlank()) {
-            details = invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
-        }
-
         double roomFee = 0;
         double surcharge = 0;
+
+        if (details != null) {
+            for (InvoiceDetail ct : details) {
+                boolean shouldRecalculate =
+                        ct.getNgayTraThucTe() == null
+                                && (roomCodes == null || roomCodes.contains(ct.getMaPhong()));
+
+                if (shouldRecalculate) {
+                    RoomCharge charge = calculateRoomCharge(hd, ct, now);
+                    roomFee += charge.roomFee;
+                    surcharge += charge.surcharge;
+                } else {
+                    double oldSurcharge = Math.max(0, ct.getPhuThu());
+                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge);
+
+                    roomFee += oldRoomFee;
+                    surcharge += oldSurcharge;
+                }
+            }
+        }
 
         if (details != null) {
             for (InvoiceDetail ct : details) {
@@ -288,44 +303,63 @@ public class CheckoutBUS {
 
         LocalDateTime expectedIn = getExpectedCheckinTime(hd.getMaDatPhong(), ct.getMaPhong());
         LocalDateTime expectedOut = ct.getNgayTraPhong();
-
         LocalDateTime actualIn = ct.getNgayNhanPhong();
 
         if (actualIn == null) actualIn = expectedIn;
         if (actualIn == null) actualIn = LocalDateTime.now();
 
-        // ===== SỐ ĐÊM DỰ KIẾN =====
-        long expectedNights = 0;
+        // ===== THỜI GIAN DỰ KIẾN =====
+        long expectedHours = 0;
         if (expectedIn != null && expectedOut != null) {
-            expectedNights = ChronoUnit.DAYS.between(
-                    expectedIn.toLocalDate(),
-                    expectedOut.toLocalDate()
-            );
+            expectedHours = Duration.between(expectedIn, expectedOut).toHours();
         }
 
+        if (expectedHours <= 0) expectedHours = 24;
+
+        double expectedDays = expectedHours / 24.0;
+        long expectedNights = (long) Math.ceil(expectedDays);
         if (expectedNights <= 0) expectedNights = 1;
 
-        // ===== SỐ ĐÊM THỰC TẾ =====
-        long actualNights = ChronoUnit.DAYS.between(
-                actualIn.toLocalDate(),
-                actualOut.toLocalDate()
-        );
+        // ===== THỜI GIAN THỰC TẾ =====
+        long actualHours = Duration.between(actualIn, actualOut).toHours();
+        if (actualHours <= 0) actualHours = 1;
 
-        if (actualNights <= 0) actualNights = 1;
+        double actualDays = actualHours / 24.0;
+        int actualNightsForSave = (int) Math.ceil(actualDays);
+        if (actualNightsForSave <= 0) actualNightsForSave = 1;
 
-        // ===== TIỀN PHÒNG =====
+        // ===== TIỀN PHÒNG GỐC =====
         double roomFee = expectedNights * price;
 
-        // ===== PHỤ THU =====
-        double surcharge = 0;
+        // ===== GIẢM GIÁ KHI TRẢ SỚM =====
+        if (expectedOut != null && actualOut.isBefore(expectedOut)) {
+            long earlyHours = Duration.between(actualOut, expectedOut).toHours();
 
-        if (actualNights > expectedNights) {
-            long extraNights = actualNights - expectedNights;
-            surcharge = extraNights * price;
+            if (earlyHours >= 24) {
+                if (actualDays <= expectedDays * 0.5) {
+                    roomFee = roomFee * 0.50; // giảm 50%
+                } else {
+                    roomFee = roomFee * 0.70; // giảm 30%
+                }
+            }
         }
 
-        return new RoomCharge((int) actualNights, roomFee, surcharge);
+        // ===== PHỤ THU KHI TRẢ TRỄ =====
+        double surcharge = 0;
+
+        if (expectedOut != null && actualOut.isAfter(expectedOut)) {
+            long lateHours = Duration.between(expectedOut, actualOut).toHours();
+
+            if (lateHours > 0) {
+                double lateDays = lateHours / 24.0;
+                long extraNights = (long) Math.ceil(lateDays);
+                surcharge = extraNights * price;
+            }
+        }
+
+        return new RoomCharge(actualNightsForSave, roomFee, surcharge);
     }
+
     private double getBookingRoomPrice(String maDatPhong, String maPhong) {
         if (maDatPhong == null || maDatPhong.isBlank() || maPhong == null || maPhong.isBlank()) {
             return 0;
@@ -350,6 +384,7 @@ public class CheckoutBUS {
 
         return 0;
     }
+
     private LocalDateTime getExpectedCheckinTime(String maDatPhong, String maPhong) {
         if (maDatPhong == null || maDatPhong.isBlank() || maPhong == null || maPhong.isBlank()) {
             return null;
