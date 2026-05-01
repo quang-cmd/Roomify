@@ -12,6 +12,8 @@ import kqlhotel.gui.components.AppTextField;
 import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.gui.utils.IconLoader;
+import javax.swing.ImageIcon;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.service.EmailService;
@@ -34,12 +36,8 @@ public class LoginPanel extends LoginBackgroundPanel {
         card.setLayout(new MigLayout("wrap 1,insets 28 28 22 28,gap 10", "[grow,fill]", "[]"));
         card.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        RoundedPanel logoBox = new RoundedPanel(14, ThemeColors.PREMIUM_PRIMARY, ThemeColors.withAlpha(Color.WHITE, 24), 1f);
-        logoBox.setLayout(new BorderLayout());
-        JLabel logo = new JLabel("KH", SwingConstants.CENTER);
-        logo.setForeground(Color.WHITE);
-        logo.setFont(logo.getFont().deriveFont(java.awt.Font.BOLD, 28f));
-        logoBox.add(logo, BorderLayout.CENTER);
+        ImageIcon logoIcon = IconLoader.loadIconKeepRatio("logo.png", 100);
+        JLabel logoLabel = new JLabel(logoIcon, SwingConstants.CENTER);
 
         JLabel brand = new JLabel("KQL HOTEL", SwingConstants.CENTER);
         brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
@@ -104,7 +102,14 @@ public class LoginPanel extends LoginBackgroundPanel {
         demoText.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         demo.add(demoText, BorderLayout.CENTER);
 
-        card.add(logoBox, "w 64!,h 64!,alignx center,gapy 8 0");
+        if (logoIcon != null) {
+            card.add(logoLabel, "alignx center,gapy 8 0");
+        } else {
+            JLabel logo = new JLabel("KH", SwingConstants.CENTER);
+            logo.setForeground(ThemeColors.PREMIUM_PRIMARY);
+            logo.setFont(logo.getFont().deriveFont(java.awt.Font.BOLD, 48f));
+            card.add(logo, "w 100!,h 100!,alignx center,gapy 8 0");
+        }
         card.add(brand, "gapy 8 0");
         card.add(subtitle, "gapy 0 10");
         card.add(userLb, "gapy 6 0");
