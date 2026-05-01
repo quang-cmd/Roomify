@@ -9,13 +9,9 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GradientPaint;
-import java.awt.Image;
 import java.awt.RenderingHints;
-import java.awt.Shape;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.URL;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -23,9 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.swing.BorderFactory;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -827,40 +820,17 @@ public class BookingPanel extends JPanel {
 
     
 
-    private JPanel makeRoomTypeIcon(Color color, String letter) {
-        JPanel circle = new JPanel(new BorderLayout());
-        circle.setOpaque(false);
+    // private JPanel makeRoomTypeIcon(Color color, String letter) {
+    //     JPanel circle = new JPanel(new BorderLayout());
+    //     circle.setOpaque(false);
         
-            ImageIcon icon = IconLoader.loadIcon(IconLoader.getIconFile(letter), 36, 36);
-        if (icon != null) {
-            JLabel iconLabel = new JLabel(icon);
-            circle.add(iconLabel, BorderLayout.CENTER);
-        } else {
-            // Fallback: vẽ hình tròn như cũ nếu PNG không tìm được
-            JPanel fallback = new JPanel() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 30));
-                    g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-                    g2.setColor(color);
-                    g2.setStroke(new BasicStroke(1.5f));
-                    g2.drawOval(1, 1, getWidth() - 3, getHeight() - 3);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            fallback.setOpaque(false);
-            fallback.setLayout(new BorderLayout());
-            JLabel lbl = new JLabel(letter, SwingConstants.CENTER);
-            lbl.setForeground(color);
-            lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 13f));
-            fallback.add(lbl);
-            circle.add(fallback, BorderLayout.CENTER);
-        }
-        return circle;
-    }
+    //     ImageIcon icon = IconLoader.loadIcon(IconLoader.getIconFile(letter), 36, 36);
+    //     if (icon != null) {
+    //         JLabel iconLabel = new JLabel(icon);
+    //         circle.add(iconLabel, BorderLayout.CENTER);
+    //     }  
+    //     return circle;
+    // }
 
     private JPanel makeAvailBadge(String status, Color color) {
         JPanel badge = new JPanel() {
