@@ -621,6 +621,13 @@ public class CheckoutPanel extends JPanel {
 
                 setStep(1);
                 mainCards.show(contentPanel, "step1");
+
+                // Refresh RoomManagementPanel so status updates reflect immediately
+                java.awt.Container c = CheckoutPanel.this;
+                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                if (c instanceof kqlhotel.gui.AppFrame) {
+                    ((kqlhotel.gui.AppFrame) c).refreshRoomManagementData();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }

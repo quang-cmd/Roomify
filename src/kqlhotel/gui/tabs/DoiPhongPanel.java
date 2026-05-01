@@ -162,7 +162,7 @@ public class DoiPhongPanel extends JPanel {
 
         JPanel leftColumn = new JPanel();
         leftColumn.setOpaque(false);
-        leftColumn.setPreferredSize(new Dimension(430, 0));
+        leftColumn.setPreferredSize(new Dimension(460, 0));
         leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
 
         leftColumn.add(createSearchCard());
@@ -183,7 +183,7 @@ public class DoiPhongPanel extends JPanel {
         JPanel top = new JPanel();
         top.setOpaque(false);
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.setBorder(new EmptyBorder(18, 20, 12, 20));
+        top.setBorder(new EmptyBorder(12, 20, 8, 20));
 
         JLabel title = new JLabel("Bộ lọc tìm khách đang ở");
         title.setFont(new Font("Segoe UI", Font.BOLD, 17));
@@ -202,16 +202,16 @@ public class DoiPhongPanel extends JPanel {
         JPanel form = new JPanel();
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBorder(new EmptyBorder(10, 20, 20, 20));
+        form.setBorder(new EmptyBorder(4, 20, 16, 20));
 
         form.add(createFieldGroup("Mã đặt phòng", inpMaDatPhong));
-        form.add(Box.createVerticalStrut(12));
+        form.add(Box.createVerticalStrut(6));
         form.add(createFieldGroup("Tên khách", inpTenKhach));
-        form.add(Box.createVerticalStrut(12));
+        form.add(Box.createVerticalStrut(6));
         form.add(createFieldGroup("Số điện thoại", inpSoDienThoai));
-        form.add(Box.createVerticalStrut(12));
+        form.add(Box.createVerticalStrut(6));
         form.add(createFieldGroup("Số phòng hiện tại", inpSoPhong));
-        form.add(Box.createVerticalStrut(18));
+        form.add(Box.createVerticalStrut(12));
 
         JPanel buttonRow = new JPanel(new GridLayout(1, 2, 10, 0));
         buttonRow.setOpaque(false);
@@ -236,7 +236,7 @@ public class DoiPhongPanel extends JPanel {
     private JPanel createResultsCard() {
         RoundedBlockPanel card = new RoundedBlockPanel(22, SURFACE, BORDER, 1f, new Color(15, 23, 42, 10), 4);
         card.setLayout(new BorderLayout());
-        card.setPreferredSize(new Dimension(430, 0));
+        card.setPreferredSize(new Dimension(460, 0));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
         JPanel header = new JPanel(new BorderLayout());
@@ -289,7 +289,7 @@ public class DoiPhongPanel extends JPanel {
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         group.add(label);
-        group.add(Box.createVerticalStrut(7));
+        group.add(Box.createVerticalStrut(4));
         group.add(field);
         return group;
     }
