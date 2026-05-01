@@ -95,13 +95,6 @@ public class LoginPanel extends LoginBackgroundPanel {
         passwordField.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
         loginButton.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
 
-        RoundedPanel demo = new RoundedPanel(12, ThemeColors.PREMIUM_ACCENT_SOFT, ThemeColors.withAlpha(ThemeColors.PREMIUM_ACCENT, 80), 1f);
-        demo.setLayout(new BorderLayout());
-        JLabel demoText = new JLabel("Tài khoản demo: admin / mật khẩu: admin123");
-        demoText.setForeground(ThemeColors.PREMIUM_ACCENT_DARK);
-        demoText.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        demo.add(demoText, BorderLayout.CENTER);
-
         if (logoIcon != null) {
             card.add(logoLabel, "alignx center,gapy 8 0");
         } else {
@@ -118,7 +111,6 @@ public class LoginPanel extends LoginBackgroundPanel {
         card.add(passwordField, "h 40");
         card.add(loginButton, "h 44,gapy 8 2");
         card.add(forgotPassword, "alignx center,gapy 0 8");
-        card.add(demo, "gapy 8");
 
         add(card, "w 420!,h 540!,alignx center,aligny center");
 

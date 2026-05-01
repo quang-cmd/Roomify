@@ -238,24 +238,6 @@ public class CheckoutBUS {
             }
         }
 
-        if (details != null) {
-            for (InvoiceDetail ct : details) {
-                boolean isSelectedRoom = roomCodes != null && roomCodes.contains(ct.getMaPhong());
-
-                if (isSelectedRoom && ct.getNgayTraThucTe() == null) {
-                    RoomCharge charge = calculateRoomCharge(hd, ct, now);
-                    roomFee += charge.roomFee;
-                    surcharge += charge.surcharge;
-                } else {
-                    double oldSurcharge = Math.max(0, ct.getPhuThu());
-                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge);
-
-                    roomFee += oldRoomFee;
-                    surcharge += oldSurcharge;
-                }
-            }
-        }
-
         List<ServiceDetail> services = serviceDetailDAO.getByInvoice(hd.getMaHD());
         double serviceFee = 0;
 
@@ -285,9 +267,10 @@ public class CheckoutBUS {
     }
 
     private RoomCharge calculateRoomCharge(Invoice hd, InvoiceDetail ct, LocalDateTime actualOut) {
-        double price = getBookingRoomPrice(hd.getMaDatPhong(), ct.getMaPhong());
+        // price = đơn giá 1 đêm của phòng
+        double pricePerNight = getBookingRoomPrice(hd.getMaDatPhong(), ct.getMaPhong());
 
-        if (price <= 0) {
+        if (pricePerNight <= 0) {
             Room room = roomDAO.getById(ct.getMaPhong());
             if (room == null) {
                 return new RoomCharge(1, 0, 0);
@@ -298,7 +281,7 @@ public class CheckoutBUS {
                 return new RoomCharge(1, 0, 0);
             }
 
-            price = roomType.getGiaPhong();
+            pricePerNight = roomType.getGiaPhong();
         }
 
         LocalDateTime expectedIn = getExpectedCheckinTime(hd.getMaDatPhong(), ct.getMaPhong());
@@ -329,33 +312,36 @@ public class CheckoutBUS {
         if (actualNightsForSave <= 0) actualNightsForSave = 1;
 
         // ===== TIỀN PHÒNG GỐC =====
-        double roomFee = expectedNights * price;
+        double originalRoomFee = expectedNights * pricePerNight;
 
-        // ===== GIẢM GIÁ KHI TRẢ SỚM =====
+        // ===== PHỤ THU TÍNH THEO GIÁ 1 ĐÊM =====
+        double earlyCheckinFee = calculateEarlyCheckinFee(expectedIn, actualIn, pricePerNight);
+        double lateCheckoutFee = calculateLateCheckoutFee(expectedOut, actualOut, pricePerNight);
+
+        // ===== GIẢM DO TRẢ SỚM =====
+        double earlyCheckoutDiscount = 0;
+
         if (expectedOut != null && actualOut.isBefore(expectedOut)) {
             long earlyHours = Duration.between(actualOut, expectedOut).toHours();
 
             if (earlyHours >= 24) {
                 if (actualDays <= expectedDays * 0.5) {
-                    roomFee = roomFee * 0.50; // giảm 50%
+                    earlyCheckoutDiscount = originalRoomFee * 0.50;
                 } else {
-                    roomFee = roomFee * 0.70; // giảm 30%
+                    earlyCheckoutDiscount = originalRoomFee * 0.30;
                 }
+
+                // Hoàn tiền trả sớm tối đa 50% tổng tiền phòng
+                double maxEarlyRefund = originalRoomFee * 0.50;
+                earlyCheckoutDiscount = Math.min(earlyCheckoutDiscount, maxEarlyRefund);
             }
         }
 
-        // ===== PHỤ THU KHI TRẢ TRỄ =====
-        double surcharge = 0;
+        // Tiền phòng = tiền phòng dự kiến - giảm trả sớm
+        double roomFee = Math.max(0, originalRoomFee - earlyCheckoutDiscount);
 
-        if (expectedOut != null && actualOut.isAfter(expectedOut)) {
-            long lateHours = Duration.between(expectedOut, actualOut).toHours();
-
-            if (lateHours > 0) {
-                double lateDays = lateHours / 24.0;
-                long extraNights = (long) Math.ceil(lateDays);
-                surcharge = extraNights * price;
-            }
-        }
+        // Phụ thu = phụ thu nhận sớm + phụ thu trả trễ
+        double surcharge = earlyCheckinFee + lateCheckoutFee;
 
         return new RoomCharge(actualNightsForSave, roomFee, surcharge);
     }
@@ -376,7 +362,7 @@ public class CheckoutBUS {
 
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getDouble("donGiaDat");
+                return rs.getDouble("donGiaDat"); // giá 1 đêm
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -410,48 +396,37 @@ public class CheckoutBUS {
         return null;
     }
 
-    private double calculateEarlyCheckinFee(LocalDateTime expectedIn, LocalDateTime actualIn, double roomPrice) {
-        if (expectedIn == null || actualIn == null) {
-            return 0;
-        }
+    private double calculateEarlyCheckinFee(LocalDateTime expectedIn, LocalDateTime actualIn, double pricePerNight) {
+        if (expectedIn == null || actualIn == null) return 0;
 
-        if (!actualIn.isBefore(expectedIn)) {
-            return 0;
-        }
+        if (!actualIn.isBefore(expectedIn)) return 0;
 
-        long earlyMinutes = Duration.between(actualIn, expectedIn).toMinutes();
+        long minutes = Duration.between(actualIn, expectedIn).toMinutes();
 
-        if (earlyMinutes <= 120) {
-            return roomPrice * 0.10;
-        }
+        if (minutes <= 120) return pricePerNight * 0.10;
+        if (minutes <= 360) return pricePerNight * 0.30;
 
-        if (earlyMinutes <= 360) {
-            return roomPrice * 0.30;
-        }
-
-        return roomPrice;
+        return pricePerNight * 0.50;
     }
 
-    private double calculateLateCheckoutFee(LocalDateTime expectedOut, LocalDateTime actualOut, double roomPrice) {
-        if (expectedOut == null || actualOut == null) {
-            return 0;
-        }
+    private double calculateLateCheckoutFee(LocalDateTime expectedOut, LocalDateTime actualOut, double pricePerNight) {
+        if (expectedOut == null || actualOut == null) return 0;
 
-        if (!actualOut.isAfter(expectedOut)) {
-            return 0;
-        }
+        if (!actualOut.isAfter(expectedOut)) return 0;
 
-        long lateMinutes = Duration.between(expectedOut, actualOut).toMinutes();
+        long minutes = Duration.between(expectedOut, actualOut).toMinutes();
 
-        if (lateMinutes <= 120) {
-            return roomPrice * 0.10;
-        }
+        if (minutes <= 120) return pricePerNight * 0.10;
+        if (minutes <= 360) return pricePerNight * 0.30;
 
-        if (lateMinutes <= 360) {
-            return roomPrice * 0.30;
-        }
+        long lateDays = ChronoUnit.DAYS.between(
+                expectedOut.toLocalDate(),
+                actualOut.toLocalDate()
+        );
 
-        return roomPrice;
+        if (lateDays <= 0) lateDays = 1;
+
+        return lateDays * pricePerNight;
     }
 
     private double calculatePromotionDiscount(String maKM, double amountBeforeDiscount) {
