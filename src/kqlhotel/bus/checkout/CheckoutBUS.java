@@ -15,8 +15,10 @@ import kqlhotel.entity.ServiceDetail;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
 
 public class CheckoutBUS {
     private final InvoiceDAO invoiceDAO = new InvoiceDAO();
@@ -25,6 +27,38 @@ public class CheckoutBUS {
     private final PromotionDAO promotionDAO = new PromotionDAO();
     private final RoomDAO roomDAO = new RoomDAO();
     private final RoomTypeDAO roomTypeDAO = new RoomTypeDAO();
+
+    public static class CheckoutTotals {
+        public double roomFee;
+        public double serviceFee;
+        public double surcharge;
+        public double tax;
+        public double discount;
+        public double total;
+
+        public CheckoutTotals(double roomFee, double serviceFee, double surcharge, double tax, double discount, double total) {
+            this.roomFee = roomFee;
+            this.serviceFee = serviceFee;
+            this.surcharge = surcharge;
+            this.tax = tax;
+            this.discount = discount;
+            this.total = total;
+        }
+    }
+
+    private static class RoomCharge {
+        int nights;
+        double roomFee;
+        double surcharge;
+        double total;
+
+        RoomCharge(int nights, double roomFee, double surcharge) {
+            this.nights = nights;
+            this.roomFee = roomFee;
+            this.surcharge = surcharge;
+            this.total = roomFee + surcharge;
+        }
+    }
 
     public Invoice getInvoiceForCheckout(String maPhong) {
         Invoice hd = invoiceDAO.getActiveByRoom(maPhong);
@@ -45,7 +79,15 @@ public class CheckoutBUS {
         if (hd == null) {
             return;
         }
-        recalculateInvoiceTotals(hd, maKM);
+
+        CheckoutTotals totals = previewTotals(hd, null, maKM);
+
+        hd.setMaKhuyenMai((maKM == null || maKM.isBlank()) ? null : maKM);
+        hd.setTienPhong(totals.roomFee + totals.surcharge);
+        hd.setTienDichVu(totals.serviceFee);
+        hd.setTienThue(totals.tax);
+        hd.setTienKhuyenMai(totals.discount);
+        hd.setTongTienThanhToan(totals.total);
     }
 
     public List<Promotion> getAvailablePromotions() {
@@ -85,14 +127,12 @@ public class CheckoutBUS {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Nếu chưa có ChiTietHoaDon thì tạo từ ChiTietDatPhong
         invoiceDetailDAO.createFromBookingIfMissing(
                 hd.getMaHD(),
                 hd.getMaDatPhong(),
                 roomCodes
         );
 
-        // 2. BẮT BUỘC load lại sau khi tạo
         List<InvoiceDetail> chiTietRooms = invoiceDetailDAO.getByInvoice(hd.getMaHD());
 
         if (chiTietRooms == null || chiTietRooms.isEmpty()) {
@@ -113,31 +153,15 @@ public class CheckoutBUS {
                 continue;
             }
 
-            Room p = roomDAO.getById(ct.getMaPhong());
-            if (p == null) {
-                allUpdated = false;
-                continue;
-            }
-
-            RoomType lp = roomTypeDAO.getById(p.getLoaiPhong());
-            if (lp == null) {
-                allUpdated = false;
-                continue;
-            }
-
-            long days = Duration.between(ct.getNgayNhanPhong(), now).toDays();
-            if (days <= 0) {
-                days = 1;
-            }
-
-            double fee = days * lp.getGiaPhong() + ct.getPhuThu();
+            RoomCharge charge = calculateRoomCharge(hd, ct, now);
 
             boolean updateDetail = invoiceDetailDAO.updateCheckoutInfo(
                     hd.getMaHD(),
                     ct.getMaPhong(),
                     now,
-                    (int) days,
-                    fee
+                    charge.nights,
+                    charge.surcharge,
+                    charge.total
             );
 
             boolean updateRoom = roomDAO.updateStatus(
@@ -154,8 +178,14 @@ public class CheckoutBUS {
             return false;
         }
 
-        // 3. Load lại sau khi update checkout
-        recalculateInvoiceTotals(hd, maKM);
+        CheckoutTotals totals = previewTotals(hd, null, maKM);
+
+        hd.setMaKhuyenMai((maKM == null || maKM.isBlank()) ? null : maKM);
+        hd.setTienPhong(totals.roomFee + totals.surcharge);
+        hd.setTienDichVu(totals.serviceFee);
+        hd.setTienThue(totals.tax);
+        hd.setTienKhuyenMai(totals.discount);
+        hd.setTongTienThanhToan(totals.total);
 
         List<InvoiceDetail> updatedRoomDetails = invoiceDetailDAO.getByInvoice(hd.getMaHD());
 
@@ -174,44 +204,254 @@ public class CheckoutBUS {
             hd.setNgayThanhToan(null);
         }
 
-        boolean updateHD = invoiceDAO.update(hd);
+        return allUpdated && invoiceDAO.update(hd);
+    }
 
-        return allUpdated && updateHD;
+    public CheckoutTotals previewTotals(Invoice hd, List<String> roomCodes, String maKM) {
+        if (hd == null) {
+            return new CheckoutTotals(0, 0, 0, 0, 0, 0);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<InvoiceDetail> details = invoiceDetailDAO.getByInvoice(hd.getMaHD());
+
+        double roomFee = 0;
+        double surcharge = 0;
+
+        if (details != null) {
+            for (InvoiceDetail ct : details) {
+                boolean shouldRecalculate =
+                        ct.getNgayTraThucTe() == null
+                                && (roomCodes == null || roomCodes.contains(ct.getMaPhong()));
+
+                if (shouldRecalculate) {
+                    RoomCharge charge = calculateRoomCharge(hd, ct, now);
+                    roomFee += charge.roomFee;
+                    surcharge += charge.surcharge;
+                } else {
+                    double oldSurcharge = Math.max(0, ct.getPhuThu());
+                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge);
+
+                    roomFee += oldRoomFee;
+                    surcharge += oldSurcharge;
+                }
+            }
+        }
+
+        if (details != null) {
+            for (InvoiceDetail ct : details) {
+                boolean isSelectedRoom = roomCodes != null && roomCodes.contains(ct.getMaPhong());
+
+                if (isSelectedRoom && ct.getNgayTraThucTe() == null) {
+                    RoomCharge charge = calculateRoomCharge(hd, ct, now);
+                    roomFee += charge.roomFee;
+                    surcharge += charge.surcharge;
+                } else {
+                    double oldSurcharge = Math.max(0, ct.getPhuThu());
+                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge);
+
+                    roomFee += oldRoomFee;
+                    surcharge += oldSurcharge;
+                }
+            }
+        }
+
+        List<ServiceDetail> services = serviceDetailDAO.getByInvoice(hd.getMaHD());
+        double serviceFee = 0;
+
+        if (services != null) {
+            for (ServiceDetail sd : services) {
+                serviceFee += sd.getThanhTien();
+            }
+        }
+
+        double subTotal = roomFee + serviceFee + surcharge;
+        double tax = subTotal * 0.10;
+        double discount = calculatePromotionDiscount(maKM, subTotal + tax);
+        double total = Math.max(0, subTotal + tax - discount);
+
+        return new CheckoutTotals(roomFee, serviceFee, surcharge, tax, discount, total);
     }
 
     private void recalculateInvoiceTotals(Invoice hd, String maKM) {
-        List<InvoiceDetail> chiTietRooms = invoiceDetailDAO.getByInvoice(hd.getMaHD());
-
-        if ((chiTietRooms == null || chiTietRooms.isEmpty())
-                && hd.getMaDatPhong() != null
-                && !hd.getMaDatPhong().isBlank()) {
-            chiTietRooms = invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
-        }
-
-        double totalRoomFee = 0;
-        for (InvoiceDetail ct : chiTietRooms) {
-            totalRoomFee += ct.getThanhTien();
-        }
-
-        hd.setTienPhong(totalRoomFee);
-
-        List<ServiceDetail> chiTietServices = serviceDetailDAO.getByInvoice(hd.getMaHD());
-        double totalServiceFee = 0;
-        for (ServiceDetail ct : chiTietServices) {
-            totalServiceFee += ct.getThanhTien();
-        }
-        hd.setTienDichVu(totalServiceFee);
-
-        double subTotal = totalRoomFee + totalServiceFee;
-        double tax = subTotal * 0.1;
-        double discount = calculatePromotionDiscount(maKM, subTotal + tax);
+        CheckoutTotals totals = previewTotals(hd, null, maKM);
 
         hd.setMaKhuyenMai((maKM == null || maKM.isBlank()) ? null : maKM);
-        hd.setTienKhuyenMai(discount);
-        hd.setTienThue(tax);
+        hd.setTienPhong(totals.roomFee + totals.surcharge);
+        hd.setTienDichVu(totals.serviceFee);
+        hd.setTienThue(totals.tax);
+        hd.setTienKhuyenMai(totals.discount);
+        hd.setTongTienThanhToan(totals.total);
+    }
 
-        double finalTotal = Math.max(0, subTotal + tax - discount);
-        hd.setTongTienThanhToan(finalTotal);
+    private RoomCharge calculateRoomCharge(Invoice hd, InvoiceDetail ct, LocalDateTime actualOut) {
+        double price = getBookingRoomPrice(hd.getMaDatPhong(), ct.getMaPhong());
+
+        if (price <= 0) {
+            Room room = roomDAO.getById(ct.getMaPhong());
+            if (room == null) {
+                return new RoomCharge(1, 0, 0);
+            }
+
+            RoomType roomType = roomTypeDAO.getById(room.getLoaiPhong());
+            if (roomType == null) {
+                return new RoomCharge(1, 0, 0);
+            }
+
+            price = roomType.getGiaPhong();
+        }
+
+        LocalDateTime expectedIn = getExpectedCheckinTime(hd.getMaDatPhong(), ct.getMaPhong());
+        LocalDateTime expectedOut = ct.getNgayTraPhong();
+        LocalDateTime actualIn = ct.getNgayNhanPhong();
+
+        if (actualIn == null) actualIn = expectedIn;
+        if (actualIn == null) actualIn = LocalDateTime.now();
+
+        // ===== THỜI GIAN DỰ KIẾN =====
+        long expectedHours = 0;
+        if (expectedIn != null && expectedOut != null) {
+            expectedHours = Duration.between(expectedIn, expectedOut).toHours();
+        }
+
+        if (expectedHours <= 0) expectedHours = 24;
+
+        double expectedDays = expectedHours / 24.0;
+        long expectedNights = (long) Math.ceil(expectedDays);
+        if (expectedNights <= 0) expectedNights = 1;
+
+        // ===== THỜI GIAN THỰC TẾ =====
+        long actualHours = Duration.between(actualIn, actualOut).toHours();
+        if (actualHours <= 0) actualHours = 1;
+
+        double actualDays = actualHours / 24.0;
+        int actualNightsForSave = (int) Math.ceil(actualDays);
+        if (actualNightsForSave <= 0) actualNightsForSave = 1;
+
+        // ===== TIỀN PHÒNG GỐC =====
+        double roomFee = expectedNights * price;
+
+        // ===== GIẢM GIÁ KHI TRẢ SỚM =====
+        if (expectedOut != null && actualOut.isBefore(expectedOut)) {
+            long earlyHours = Duration.between(actualOut, expectedOut).toHours();
+
+            if (earlyHours >= 24) {
+                if (actualDays <= expectedDays * 0.5) {
+                    roomFee = roomFee * 0.50; // giảm 50%
+                } else {
+                    roomFee = roomFee * 0.70; // giảm 30%
+                }
+            }
+        }
+
+        // ===== PHỤ THU KHI TRẢ TRỄ =====
+        double surcharge = 0;
+
+        if (expectedOut != null && actualOut.isAfter(expectedOut)) {
+            long lateHours = Duration.between(expectedOut, actualOut).toHours();
+
+            if (lateHours > 0) {
+                double lateDays = lateHours / 24.0;
+                long extraNights = (long) Math.ceil(lateDays);
+                surcharge = extraNights * price;
+            }
+        }
+
+        return new RoomCharge(actualNightsForSave, roomFee, surcharge);
+    }
+
+    private double getBookingRoomPrice(String maDatPhong, String maPhong) {
+        if (maDatPhong == null || maDatPhong.isBlank() || maPhong == null || maPhong.isBlank()) {
+            return 0;
+        }
+
+        String sql = "SELECT donGiaDat FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, maDatPhong);
+            ps.setString(2, maPhong);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("donGiaDat");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    private LocalDateTime getExpectedCheckinTime(String maDatPhong, String maPhong) {
+        if (maDatPhong == null || maDatPhong.isBlank() || maPhong == null || maPhong.isBlank()) {
+            return null;
+        }
+
+        String sql = "SELECT ngayNhanDuKien FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, maDatPhong);
+            ps.setString(2, maPhong);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next() && rs.getTimestamp("ngayNhanDuKien") != null) {
+                return rs.getTimestamp("ngayNhanDuKien").toLocalDateTime();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private double calculateEarlyCheckinFee(LocalDateTime expectedIn, LocalDateTime actualIn, double roomPrice) {
+        if (expectedIn == null || actualIn == null) {
+            return 0;
+        }
+
+        if (!actualIn.isBefore(expectedIn)) {
+            return 0;
+        }
+
+        long earlyMinutes = Duration.between(actualIn, expectedIn).toMinutes();
+
+        if (earlyMinutes <= 120) {
+            return roomPrice * 0.10;
+        }
+
+        if (earlyMinutes <= 360) {
+            return roomPrice * 0.30;
+        }
+
+        return roomPrice;
+    }
+
+    private double calculateLateCheckoutFee(LocalDateTime expectedOut, LocalDateTime actualOut, double roomPrice) {
+        if (expectedOut == null || actualOut == null) {
+            return 0;
+        }
+
+        if (!actualOut.isAfter(expectedOut)) {
+            return 0;
+        }
+
+        long lateMinutes = Duration.between(expectedOut, actualOut).toMinutes();
+
+        if (lateMinutes <= 120) {
+            return roomPrice * 0.10;
+        }
+
+        if (lateMinutes <= 360) {
+            return roomPrice * 0.30;
+        }
+
+        return roomPrice;
     }
 
     private double calculatePromotionDiscount(String maKM, double amountBeforeDiscount) {
@@ -243,9 +483,11 @@ public class CheckoutBUS {
         if (nextRoomStatus == null) {
             return "Trong";
         }
+
         if ("Bảo trì".equalsIgnoreCase(nextRoomStatus) || "Bao tri".equalsIgnoreCase(nextRoomStatus)) {
             return "BaoTri";
         }
+
         return "Trong";
     }
 
@@ -257,18 +499,19 @@ public class CheckoutBUS {
 
             StringBuilder sql = new StringBuilder(
                     "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, " +
-                            "COALESCE(cthd.ngayNhanPhong, ctdp.ngayNhanDuKien) AS ngayNhanPhong, " +
-                            "COALESCE(cthd.ngayTraPhong, ctdp.ngayTraDuKien) AS ngayTraPhong, " +
-                            "lp.giaPhong, cthd.ngayTraThucTe " +
+                            "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
+                            "cthd.ngayNhanPhong, cthd.ngayTraPhong, cthd.ngayTraThucTe, " +
+                            "lp.giaPhong " +
                             "FROM HoaDon hd " +
                             "JOIN DatPhong dp ON hd.maDatPhong = dp.maDatPhong " +
                             "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
-                            "LEFT JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
                             "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
                             "WHERE hd.trangThai = 'ChuaThanhToan' " +
-                            "AND (cthd.ngayTraThucTe IS NULL) "
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
+                            "AND cthd.ngayTraThucTe IS NULL "
             );
 
             if (roomCode != null && !roomCode.isEmpty()) {
@@ -281,7 +524,7 @@ public class CheckoutBUS {
                 sql.append("AND kh.hoTenKH LIKE ? ");
             }
 
-            sql.append("ORDER BY ngayTraPhong ASC, hd.maHD ASC");
+            sql.append("ORDER BY ctdp.ngayTraDuKien ASC, hd.maHD ASC");
 
             java.sql.PreparedStatement pstmt = con.prepareStatement(sql.toString());
             int idx = 1;
@@ -298,21 +541,9 @@ public class CheckoutBUS {
             }
 
             java.sql.ResultSet rs = pstmt.executeQuery();
+
             while (rs.next()) {
-                String id = rs.getString("maHD");
-                String rName = "Phòng " + rs.getString("maPhong") + " · " + rs.getString("tenLoaiPhong");
-                String cName = rs.getString("hoTenKH");
-                String phone = rs.getString("sdt");
-                String dateIn = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayNhanPhong").toLocalDateTime());
-                String dateOut = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayTraPhong").toLocalDateTime());
-                String price = kqlhotel.utils.CurrencyUtils.formatVND(rs.getDouble("giaPhong")) + "/đêm";
-
-                String statusText = "Đang ở";
-                java.awt.Color statusColor = new java.awt.Color(240, 60, 60);
-
-                list.add(new kqlhotel.gui.tabs.CheckoutPanel.CheckoutData(
-                        id, rName, cName, phone, dateIn, dateOut, price, statusText, statusColor
-                )); 
+                list.add(mapCheckoutData(rs, "Đang ở", new java.awt.Color(240, 60, 60)));
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
@@ -323,45 +554,66 @@ public class CheckoutBUS {
 
     public List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> getRoomsDueToday() {
         List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new ArrayList<>();
+
         try {
             java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+
             String sql =
                     "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, " +
-                            "cthd.ngayNhanPhong, cthd.ngayTraPhong, lp.giaPhong, cthd.ngayTraThucTe " +
+                            "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
+                            "cthd.ngayNhanPhong, cthd.ngayTraPhong, cthd.ngayTraThucTe, " +
+                            "lp.giaPhong " +
                             "FROM HoaDon hd " +
-                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                            "JOIN Phong p ON cthd.maPhong = p.maPhong " +
+                            "JOIN DatPhong dp ON hd.maDatPhong = dp.maDatPhong " +
+                            "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
+                            "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
-                            "WHERE hd.trangThai IN (N'ChuaThanhToan', N'DaThanhToan') " +
+                            "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
                             "AND cthd.ngayTraThucTe IS NULL " +
-                            "AND CAST(cthd.ngayTraPhong AS DATE) = CAST(GETDATE() AS DATE) " +
-                            "ORDER BY cthd.ngayTraPhong ASC, hd.maHD ASC";
+                            "AND CAST(ctdp.ngayTraDuKien AS DATE) = CAST(GETDATE() AS DATE) " +
+                            "ORDER BY ctdp.ngayTraDuKien ASC, hd.maHD ASC";
 
             java.sql.PreparedStatement pstmt = con.prepareStatement(sql);
             java.sql.ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                String id = rs.getString("maHD");
-                String rName = "Phòng " + rs.getString("maPhong") + " · " + rs.getString("tenLoaiPhong");
-                String cName = rs.getString("hoTenKH");
-                String phone = rs.getString("sdt");
-                String dateIn = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayNhanPhong").toLocalDateTime());
-                String dateOut = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayTraPhong").toLocalDateTime());
-                String price = kqlhotel.utils.CurrencyUtils.formatVND(rs.getDouble("giaPhong")) + "/đêm";
-
-                String statusText = "Trả hôm nay";
-                java.awt.Color statusColor = new java.awt.Color(240, 60, 60);
-
-                list.add(new kqlhotel.gui.tabs.CheckoutPanel.CheckoutData(
-                        id, rName, cName, phone, dateIn, dateOut, price, statusText, statusColor
-                ));
+                list.add(mapCheckoutData(rs, "Trả hôm nay", new java.awt.Color(240, 60, 60)));
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
         }
+
         return list;
     }
+
+    private kqlhotel.gui.tabs.CheckoutPanel.CheckoutData mapCheckoutData(
+            java.sql.ResultSet rs,
+            String statusText,
+            java.awt.Color statusColor
+    ) throws java.sql.SQLException {
+        String id = rs.getString("maHD");
+        String rName = "Phòng " + rs.getString("maPhong") + " · " + rs.getString("tenLoaiPhong");
+        String cName = rs.getString("hoTenKH");
+        String phone = rs.getString("sdt");
+
+        String expectedIn = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayNhanDuKien").toLocalDateTime());
+        String expectedOut = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayTraDuKien").toLocalDateTime());
+        String actualIn = kqlhotel.utils.DateUtils.format(rs.getTimestamp("ngayNhanPhong").toLocalDateTime());
+        String actualOut = "Chưa trả";
+
+        String price = kqlhotel.utils.CurrencyUtils.formatVND(rs.getDouble("giaPhong")) + "/đêm";
+
+        return new kqlhotel.gui.tabs.CheckoutPanel.CheckoutData(
+                id, rName, cName, phone,
+                expectedIn, expectedOut,
+                actualIn, actualOut,
+                price, statusText, statusColor
+        );
+    }
+
     private Invoice getActiveByRoomFromBooking(String maPhong) {
         try {
             java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
@@ -370,8 +622,11 @@ public class CheckoutBUS {
                     "SELECT TOP 1 hd.* " +
                             "FROM HoaDon hd " +
                             "JOIN ChiTietDatPhong ctdp ON hd.maDatPhong = ctdp.maDatPhong " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
                             "WHERE ctdp.maPhong = ? " +
                             "AND hd.trangThai = 'ChuaThanhToan' " +
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
+                            "AND cthd.ngayTraThucTe IS NULL " +
                             "ORDER BY hd.ngayLapHD DESC";
 
             java.sql.PreparedStatement ps = con.prepareStatement(sql);
@@ -386,5 +641,26 @@ public class CheckoutBUS {
         }
 
         return null;
+    }
+
+    public double getCurrentSurcharge(Invoice hd) {
+        if (hd == null) {
+            return 0;
+        }
+
+        List<InvoiceDetail> details = invoiceDetailDAO.getByInvoice(hd.getMaHD());
+        double total = 0;
+
+        if (details != null) {
+            for (InvoiceDetail ct : details) {
+                total += Math.max(0, ct.getPhuThu());
+            }
+        }
+
+        return total;
+    }
+
+    public double previewSurcharge(Invoice hd, List<String> roomCodes) {
+        return previewTotals(hd, roomCodes, null).surcharge;
     }
 }

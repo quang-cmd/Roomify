@@ -9,8 +9,10 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GradientPaint;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
@@ -21,6 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.swing.BorderFactory;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -44,6 +49,9 @@ import kqlhotel.bus.customer.CustomerDirectoryServiceProvider;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.utils.IconLoader;
+import kqlhotel.gui.model.RoomCardData;
+import kqlhotel.gui.components.RoomCard;
 import net.miginfocom.swing.MigLayout;
 
 public class BookingPanel extends JPanel {
@@ -51,7 +59,7 @@ public class BookingPanel extends JPanel {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int ROOMS_PER_SLIDE = 4;
 
-    private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"T\u1ea5t c\u1ea3", "Deluxe", "Grand Premium", "Suite"});
+    private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"Tất cả", "Deluxe", "Grand Premium", "Suite"});
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
     private LocalDate selectedCheckInDate;
@@ -67,9 +75,9 @@ public class BookingPanel extends JPanel {
     // shown on the current slide. 205px is tuned tight against the densest card
     // so the panel fits within the viewport leaving 24px whitespace at the bottom.
     private final JPanel roomList = new JPanel(new MigLayout("wrap 2,insets 0,gap 10", "[grow,fill][grow,fill]", "[205!]"));
-    private final JLabel selectedRoomsLabel = new JLabel("Ch\u01b0a ch\u1ecdn ph\u00f2ng");
-    private final JLabel selectedDateLabel = new JLabel("Ng\u00e0y nh\u1eadn/tr\u1ea3: --");
-    private final JLabel selectedGuestLabel = new JLabel("S\u1ed1 kh\u00e1ch: --");
+    private final JLabel selectedRoomsLabel = new JLabel("Chưa chọn phòng");
+    private final JLabel selectedDateLabel = new JLabel("Ngày nhận/trả: --");
+    private final JLabel selectedGuestLabel = new JLabel("Số khách: --");
     private final JLabel guestFormsTitleLabel = new JLabel("Danh sách khách");
     private final JPanel guestFormsPanel = new JPanel(new MigLayout("wrap 1,insets 0,gap 8", "[grow,fill]", "[]"));
     private final List<GuestFormRow> guestFormRows = new ArrayList<>();
@@ -136,7 +144,7 @@ public class BookingPanel extends JPanel {
 
         JPanel iconBox = new JPanel(new BorderLayout());
         iconBox.setOpaque(false);
-        ImageIcon filterIcon = loadIcon("filter-badge.png", 44, 44);
+        ImageIcon filterIcon = IconLoader.loadIcon("filter-badge.png", 44, 44);
         if (filterIcon != null) {
             iconBox.add(new JLabel(filterIcon), BorderLayout.CENTER);
         } else {
@@ -146,10 +154,10 @@ public class BookingPanel extends JPanel {
 
         JPanel titleText = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
         titleText.setOpaque(false);
-        JLabel title = new JLabel("Y\u00eau c\u1ea7u ph\u00f2ng");
+        JLabel title = new JLabel("Yêu cầu phòng");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
         title.setForeground(new Color(24, 40, 66));
-        JLabel subtitle = new JLabel("Ch\u1ecdn lo\u1ea1i ph\u00f2ng, ng\u00e0y & s\u1ed1 kh\u00e1ch \u0111\u1ec3 t\u00ecm ki\u1ebfm");
+        JLabel subtitle = new JLabel("Chọn loại phòng, ngày & số khách để tìm kiếm");
         subtitle.setForeground(new Color(102, 124, 155));
         subtitle.setFont(subtitle.getFont().deriveFont(12f));
         titleText.add(title);
@@ -159,26 +167,26 @@ public class BookingPanel extends JPanel {
         titleRow.add(titleText, "aligny center");
 
         filterCard.add(titleRow, "gapy 0 8");
-        filterCard.add(new JLabel("Lo\u1ea1i ph\u00f2ng"));
+        filterCard.add(new JLabel("Loại phòng"));
         filterCard.add(roomTypeCombo, "h 40");
 
         // Side-by-side date fields, each with label above the input
         JPanel dateRow = new JPanel(new MigLayout("insets 0,gap 10,wrap 2", "[grow,fill][grow,fill]", "[]"));
         dateRow.setOpaque(false);
 
-        dateRow.add(makeDateBlock("Nh\u1eadn ph\u00f2ng *", checkInField), "grow");
-        dateRow.add(makeDateBlock("Tr\u1ea3 ph\u00f2ng *", checkOutField), "grow");
+        dateRow.add(makeDateBlock("Nhận phòng *", checkInField), "grow");
+        dateRow.add(makeDateBlock("Trả phòng *", checkOutField), "grow");
 
         filterCard.add(dateRow);
-        filterCard.add(new JLabel("S\u1ed1 kh\u00e1ch"));
+        filterCard.add(new JLabel("Số khách"));
         filterCard.add(createGuestStepper(), "h 44");
 
-        JLabel note = new JLabel("T\u1ed1i \u0111a 4 kh\u00e1ch m\u1ed7i ph\u00f2ng");
+        JLabel note = new JLabel("Tối đa 4 khách mỗi phòng");
         note.setForeground(new Color(150, 165, 190));
         note.setFont(note.getFont().deriveFont(11f));
         filterCard.add(note, "gapy 0 4");
 
-        String searchText = "T\u00ecm ph\u00f2ng tr\u1ed1ng";
+        String searchText = "Tìm phòng trống";
         searchButton = new PrimaryButton(searchText);
         searchButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         searchButton.setForeground(Color.WHITE);
@@ -218,7 +226,7 @@ public class BookingPanel extends JPanel {
         ));
 
         JLabel calIcon = new JLabel();
-        ImageIcon calendarPNG = loadIcon("calendar.png", 16, 16);
+        ImageIcon calendarPNG = IconLoader.loadIcon("calendar.png", 16, 16);
         if (calendarPNG != null) {
             calIcon.setIcon(calendarPNG);
         } else {
@@ -397,7 +405,7 @@ public class BookingPanel extends JPanel {
         guestMinusButton.setToolTipText("Giảm số khách");
         guestPlusButton.setToolTipText("Tăng số khách");
 
-        guestCountLabel = new JLabel(guestCount + " kh\u00e1ch", SwingConstants.CENTER);
+        guestCountLabel = new JLabel(guestCount + " khách", SwingConstants.CENTER);
         guestCountLabel.setForeground(new Color(26, 49, 86));
         guestCountLabel.setFont(guestCountLabel.getFont().deriveFont(Font.BOLD, 13f));
 
@@ -413,7 +421,7 @@ public class BookingPanel extends JPanel {
             }
             if (guestCount > 1) {
                 guestCount--;
-                guestCountLabel.setText(guestCount + " kh\u00e1ch");
+                guestCountLabel.setText(guestCount + " khách");
                 syncGuestForms();
                 updateGuestStepperState();
             }
@@ -424,7 +432,7 @@ public class BookingPanel extends JPanel {
             }
             if (guestCount < 4) {
                 guestCount++;
-                guestCountLabel.setText(guestCount + " kh\u00e1ch");
+                guestCountLabel.setText(guestCount + " khách");
                 syncGuestForms();
                 updateGuestStepperState();
             }
@@ -658,21 +666,21 @@ public class BookingPanel extends JPanel {
         JPanel ovTitleRow = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
         ovTitleRow.setOpaque(false);
         JLabel star = new JLabel();
-        ImageIcon starPNG = loadIcon("star.png", 24, 24);
+        ImageIcon starPNG = IconLoader.loadIcon("star-book.png", 24, 24);
         if (starPNG != null) {
             star.setIcon(starPNG);
         } else {
-            star.setText("\u2605");
+            star.setText("★");
             star.setForeground(new Color(237, 192, 54));
             star.setFont(star.getFont().deriveFont(22f));
         }
-        JLabel ovTitle = new JLabel("T\u1ed5ng quan ph\u00f2ng kh\u00e1ch s\u1ea1n");
+        JLabel ovTitle = new JLabel("Tổng quan phòng khách sạn");
         ovTitle.setForeground(new Color(245, 248, 255));
         ovTitle.setFont(ovTitle.getFont().deriveFont(Font.BOLD, 18f));
         ovTitleRow.add(star);
         ovTitleRow.add(ovTitle);
 
-        JLabel ovDesc = new JLabel("<html>Di\u1ec1n th\u00f4ng tin y\u00eau c\u1ea7u b\u00ean tr\u00e1i v\u00e0 nh\u1ea5n <b>\"T\u00ecm ph\u00f2ng tr\u1ed1ng\"</b> \u0111\u1ec3 b\u1eaft \u0111\u1ea7u \u0111\u1eb7t ph\u00f2ng. D\u01b0\u1edbi \u0111\u00e2y l\u00e0 t\u1ed5ng quan c\u00e1c lo\u1ea1i ph\u00f2ng hi\u1ec7n c\u00f3.</html>");
+        JLabel ovDesc = new JLabel("<html>Điền thông tin yêu cầu bên trái và nhấn <b>\"Tìm phòng trống\"</b> để bắt đầu đặt phòng. Dưới đây là tổng quan các loại phòng hiện có.</html>");
         ovDesc.setForeground(new Color(170, 188, 220));
 
         overview.add(ovTitleRow);
@@ -690,7 +698,7 @@ public class BookingPanel extends JPanel {
         JPanel selectionIcon = new JPanel(new BorderLayout());
         selectionIcon.setOpaque(false);
         selectionIcon.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-        ImageIcon selectionPng = loadIcon("bed.png", 28, 28);
+        ImageIcon selectionPng = IconLoader.loadIcon("bed.png", 28, 28);
         if (selectionPng != null) {
             selectionIcon.add(new JLabel(selectionPng, SwingConstants.CENTER), BorderLayout.CENTER);
         } else {
@@ -757,7 +765,7 @@ public class BookingPanel extends JPanel {
         RoundedPanel panel = new RoundedPanel(16, new Color(242, 246, 252), new Color(225, 231, 245), 1f);
         panel.setLayout(new MigLayout("wrap 1,insets 18,gap 10", "[grow,fill]", "[]"));
 
-        JLabel title = new JLabel("Th\u00f4ng tin kh\u00e1ch h\u00e0ng");
+        JLabel title = new JLabel("Thông tin khách hàng");
         title.setForeground(new Color(24, 40, 66));
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
 
@@ -775,7 +783,7 @@ public class BookingPanel extends JPanel {
         guestFormsPanel.setOpaque(false);
         syncGuestForms();
 
-        PrimaryButton backButton = new PrimaryButton("Quay l\u1ea1i ch\u1ecdn ph\u00f2ng");
+        PrimaryButton backButton = new PrimaryButton("Quay lại chọn phòng");
         backButton.setBackground(new Color(226, 235, 250));
         backButton.setForeground(new Color(44, 71, 117));
         backButton.addActionListener(e -> {
@@ -814,114 +822,16 @@ public class BookingPanel extends JPanel {
 
     private JPanel roomCard(RoomCardData data) {
         boolean selected = selectedRooms.contains(data);
-        Color cardBg = selected ? ThemeColors.PREMIUM_PRIMARY_SOFT : data.bg;
-        Color cardTone = selected ? ThemeColors.PREMIUM_PRIMARY : data.tone;
-
-        RoundedPanel card = new RoundedPanel(16, cardBg, cardTone, 1f);
-        card.setLayout(new MigLayout("wrap 1,insets 14,gap 6", "[grow,fill]", "[]"));
-        card.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-
-        // Top row: colored icon + room name + availability badge
-        JPanel topRow = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill][]", "[]"));
-        topRow.setOpaque(false);
-
-        JPanel roomIcon = makeRoomTypeIcon(data.tone, getRoomInitial(data.roomType));
-
-        JLabel nameLbl = new JLabel(data.roomType);
-        nameLbl.setForeground(new Color(30, 53, 86));
-        nameLbl.setFont(nameLbl.getFont().deriveFont(Font.BOLD, 16f));
-
-        JPanel availBadge = makeAvailBadge(data.status, cardTone);
-
-        topRow.add(roomIcon, "w 36!,h 36!,aligny center");
-        topRow.add(nameLbl, "aligny center");
-        topRow.add(availBadge, "aligny center");
-
-        // Price row
-        JPanel priceRow = new JPanel(new MigLayout("insets 0,gap 4", "[][grow,fill]", "[]"));
-        priceRow.setOpaque(false);
-        JLabel priceLb = new JLabel(data.price);
-        priceLb.setForeground(new Color(28, 42, 68));
-        priceLb.setFont(priceLb.getFont().deriveFont(Font.BOLD, 22f));
-        JLabel perNight = new JLabel(" /\u0111\u00eam");
-        perNight.setForeground(new Color(100, 120, 150));
-        perNight.setFont(perNight.getFont().deriveFont(13f));
-
-        JLabel capacityLbl = new JLabel("Tối đa " + data.capacity + " khách");
-        capacityLbl.setForeground(new Color(92, 111, 142));
-        capacityLbl.setFont(capacityLbl.getFont().deriveFont(Font.BOLD, 12f));
-
-        JPanel capacityBadge = new JPanel(new MigLayout("insets 3 8 3 8", "[]", "[]"));
-        capacityBadge.setOpaque(true);
-        capacityBadge.setBackground(new Color(226, 235, 250));
-        capacityBadge.setBorder(BorderFactory.createLineBorder(new Color(201, 216, 243), 1));
-        capacityBadge.add(capacityLbl);
-
-        priceRow.add(priceLb);
-        priceRow.add(perNight, "aligny bottom");
-        priceRow.add(capacityBadge, "alignx right,aligny center");
-
-        // Progress bar row
-        JPanel progressRow = new JPanel(new MigLayout("insets 0,gap 6", "[grow,fill][]", "[]"));
-        progressRow.setOpaque(false);
-        JLabel progressLbl = new JLabel("T\u1ef7 l\u1ec7 c\u00f2n tr\u1ed1ng");
-        progressLbl.setForeground(new Color(100, 120, 150));
-        progressLbl.setFont(progressLbl.getFont().deriveFont(12f));
-        JLabel percentLbl = new JLabel(data.occupancyRate);
-        percentLbl.setForeground(data.tone);
-        percentLbl.setFont(percentLbl.getFont().deriveFont(Font.BOLD, 12f));
-
-        JPanel labelRow = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
-        labelRow.setOpaque(false);
-        labelRow.add(progressLbl);
-        labelRow.add(percentLbl);
-
-        int pct = parsePercent(data.occupancyRate);
-        JPanel progressBar = makeProgressBar(cardTone, pct);
-
-        // Amenities
-        JPanel amenitiesRow = new JPanel(new MigLayout("insets 0,gap 10", "[]".repeat(data.amenities.size()), "[]"));
-        amenitiesRow.setOpaque(false);
-        for (String amenity : data.amenities) {
-            JLabel aLbl = new JLabel(amenity);
-            ImageIcon icon = getAmenityIcon(amenity);
-            if (icon != null) {
-                aLbl.setIcon(icon);
-                aLbl.setIconTextGap(6);
-            }
-            aLbl.setForeground(new Color(80, 100, 130));
-            aLbl.setFont(aLbl.getFont().deriveFont(12f));
-            amenitiesRow.add(aLbl);
-        }
-
-        String pickText = selected ? "\u2713 \u0110\u00e3 ch\u1ecdn" : "+ Th\u00eam ph\u00f2ng";
-        PrimaryButton pickButton = new PrimaryButton(pickText);
-        pickButton.setBackground(selected ? ThemeColors.PREMIUM_PRIMARY : new Color(255, 255, 255, 200));
-        pickButton.setForeground(selected ? Color.WHITE : ThemeColors.PREMIUM_TEXT_SECONDARY);
-        pickButton.addActionListener(e -> toggleRoomSelection(data));
-
-        card.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                toggleRoomSelection(data);
-            }
-        });
-
-        card.add(topRow, "growx");
-        card.add(priceRow, "gapy 4 0");
-        card.add(labelRow, "growx");
-        card.add(progressBar, "growx,h 6!");
-        card.add(amenitiesRow, "gapy 4 0");
-        card.add(pickButton, "h 38,gapy 4 0");
-
-        return card;
+        return new RoomCard(data, selected, this::toggleRoomSelection);
     }
+
+    
 
     private JPanel makeRoomTypeIcon(Color color, String letter) {
         JPanel circle = new JPanel(new BorderLayout());
         circle.setOpaque(false);
         
-        ImageIcon icon = loadIcon(getIconFile(letter), 36, 36);
+            ImageIcon icon = IconLoader.loadIcon(IconLoader.getIconFile(letter), 36, 36);
         if (icon != null) {
             JLabel iconLabel = new JLabel(icon);
             circle.add(iconLabel, BorderLayout.CENTER);
@@ -958,91 +868,70 @@ public class BookingPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 25));
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+
+                boolean lightBadge = color.equals(Color.WHITE);
+                if (lightBadge) {
+                    g2.setColor(new Color(255, 255, 255, 54));
+                } else {
+                    g2.setColor(new Color(255, 255, 255, 205));
+                }
+
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+
+                if (lightBadge) {
+                    g2.setColor(new Color(255,255,255,90));
+                }
+                else {
+                    g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 70));
+                }
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         badge.setOpaque(false);
         badge.setLayout(new BorderLayout());
-        badge.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+        badge.setBorder(BorderFactory.createEmptyBorder(3, 9, 3, 9));
+
         JLabel lbl = new JLabel(status, SwingConstants.CENTER);
-        lbl.setForeground(color);
+        lbl.setForeground(color.equals(Color.WHITE) ? Color.WHITE : color);
         lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 12f));
         badge.add(lbl);
         return badge;
     }
 
     private JPanel makeProgressBar(Color color, int percent) {
-        return new JPanel() {
+        JPanel progress = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(210, 220, 235));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                int fillWidth = Math.max(0, (int) (getWidth() * percent / 100.0));
-                g2.setColor(color);
-                g2.fillRoundRect(0, 0, fillWidth, getHeight(), getHeight(), getHeight());
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+                int w = getWidth();
+                int h = getHeight();
+                int arc = h;
+                int y = 1;
+                int barHeight = Math.max(1, h - 2);
+
+                g2.setColor(new Color(255, 255, 255, 145));
+                g2.fillRoundRect(0, y, w, barHeight, arc, arc);
+
+                int fillWidth = Math.max(barHeight, (int) (w * Math.max(0, Math.min(100, percent)) / 100.0));
+                fillWidth = Math.min(w, fillWidth);
+
+                g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 235));
+                g2.fillRoundRect(0, y, fillWidth, barHeight, arc, arc);
+
                 g2.dispose();
             }
         };
+
+        progress.setOpaque(false);
+        return progress;
     }
 
-    private String getRoomInitial(String roomType) {
-        if (roomType.startsWith("Grand Premium 1")) return "G1";
-        if (roomType.startsWith("Grand Premium 2")) return "G2";
-        if (roomType.startsWith("Grand")) return "G";
-        if (roomType.startsWith("Suite")) return "S";
-        return roomType.substring(0, 1).toUpperCase();
-    }
-
-    private ImageIcon getAmenityIcon(String amenity) {
-        switch (amenity) {
-            case "Wifi": return loadIcon("wifi.png", 16, 16);
-            case "Minibar": return loadIcon("minibar.png", 16, 16);
-            case "Ban c\u00f4ng": return loadIcon("balcony.png", 16, 16);
-            case "Ph\u00f2ng kh\u00e1ch": return loadIcon("room.png", 16, 16);
-            default: return null;
-        }
-    }
-
-    private ImageIcon loadIcon(String filename, int width, int height) {
-        try {
-            // Thử load từ classpath (khi chạy từ JAR)
-            URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
-            
-            // Nếu không tìm được, thử load từ src folder (khi chạy từ bin)
-            if (resource == null) {
-                String srcPath = "src/kqlhotel/resources/icons/" + filename;
-                java.io.File file = new java.io.File(srcPath);
-                if (file.exists()) {
-                    resource = file.toURI().toURL();
-                }
-            }
-            
-            if (resource != null) {
-                ImageIcon icon = new ImageIcon(resource);
-                Image scaledImage = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-                return new ImageIcon(scaledImage);
-            }
-        } catch (Exception e) {
-            // Icon loading failed silently
-        }
-        return null;
-    }
-
-    private String getIconFile(String letter) {
-        switch (letter) {
-            case "D": return "deluxe.png";
-            case "G1": return "grand-premium-1.png";
-            case "G2": return "grand-premium-2.png";
-            case "S": return "suite.png";
-            default: return null;
-        }
-    }
+    
 
     private int parsePercent(String pct) {
         try {
@@ -1659,29 +1548,7 @@ public class BookingPanel extends JPanel {
         checkOutField.setForeground(fieldColor);
     }
 
-    private static final class RoomCardData {
-        private final RoomOptionDto optionDto;
-        private final String roomType;
-        private final String price;
-        private final String status;
-        private final String occupancyRate;
-        private final int capacity;
-        private final List<String> amenities;
-        private final Color bg;
-        private final Color tone;
-
-        private RoomCardData(RoomOptionDto optionDto, String roomType, String price, String status, String occupancyRate, int capacity, List<String> amenities, Color bg, Color tone) {
-            this.optionDto = optionDto;
-            this.roomType = roomType;
-            this.price = price;
-            this.status = status;
-            this.occupancyRate = occupancyRate;
-            this.capacity = capacity;
-            this.amenities = amenities;
-            this.bg = bg;
-            this.tone = tone;
-        }
-    }
+    
 
     private static final class GuestFormRow {
         private final JPanel panel;
