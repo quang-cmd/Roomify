@@ -337,19 +337,11 @@ public class CheckoutBUS {
             }
         }
 
-        // Dương = phụ thu, âm = giảm tiền phòng
-        double netAdjustment = earlyCheckinFee + lateCheckoutFee - earlyCheckoutDiscount;
+        // Tiền phòng = tiền phòng dự kiến - giảm trả sớm
+        double roomFee = Math.max(0, originalRoomFee - earlyCheckoutDiscount);
 
-        double roomFee;
-        double surcharge;
-
-        if (netAdjustment >= 0) {
-            roomFee = originalRoomFee;
-            surcharge = netAdjustment;
-        } else {
-            roomFee = Math.max(0, originalRoomFee + netAdjustment);
-            surcharge = 0;
-        }
+        // Phụ thu = phụ thu nhận sớm + phụ thu trả trễ
+        double surcharge = earlyCheckinFee + lateCheckoutFee;
 
         return new RoomCharge(actualNightsForSave, roomFee, surcharge);
     }
@@ -370,7 +362,7 @@ public class CheckoutBUS {
 
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getDouble("donGiaDat");
+                return rs.getDouble("donGiaDat"); // giá 1 đêm
             }
         } catch (Exception e) {
             e.printStackTrace();

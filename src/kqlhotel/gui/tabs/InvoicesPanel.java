@@ -504,11 +504,11 @@ public class InvoicesPanel extends JPanel {
         ));
         tFooter.setBackground(Color.WHITE);
 
-        tFooter.add(makeTText("Tiền phòng", false), "alignx left");
-        tFooter.add(makeTText(CurrencyUtils.formatVND(tienPhongGoc), true), "alignx right");
+        //tFooter.add(makeTText("Tiền phòng", false), "alignx left");
+        //tFooter.add(makeTText(CurrencyUtils.formatVND(tienPhongGoc), true), "alignx right");
 
-        tFooter.add(makeTText("Phụ thu", false), "alignx left");
-        tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
+        //tFooter.add(makeTText("Phụ thu", false), "alignx left");
+        //tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
 
         tFooter.add(makeTText("Tiền dịch vụ", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienDichVu()), true), "alignx right");
