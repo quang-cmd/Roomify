@@ -8,30 +8,63 @@ public final class IconLoader {
     private IconLoader() {}
 
     public static ImageIcon loadIcon(String filename, int width, int height) {
-    if (filename == null) return null;
+        if (filename == null) return null;
 
-    try {
-        String resourcePath = "/kqlhotel/resources/icons/" + filename;
-        URL resource = IconLoader.class.getResource(resourcePath);
-        if (resource == null) {
-            String srcPath = "src/kqlhotel/resources/icons/" + filename;
-            java.io.File file = new java.io.File(srcPath);
-            if (file.exists()) {
-                resource = file.toURI().toURL();
+        try {
+            String resourcePath = "/kqlhotel/resources/icons/" + filename;
+            URL resource = IconLoader.class.getResource(resourcePath);
+            if (resource == null) {
+                String srcPath = "src/kqlhotel/resources/icons/" + filename;
+                java.io.File file = new java.io.File(srcPath);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
             }
+
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                Image scaled = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaled);
+            }
+        } catch (Exception e) {
+            // ignore failures and return null
         }
 
-        if (resource != null) {
-            ImageIcon icon = new ImageIcon(resource);
-            Image scaled = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            return new ImageIcon(scaled);
-        }
-    } catch (Exception e) {
-        // ignore failures and return null
+        return null;
     }
 
-    return null;
-}
+    public static ImageIcon loadIconKeepRatio(String filename, int maxSize) {
+        if (filename == null) return null;
+
+        try {
+            String resourcePath = "/kqlhotel/resources/icons/" + filename;
+            URL resource = IconLoader.class.getResource(resourcePath);
+            if (resource == null) {
+                String srcPath = "src/kqlhotel/resources/icons/" + filename;
+                java.io.File file = new java.io.File(srcPath);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
+            }
+
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                int imgWidth = icon.getIconWidth();
+                int imgHeight = icon.getIconHeight();
+
+                double scale = Math.min((double) maxSize / imgWidth, (double) maxSize / imgHeight);
+                int newWidth = (int) (imgWidth * scale);
+                int newHeight = (int) (imgHeight * scale);
+
+                Image scaled = icon.getImage().getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaled);
+            }
+        } catch (Exception e) {
+            // ignore failures and return null
+        }
+
+        return null;
+    }
 
     public static ImageIcon getAmenityIcon(String amenity) {
         if (amenity == null) return null;
