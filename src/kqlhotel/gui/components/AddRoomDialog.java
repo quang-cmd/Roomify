@@ -164,7 +164,7 @@ public class AddRoomDialog extends JDialog {
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("✔ Thêm phòng");
+        PrimaryButton btnConfirm = new PrimaryButton("Thêm phòng");
         btnConfirm.setBackground(new Color(17, 24, 39));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());

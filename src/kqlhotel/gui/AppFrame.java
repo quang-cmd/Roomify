@@ -511,10 +511,10 @@ public class AppFrame extends JFrame {
         }
     }
 
-    // private void showMainApp() {
-    //     rootCards.show(rootPanel, "app");
-    //     activateRoute(currentRoute);
-    // }
+    private void showMainApp() {
+        rootCards.show(rootPanel, "app");
+        activateRoute(currentRoute);
+    }
 
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
