@@ -14,7 +14,7 @@ public class StaffDAO {
         List<Staff> list = new ArrayList<>();
         String sql = "SELECT * FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap";
         
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) return list;
         
         try (Statement stmt = con.createStatement();
@@ -52,7 +52,7 @@ public class StaffDAO {
 
     public boolean insert(Staff staff) {
         String sql = "INSERT INTO NhanVien(maNV, hoTenNV, sdt, gioiTinh, tenDangNhap, ngayVao, luong) VALUES(?, ?, ?, ?, ?, ?, ?)";
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) return false;
 
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
@@ -79,7 +79,7 @@ public class StaffDAO {
 
     public boolean update(Staff staff) {
         String sql = "UPDATE NhanVien SET hoTenNV = ?, sdt = ?, gioiTinh = ?, ngayVao = ?, luong = ?, tenDangNhap = ? WHERE maNV = ?";
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) return false;
 
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
@@ -106,7 +106,7 @@ public class StaffDAO {
 
     public boolean delete(String maNV) {
         String sql = "DELETE FROM NhanVien WHERE maNV = ?";
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) return false;
 
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
