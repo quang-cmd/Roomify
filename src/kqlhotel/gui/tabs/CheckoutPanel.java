@@ -602,7 +602,54 @@ public class CheckoutPanel extends JPanel {
         submitBtn.setBackground(ThemeColors.SUCCESS);
         submitBtn.setForeground(Color.WHITE);
         submitBtn.addActionListener(e -> {
-            boolean success = checkoutBUS.completeCheckout(currentHoaDon, currentRoomCodes, nextRoomStatus, selectedPromotionCode);
+            if (currentHoaDon == null) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn hiện tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            CheckoutBUS.CheckoutTotals totals =
+                    checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
+
+            String[] options = {"Tiền mặt", "QR Code", "Hủy"};
+
+            int choice = JOptionPane.showOptionDialog(
+                    this,
+                    "Chọn phương thức thanh toán:",
+                    "Phương thức thanh toán",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+
+            if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) {
+                return;
+            }
+
+            if (choice == 1) {
+                showQrPayment(currentHoaDon.getMaHD(), totals.total);
+
+                int confirmQr = JOptionPane.showConfirmDialog(
+                        this,
+                        "Khách đã chuyển khoản thành công chưa?",
+                        "Xác nhận thanh toán QR",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (confirmQr != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            boolean success = checkoutBUS.completeCheckout(
+                    currentHoaDon,
+                    currentRoomCodes,
+                    nextRoomStatus,
+                    selectedPromotionCode
+            );
+
             if (success) {
                 refreshInvoicePreview();
 
@@ -622,12 +669,15 @@ public class CheckoutPanel extends JPanel {
                 setStep(1);
                 mainCards.show(contentPanel, "step1");
 
-                // Refresh RoomManagementPanel so status updates reflect immediately
                 java.awt.Container c = CheckoutPanel.this;
-                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) {
+                    c = c.getParent();
+                }
+
                 if (c instanceof kqlhotel.gui.AppFrame) {
                     ((kqlhotel.gui.AppFrame) c).refreshRoomManagementData();
                 }
+
             } else {
                 JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
@@ -945,5 +995,39 @@ public class CheckoutPanel extends JPanel {
             return String.valueOf((long) value);
         }
         return String.valueOf(value);
+    }
+    private void showQrPayment(String maHD, double amount) {
+        try {
+            String qrUrl = kqlhotel.service.QrService.generateQrUrl(maHD, amount);
+
+            if (qrUrl == null) {
+                javax.swing.JOptionPane.showMessageDialog(this, "Không tạo được QR");
+                return;
+            }
+
+            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(new java.net.URL(qrUrl));
+            java.awt.Image img = icon.getImage().getScaledInstance(300, 300, java.awt.Image.SCALE_SMOOTH);
+
+            javax.swing.JLabel qrLabel = new javax.swing.JLabel(new javax.swing.ImageIcon(img));
+            javax.swing.JLabel moneyLabel = new javax.swing.JLabel(
+                    "Số tiền: " + kqlhotel.utils.CurrencyUtils.formatVND(amount),
+                    javax.swing.SwingConstants.CENTER
+            );
+
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            panel.add(qrLabel, java.awt.BorderLayout.CENTER);
+            panel.add(moneyLabel, java.awt.BorderLayout.SOUTH);
+
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
+                    panel,
+                    "Thanh toán QR",
+                    javax.swing.JOptionPane.PLAIN_MESSAGE
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, "Lỗi tạo QR");
+        }
     }
 }
