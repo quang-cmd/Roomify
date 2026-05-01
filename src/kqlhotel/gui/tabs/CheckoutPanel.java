@@ -43,7 +43,7 @@ public class CheckoutPanel extends JPanel {
     private final JTextField customerNameField = new JTextField();
 
     private final JPanel roomListPanel = new JPanel(
-            new MigLayout("wrap 3,insets 0,gap 12", "[grow,fill][grow,fill][grow,fill]", "[]")
+            new MigLayout("wrap 2,insets 0,gap 12", "[grow,fill][grow,fill]", "[]")
     );
 
     private final JLabel detailNameLabel = new JLabel();
@@ -54,6 +54,7 @@ public class CheckoutPanel extends JPanel {
 
     private final JLabel detailTotalRoomLabel = new JLabel();
     private final JLabel detailTotalServiceLabel = new JLabel();
+    private final JLabel detailSurchargeLabel = new JLabel();
     private final JLabel detailTaxLabel = new JLabel();
     private final JLabel detailDiscountLabel = new JLabel();
     private final JLabel detailTotalFinalLabel = new JLabel();
@@ -343,7 +344,7 @@ public class CheckoutPanel extends JPanel {
         rPhone.setForeground(new Color(110, 125, 145));
         rPhone.setFont(rPhone.getFont().deriveFont(12f));
 
-        JLabel rDate = new JLabel(data.dateIn + " \u2013 " + data.dateOut);
+        JLabel rDate = new JLabel(data.expectedIn + " \u2013 " + data.expectedOut);
         rDate.setForeground(new Color(110, 125, 145));
         rDate.setFont(rDate.getFont().deriveFont(12f));
 
@@ -437,8 +438,8 @@ public class CheckoutPanel extends JPanel {
         pBox.add(makeSmallLabel("Giá phòng"), "gapy 6 0");
         pBox.add(detailRoomLabel);
         pBox.add(detailRoomPriceLabel);
-        pBox.add(makeSmallLabel("Ngày vào"), "gapy 6 0");
-        pBox.add(makeSmallLabel("Ngày ra"), "gapy 6 0");
+        pBox.add(makeSmallLabel("Ngày nhận dự kiến"), "gapy 6 0");
+        pBox.add(makeSmallLabel("Ngày trả dự kiến"), "gapy 6 0");
         pBox.add(detailDateInLabel);
         pBox.add(detailDateOutLabel);
         leftPanel.add(pBox);
@@ -473,6 +474,7 @@ public class CheckoutPanel extends JPanel {
         costBox.add(lTotal, "span 2, gapy 0 6");
 
         costBox.add(new JLabel("Tiền phòng"));
+
         detailTotalRoomLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         detailTotalRoomLabel.setFont(detailTotalRoomLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailTotalRoomLabel);
@@ -480,13 +482,24 @@ public class CheckoutPanel extends JPanel {
         JLabel svc = new JLabel("Dịch vụ phát sinh");
         svc.setForeground(new Color(110, 125, 145));
         costBox.add(svc, "gapy 4 0");
+
         detailTotalServiceLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         detailTotalServiceLabel.setForeground(new Color(110, 125, 145));
         costBox.add(detailTotalServiceLabel, "gapy 4 0");
 
+        JLabel surcharge = new JLabel("Phụ thu");
+        surcharge.setForeground(new Color(110, 125, 145));
+        costBox.add(surcharge, "gapy 4 0");
+
+        detailSurchargeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        detailSurchargeLabel.setForeground(new Color(220, 38, 38));
+        detailSurchargeLabel.setFont(detailSurchargeLabel.getFont().deriveFont(Font.BOLD, 13f));
+        costBox.add(detailSurchargeLabel, "gapy 4 0");
+
         JLabel vat = new JLabel("Thuế VAT (10%)");
         vat.setForeground(new Color(110, 125, 145));
         costBox.add(vat, "gapy 4 0");
+
         detailTaxLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         detailTaxLabel.setForeground(new Color(110, 125, 145));
         costBox.add(detailTaxLabel, "gapy 4 0");
@@ -494,6 +507,7 @@ public class CheckoutPanel extends JPanel {
         JLabel km = new JLabel("Khuyến mãi");
         km.setForeground(new Color(110, 125, 145));
         costBox.add(km, "gapy 4 0");
+
         detailDiscountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         detailDiscountLabel.setForeground(new Color(40, 167, 69));
         detailDiscountLabel.setFont(detailDiscountLabel.getFont().deriveFont(Font.BOLD, 13f));
@@ -607,6 +621,13 @@ public class CheckoutPanel extends JPanel {
 
                 setStep(1);
                 mainCards.show(contentPanel, "step1");
+
+                // Refresh RoomManagementPanel so status updates reflect immediately
+                java.awt.Container c = CheckoutPanel.this;
+                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                if (c instanceof kqlhotel.gui.AppFrame) {
+                    ((kqlhotel.gui.AppFrame) c).refreshRoomManagementData();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
@@ -634,8 +655,8 @@ public class CheckoutPanel extends JPanel {
         kvBox.add(kName);
         kvBox.add(kRoom);
 
-        kvBox.add(makeSmallLabel("Ngày nhận"), "gapy 10 0");
-        kvBox.add(makeSmallLabel("Ngày hết hạn"), "gapy 10 0");
+        kvBox.add(makeSmallLabel("Ngày nhận phòng thực tế"), "gapy 10 0");
+        kvBox.add(makeSmallLabel("Ngày trả phòng thực tế"), "gapy 10 0");
 
         kDateIn.setFont(kDateIn.getFont().deriveFont(Font.BOLD, 14f));
         kDateOut.setFont(kDateOut.getFont().deriveFont(Font.BOLD, 14f));
@@ -709,22 +730,27 @@ public class CheckoutPanel extends JPanel {
             return;
         }
 
-        checkoutBUS.applyPromotionToInvoice(currentHoaDon, selectedPromotionCode);
+        CheckoutBUS.CheckoutTotals totals =
+                checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
 
-        detailTotalRoomLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienPhong()));
-        detailTotalServiceLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienDichVu()));
-        detailTaxLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTienThue()));
+        detailTotalRoomLabel.setText(CurrencyUtils.formatVND(totals.roomFee));
+        detailTotalServiceLabel.setText(CurrencyUtils.formatVND(totals.serviceFee));
+        detailSurchargeLabel.setText(CurrencyUtils.formatVND(totals.surcharge));
+        detailTaxLabel.setText(CurrencyUtils.formatVND(totals.tax));
+        detailDiscountLabel.setText("-" + CurrencyUtils.formatVND(totals.discount));
+        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(totals.total));
 
-        double discount = currentHoaDon.getTienKhuyenMai();
-        detailDiscountLabel.setText("-" + CurrencyUtils.formatVND(discount));
+        if (totals.surcharge > 0) {
+            detailSurchargeLabel.setForeground(new Color(220, 38, 38));
+        } else {
+            detailSurchargeLabel.setForeground(new Color(110, 125, 145));
+        }
 
-        if (discount > 0) {
+        if (totals.discount > 0) {
             detailDiscountLabel.setForeground(new Color(40, 167, 69));
         } else {
             detailDiscountLabel.setForeground(new Color(110, 125, 145));
         }
-
-        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(currentHoaDon.getTongTienThanhToan()));
     }
 
     private JLabel makeSmallLabel(String text) {
@@ -765,16 +791,18 @@ public class CheckoutPanel extends JPanel {
         detailRoomPriceLabel.setText("Theo hóa đơn (" + selectedRooms.size() + " phòng)");
         detailRoomPriceLabel.setFont(detailRoomPriceLabel.getFont().deriveFont(Font.BOLD, 13f));
 
-        detailDateInLabel.setText(firstData.dateIn);
+        detailDateInLabel.setText(firstData.expectedIn);
         detailDateInLabel.setFont(detailDateInLabel.getFont().deriveFont(Font.BOLD, 13f));
 
-        detailDateOutLabel.setText(firstData.dateOut);
+        detailDateOutLabel.setText(firstData.expectedOut);
         detailDateOutLabel.setFont(detailDateOutLabel.getFont().deriveFont(Font.BOLD, 13f));
 
         kName.setText(firstData.customerName + " (" + firstData.phone + ")");
         kRoom.setText(String.join(" | ", roomNames));
-        kDateIn.setText(firstData.dateIn);
-        kDateOut.setText(firstData.dateOut);
+        kDateIn.setText(firstData.actualIn);
+        kDateOut.setText(java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+        ));
         kCID.setText(firstData.id);
 
         loadPromotionOptions();
@@ -887,16 +915,26 @@ public class CheckoutPanel extends JPanel {
     }
 
     public static class CheckoutData {
-        public String id, roomName, customerName, phone, dateIn, dateOut, price, statusText;
+        public String id, roomName, customerName, phone;
+
+        public String expectedIn, expectedOut;
+        public String actualIn, actualOut;
+
+        public String price, statusText;
         public Color statusColor;
 
-        public CheckoutData(String id, String roomName, String name, String phone, String dateIn, String dateOut, String price, String st, Color col) {
+        public CheckoutData(String id, String roomName, String name, String phone,
+                            String expectedIn, String expectedOut,
+                            String actualIn, String actualOut,
+                            String price, String st, Color col) {
             this.id = id;
             this.roomName = roomName;
             this.customerName = name;
             this.phone = phone;
-            this.dateIn = dateIn;
-            this.dateOut = dateOut;
+            this.expectedIn = expectedIn;
+            this.expectedOut = expectedOut;
+            this.actualIn = actualIn;
+            this.actualOut = actualOut;
             this.price = price;
             this.statusText = st;
             this.statusColor = col;

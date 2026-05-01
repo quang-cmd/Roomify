@@ -15,7 +15,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     public List<Invoice> getAll() {
         List<Invoice> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM HoaDon ORDER BY ngayLapHD DESC";
             PreparedStatement pstmt = con.prepareStatement(sql);
             ResultSet rs = pstmt.executeQuery();
@@ -33,7 +33,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     public Invoice getById(String id) {
         Invoice invoice = null;
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM HoaDon WHERE maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);
@@ -51,7 +51,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     public Invoice getActiveByRoom(String maPhong) {
         Invoice invoice = null;
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT hd.* " +
                     "FROM HoaDon hd " +
                     "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
@@ -74,7 +74,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     @Override
     public boolean update(Invoice invoice) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE HoaDon SET " +
                     "ngayThanhToan = ?, tienPhong = ?, tienDichVu = ?, " +
                     "tienKhuyenMai = ?, tienThue = ?, tongTienThanhToan = ?, " +
@@ -142,7 +142,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     public List<Invoice> searchInvoices(LocalDateTime start, LocalDateTime end, String customer, String status) {
         List<Invoice> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             StringBuilder sql = new StringBuilder("SELECT hd.* FROM HoaDon hd ");
 
             if (customer != null && !customer.isEmpty()) {
@@ -196,7 +196,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     public double[] getRevenueStats() {
         double[] stats = new double[4];
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT " +
                     "SUM(CASE WHEN trangThai = ? THEN tongTienThanhToan ELSE 0 END) AS Total, " +
                     "COUNT(CASE WHEN trangThai = ? THEN 1 END) AS Paid, " +
@@ -225,7 +225,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
 
     public boolean updateStatus(String maHD, String status) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE HoaDon SET trangThai = ?, ngayThanhToan = ? WHERE maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
 

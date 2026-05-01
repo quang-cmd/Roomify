@@ -27,7 +27,7 @@ public class KhachHangDao {
             ") stats ON stats.maKH = kh.maKH " +
             "ORDER BY kh.hoTenKH";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -47,7 +47,7 @@ public class KhachHangDao {
             "SELECT maHD, maDatPhong, ngayLapHD, tongTienThanhToan, trangThai " +
             "FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maKH);
             try (ResultSet rs = ps.executeQuery()) {
@@ -73,7 +73,7 @@ public class KhachHangDao {
             "INSERT INTO KhachHang(maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) " +
             "VALUES(?,?,?,?,?,?,?,?,?,?,?)";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, generateNextCustomerId(con));
             ps.setString(2, kh.getTenKH());
@@ -110,7 +110,7 @@ public class KhachHangDao {
             "UPDATE KhachHang SET hoTenKH=?, gioiTinh=?, ngaySinh=?, email=?, sdt=?, CCCD=?, quocTich=?, diaChi=?, hangKH=?, diemTichLuy=? " +
             "WHERE maKH=?";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, kh.getTenKH());
             ps.setBoolean(2, "Nam".equalsIgnoreCase(kh.getGioiTinh()));

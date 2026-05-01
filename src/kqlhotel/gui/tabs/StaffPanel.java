@@ -3,6 +3,7 @@ package kqlhotel.gui.tabs;
 import kqlhotel.bus.staff.StaffBUS;
 import kqlhotel.entity.Staff;
 import kqlhotel.gui.components.PrimaryButton;
+import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
@@ -55,15 +56,12 @@ public class StaffPanel extends JPanel {
         header.add(btnAdd, "h 44!,aligny center");
 
         // Filter Bar
-        JPanel filterBar = new JPanel(new MigLayout("insets 0 0 20 0,gap 12", "[300!][grow,fill]", "[]"));
+        JPanel filterBar = new JPanel(new MigLayout("insets 0 0 20 0,gap 12", "[400!][][][][grow,fill]", "[]"));
         filterBar.setOpaque(false);
         
-        JTextField searchField = new JTextField();
-        searchField.putClientProperty("JTextField.placeholderText", "🔍 Tìm nhân viên...");
-        searchField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(225, 231, 245), 1),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
+        JTextField searchField = new JTextField(20);
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm nhân viên...");
+        
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { updateSearch(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { updateSearch(); }
@@ -74,7 +72,20 @@ public class StaffPanel extends JPanel {
             }
         });
 
-        filterBar.add(searchField, "growy,h 38!");
+        RoundedPanel searchWrapper = new RoundedPanel(38, new Color(248, 250, 252), new Color(226, 232, 240), 1f);
+        searchWrapper.setLayout(new BorderLayout());
+        searchWrapper.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+
+        JLabel searchIconLbl = new JLabel(loadScaledIcon("search.png", 18, 18));
+        
+        searchField.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 0));
+        searchField.setOpaque(false);
+        searchField.setForeground(new Color(30, 41, 59));
+        
+        searchWrapper.add(searchIconLbl, BorderLayout.WEST);
+        searchWrapper.add(searchField, BorderLayout.CENTER);
+        
+        filterBar.add(searchWrapper, "growx, h 38!");
         
         JButton btnAll = createFilterBtn("Tất cả", true);
         JButton btnActive = createFilterBtn("Đang làm", false);
@@ -116,7 +127,7 @@ public class StaffPanel extends JPanel {
         scrollPane.getViewport().setOpaque(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        listWrapper.add(listHeader, BorderLayout.NORTH);
+        scrollPane.setColumnHeaderView(listHeader);
         listWrapper.add(scrollPane, BorderLayout.CENTER);
 
         add(header, "growx");
@@ -127,27 +138,35 @@ public class StaffPanel extends JPanel {
     }
 
     private JLabel createColHeader(String text) {
-        JLabel lbl = new JLabel(text + "  ▼");
+        JLabel lbl = new JLabel(text);
         lbl.setForeground(new Color(130, 145, 170));
         lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 11f));
         return lbl;
     }
 
     private JButton createFilterBtn(String text, boolean active) {
-        JButton btn = new JButton(text);
-        btn.setFont(btn.getFont().deriveFont(13f));
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 13f));
+        btn.setContentAreaFilled(false);
         if (active) {
             btn.setBackground(new Color(17, 24, 39));
             btn.setForeground(Color.WHITE);
         } else {
-            btn.setBackground(Color.WHITE);
-            btn.setForeground(new Color(100, 120, 150));
+            btn.setBackground(new Color(241, 245, 249));
+            btn.setForeground(new Color(100, 116, 139));
         }
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(active ? new Color(17, 24, 39) : new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(6, 16, 6, 16)
-        ));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
@@ -156,12 +175,8 @@ public class StaffPanel extends JPanel {
         currentStatusFilter = filterText;
         for (JButton btn : filterButtons) {
             boolean active = (btn == selectedBtn);
-            btn.setBackground(active ? new Color(17, 24, 39) : Color.WHITE);
-            btn.setForeground(active ? Color.WHITE : new Color(100, 120, 150));
-            btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(active ? new Color(17, 24, 39) : new Color(220, 230, 245), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
-            ));
+            btn.setBackground(active ? new Color(17, 24, 39) : new Color(241, 245, 249));
+            btn.setForeground(active ? Color.WHITE : new Color(100, 116, 139));
         }
         applyFilters();
     }
@@ -280,18 +295,27 @@ public class StaffPanel extends JPanel {
         infoCol.add(textGroup);
 
         JPanel deptBadge = makeBadge(department, new Color(240, 244, 255), new Color(60, 100, 200));
-        JLabel shiftLbl = new JLabel("⏱ " + shift);
+        JLabel shiftLbl = new JLabel(shift);
         shiftLbl.setForeground(new Color(80, 100, 130));
 
         JPanel contactGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         contactGroup.setOpaque(false);
-        JLabel phoneLbl = new JLabel("📞 " + phone);
+        
+        JPanel phoneRow = new JPanel(new MigLayout("insets 0, gap 6", "[]", "[]"));
+        phoneRow.setOpaque(false);
+        JLabel phoneLbl = new JLabel(phone);
         phoneLbl.setForeground(new Color(30, 50, 80));
-        JLabel emailLbl = new JLabel("✉ " + email);
+        phoneRow.add(phoneLbl);
+        
+        JPanel emailRow = new JPanel(new MigLayout("insets 0, gap 6", "[]", "[]"));
+        emailRow.setOpaque(false);
+        JLabel emailLbl = new JLabel(email);
         emailLbl.setFont(emailLbl.getFont().deriveFont(11f));
         emailLbl.setForeground(new Color(130, 145, 170));
-        contactGroup.add(phoneLbl);
-        contactGroup.add(emailLbl);
+        emailRow.add(emailLbl);
+        
+        contactGroup.add(phoneRow);
+        contactGroup.add(emailRow);
 
         JLabel dateLbl = new JLabel(dateJoined);
         JPanel statusBadge = makeBadge(statusLabel, statusBg, statusFg);
@@ -315,11 +339,7 @@ public class StaffPanel extends JPanel {
             }
         });
 
-        JLabel delBtn = new JLabel("🗑");
-        delBtn.setForeground(new Color(150, 165, 190));
-        delBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         actionGroup.add(editBtn);
-        actionGroup.add(delBtn);
 
         row.add(infoCol, "aligny center");
         row.add(deptBadge, "aligny center,left");

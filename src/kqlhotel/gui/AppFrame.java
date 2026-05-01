@@ -26,6 +26,7 @@ import javax.swing.Timer;
 import kqlhotel.gui.components.BackgroundPanel;
 import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.tabs.BookingPanel;
 import kqlhotel.gui.tabs.CheckInPanel;
@@ -134,8 +135,17 @@ public class AppFrame extends JFrame {
         // Right edge separator (gives the light sidebar a clean delimiter)
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, ThemeColors.PREMIUM_SIDEBAR_BORDER));
 
-        // Brand header with hotel icon
-        JPanel hotelIcon = createCircleAvatar(ThemeColors.PREMIUM_PRIMARY, "KH", 14f);
+        // Brand header with hotel icon (try image `logo.png`, fallback to initials)
+        ImageIcon logoIcon = IconLoader.loadIconKeepRatio("logo.png", 40);
+        JPanel hotelIcon;
+        if (logoIcon != null) {
+            JPanel logoPanel = new JPanel(new BorderLayout());
+            logoPanel.setOpaque(false);
+            logoPanel.add(new JLabel(logoIcon, SwingConstants.CENTER), BorderLayout.CENTER);
+            hotelIcon = logoPanel;
+        } else {
+            hotelIcon = createCircleAvatar(ThemeColors.PREMIUM_PRIMARY, "KH", 14f);
+        }
 
         JLabel brand = new JLabel("KQL HOTEL");
         brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
@@ -511,10 +521,10 @@ public class AppFrame extends JFrame {
         }
     }
 
-    // private void showMainApp() {
-    //     rootCards.show(rootPanel, "app");
-    //     activateRoute(currentRoute);
-    // }
+    private void showMainApp() {
+        rootCards.show(rootPanel, "app");
+        activateRoute(currentRoute);
+    }
 
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
@@ -568,13 +578,15 @@ public class AppFrame extends JFrame {
         card.setLayout(new MigLayout("wrap 1,insets 24,gap 10", "[grow,fill]", "[]"));
         card.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JLabel logo = new JLabel("KH", SwingConstants.CENTER);
-        logo.setForeground(ThemeColors.ACCENT);
-        logo.setFont(logo.getFont().deriveFont(28f));
-
-        RoundedPanel logoBox = new RoundedPanel(14, ThemeColors.SIDEBAR_BG, ThemeColors.withAlpha(Color.WHITE, 20), 1f);
-        logoBox.setLayout(new BorderLayout());
-        logoBox.add(logo, BorderLayout.CENTER);
+        ImageIcon logoIcon = IconLoader.loadIconKeepRatio("logo.png", 80);
+        JLabel logoLabel;
+        if (logoIcon != null) {
+            logoLabel = new JLabel(logoIcon, SwingConstants.CENTER);
+        } else {
+            logoLabel = new JLabel("KH", SwingConstants.CENTER);
+            logoLabel.setForeground(ThemeColors.ACCENT);
+            logoLabel.setFont(logoLabel.getFont().deriveFont(48f));
+        }
 
         transitionTitle.setForeground(ThemeColors.TEXT_PRIMARY);
         transitionTitle.setFont(transitionTitle.getFont().deriveFont(26f));
@@ -587,7 +599,7 @@ public class AppFrame extends JFrame {
         footer.setForeground(ThemeColors.TEXT_MUTED);
         footer.setHorizontalAlignment(SwingConstants.CENTER);
 
-        card.add(logoBox, "w 64!,h 64!,alignx center");
+        card.add(logoLabel, "alignx center,gapy 8 8");
         card.add(transitionTitle);
         card.add(transitionMessage);
         card.add(footer);

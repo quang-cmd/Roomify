@@ -123,7 +123,16 @@ public class RoomManagementPanel extends JPanel {
 
         reloadData(); // Load real data
 
-        JPanel gridWrapper = new JPanel(new BorderLayout());
+        class ScrollableWrapper extends JPanel implements javax.swing.Scrollable {
+            public ScrollableWrapper() { super(new BorderLayout()); }
+            @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+            @Override public int getScrollableUnitIncrement(java.awt.Rectangle r, int o, int d) { return 16; }
+            @Override public int getScrollableBlockIncrement(java.awt.Rectangle r, int o, int d) { return 100; }
+            @Override public boolean getScrollableTracksViewportWidth() { return true; }
+            @Override public boolean getScrollableTracksViewportHeight() { return false; }
+        }
+
+        JPanel gridWrapper = new ScrollableWrapper();
         gridWrapper.setOpaque(false);
         gridWrapper.add(gridContainer, BorderLayout.NORTH);
 
@@ -131,6 +140,7 @@ public class RoomManagementPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         // ===== Assemble =====
@@ -354,8 +364,40 @@ public class RoomManagementPanel extends JPanel {
         }
         
         String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChuaToiDa() + " khách");
-        infoRow.add(new JLabel("👤 " + occupantStr) {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
-        infoRow.add(new JLabel("⛶ " + lp.getDienTich() + "m²") {{ setForeground(new Color(130, 145, 170)); setFont(getFont().deriveFont(11f)); }});
+        
+        JLabel lblGuest = new JLabel(" " + occupantStr);
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/khachHang.png");
+            if (url != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
+                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+                lblGuest.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                lblGuest.setText("👤 " + occupantStr);
+            }
+        } catch (Exception ex) {
+            lblGuest.setText("👤 " + occupantStr);
+        }
+        lblGuest.setForeground(new Color(130, 145, 170));
+        lblGuest.setFont(lblGuest.getFont().deriveFont(11f));
+        infoRow.add(lblGuest);
+
+        JLabel lblArea = new JLabel(" " + lp.getDienTich() + "m²");
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/location.png");
+            if (url != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
+                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+                lblArea.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                lblArea.setText("⛶ " + lp.getDienTich() + "m²");
+            }
+        } catch (Exception ex) {
+            lblArea.setText("⛶ " + lp.getDienTich() + "m²");
+        }
+        lblArea.setForeground(new Color(130, 145, 170));
+        lblArea.setFont(lblArea.getFont().deriveFont(11f));
+        infoRow.add(lblArea);
 
         // Price
         JPanel priceGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 0", "[]", "[]"));
