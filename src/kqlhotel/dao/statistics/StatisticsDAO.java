@@ -1,3 +1,4 @@
+
 package kqlhotel.dao.statistics;
 
 import java.sql.Connection;
@@ -26,10 +27,10 @@ public class StatisticsDAO {
     /** Tổng doanh thu (DaThanhToan) trong khoảng [start, end]. */
     public double getRevenue(LocalDateTime start, LocalDateTime end) {
         String sql =
-            "SELECT COALESCE(SUM(tongTienThanhToan), 0) AS total " +
-            "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
-            "  AND ngayThanhToan BETWEEN ? AND ?";
+            "SELECT COALESCE(SUM(tienThucNhan), 0) AS total " +
+            "FROM v_DoanhThu " +
+            "WHERE trangThai IN ('DaThanhToan', 'DaHuy') " +
+            "  AND COALESCE(ngayThanhToan, ngayLapHD) BETWEEN ? AND ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -94,9 +95,9 @@ public class StatisticsDAO {
 
         String sql =
             "SELECT YEAR(ngayLapHD) AS yr, MONTH(ngayLapHD) AS mo, " +
-            "       SUM(tongTienThanhToan) AS total " +
-            "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "       SUM(tienThucNhan) AS total " +
+            "FROM v_DoanhThu " +
+            "WHERE trangThai IN ('DaThanhToan', 'DaHuy') " +
             "  AND ngayLapHD >= ? AND ngayLapHD < ? " +
             "GROUP BY YEAR(ngayLapHD), MONTH(ngayLapHD)";
         try (Connection con = ConnectDB.getInstance().getConnection();

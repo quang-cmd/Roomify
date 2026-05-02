@@ -15,6 +15,15 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.Image;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.Duration;
+import kqlhotel.dao.ConnectDB;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -46,10 +55,31 @@ public class CancelRoomPanel extends JPanel {
     private final JTextField txtSdt = new JTextField();
     private final JTextField txtNgayNhan = new JTextField();
 
-    private String selectedRoomId = "DP001";
+    private class BookingDTO {
+        String maDatPhong;
+        String maPhong;
+        String tenLoaiPhong;
+        int tang;
+        String tenKhach;
+        String sdt;
+        LocalDateTime ngayNhanDuKien;
+        double tienCoc;
+        String maHD;
+        boolean isFullyPaid;
+    }
+
+    private BookingDTO selectedBooking;
     private String selectedRoomType = "Phòng 201 - Deluxe";
     private String selectedFloor = "Tầng 2";
-    private String selectedCusName = "Nguyễn Văn A";
+
+    // Dynamic Labels for policy calculating
+    private JLabel lblTienCoc = new JLabel("500.000đ");
+    private JLabel lblTienTru = new JLabel("0đ");
+    private JLabel lblTienHoan = new JLabel("500.000đ");
+    private JLabel lblTrangThai = new JLabel("Trống");
+    private JLabel polSub = new JLabel("");
+    private JLabel polEnd = new JLabel("");
+    private double computedPenalty = 0; // Lưu phí phạt đã tính để tránh parse lỗi locale
 
     public CancelRoomPanel() {
         setOpaque(false);
@@ -281,16 +311,17 @@ public class CancelRoomPanel extends JPanel {
         blueIcon.setForeground(ThemeColors.PRIMARY);
         JPanel blueText = new JPanel(new MigLayout("insets 0, wrap 1", "[]", "[]"));
         blueText.setOpaque(false);
-        JLabel dpRoom = new JLabel(selectedRoomId + " - " + selectedRoomType);
+        JLabel dpRoom = new JLabel((selectedBooking != null ? selectedBooking.maDatPhong : "") + " - " + selectedRoomType);
         dpRoom.setFont(dpRoom.getFont().deriveFont(Font.BOLD, 13f));
-        JLabel dpCust = new JLabel(selectedCusName + " - 10/04/2026 14:00");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        JLabel dpCust = new JLabel((selectedBooking != null ? selectedBooking.tenKhach : "") + " - " + (selectedBooking != null ? selectedBooking.ngayNhanDuKien.format(dtf) : ""));
         dpCust.setForeground(new Color(100, 115, 140));
         blueText.add(dpRoom); blueText.add(dpCust);
         blueBox.add(blueIcon); blueBox.add(blueText);
         wrap.add(blueBox);
 
-        wrap.add(createLabel("Thời điểm yêu cầu hủy *"));
-        JTextField txtTime = new JTextField("11/04/2026 10:06 CH");
+        wrap.add(createLabel("Thời điểm yêu cầu hủy (dd/MM/yyyy HH:mm) *"));
+        JTextField txtTime = new JTextField(LocalDateTime.now().format(dtf));
         wrap.add(createFieldEnclosure("", txtTime), "h 36!");
 
         wrap.add(createLabel("Lý do hủy (tùy chọn)"));
@@ -311,17 +342,16 @@ public class CancelRoomPanel extends JPanel {
         JLabel polTitle = new JLabel("Chính sách áp dụng");
         polTitle.setFont(polTitle.getFont().deriveFont(Font.BOLD, 13f));
         polTitle.setForeground(new Color(220, 50, 60));
-        JLabel polSub = new JLabel("Đã quá giờ nhận phòng: không hoàn lại tiền cọc");
+        
         polSub.setForeground(new Color(220, 50, 60));
         
         JPanel polGrid = new JPanel(new MigLayout("insets 0, gap 6", "[grow,fill][grow,fill]", "[]4[]"));
         polGrid.setOpaque(false);
-        polGrid.add(createMoneyBox("Tiền cọc đã nhận", "500.000đ"));
-        polGrid.add(createMoneyBox("Tiền bị trừ", "500.000đ"), "wrap");
-        polGrid.add(createMoneyBox("Tiền hoàn lại", "0đ"));
-        polGrid.add(createMoneyBox("Trạng thái phòng sau hủy", "Trống"));
+        polGrid.add(createMoneyBox("Tiền cọc đã nhận", lblTienCoc));
+        polGrid.add(createMoneyBox("Tiền bị trừ", lblTienTru), "wrap");
+        polGrid.add(createMoneyBox("Tiền hoàn lại", lblTienHoan));
+        polGrid.add(createMoneyBox("Trạng thái phòng", lblTrangThai));
         
-        JLabel polEnd = new JLabel("Đã quá giờ nhận phòng - hệ thống không hoàn lại tiền theo chính sách.");
         polEnd.setForeground(new Color(220, 100, 100));
         polEnd.setFont(polEnd.getFont().deriveFont(10f));
 
@@ -335,16 +365,99 @@ public class CancelRoomPanel extends JPanel {
         btnConfirm.setBackground(new Color(220, 50, 60));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Hủy phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            setState("SEARCH");
+            if (selectedBooking != null) {
+                double refund = Math.max(0, selectedBooking.tienCoc - computedPenalty);
+                boolean success = cancelBookingInDB(selectedBooking.maDatPhong, selectedBooking.maHD, refund, selectedBooking.tienCoc);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Hủy phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    setState("SEARCH");
+                    updateSearchResults();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi hủy phòng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         });
         wrap.add(btnConfirm, "h 40!, gapy 4 0");
+
+        Runnable updatePolicy = () -> {
+            if (selectedBooking == null) return;
+            try {
+                LocalDateTime cancelTime = LocalDateTime.parse(txtTime.getText().trim(), dtf);
+                calculateCancellationFee(selectedBooking.ngayNhanDuKien, cancelTime, selectedBooking.tienCoc, selectedBooking.isFullyPaid);
+            } catch (DateTimeParseException ex) {
+                polSub.setText("Định dạng ngày không hợp lệ. Vui lòng nhập: dd/MM/yyyy HH:mm");
+                polEnd.setText("");
+            }
+        };
+        
+        txtTime.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { updatePolicy.run(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { updatePolicy.run(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { updatePolicy.run(); }
+        });
+        updatePolicy.run();
 
         return wrap;
     }
 
+    private void calculateCancellationFee(LocalDateTime checkInTime, LocalDateTime cancelTime, double deposit, boolean isFullyPaid) {
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###đ");
+        lblTienCoc.setText(df.format(deposit));
+        lblTrangThai.setText("Trống");
+        
+        if (isFullyPaid) {
+            lblTienTru.setText("0đ");
+            lblTienHoan.setText("0đ");
+            lblTrangThai.setText("Giữ nguyên");
+            polSub.setText("Đã thanh toán toàn bộ: Phòng được giữ nguyên.");
+            polEnd.setText("Khách hàng thanh toán toàn bộ tiền phòng trước sẽ không bị hủy hay mất phòng.");
+            return;
+        }
+
+        LocalDateTime noonCheckInDay = checkInTime.toLocalDate().atTime(12, 0);
+        LocalDateTime deadline100Refund = noonCheckInDay.minusHours(24);
+        
+        Duration durationBeforeCheckin = Duration.between(cancelTime, checkInTime);
+        long hoursBeforeCheckin = durationBeforeCheckin.toHours();
+        
+        double penalty = 0;
+        
+        if (cancelTime.isBefore(deadline100Refund) || cancelTime.isEqual(deadline100Refund)) {
+            penalty = 0;
+            polSub.setText("Hủy trước 24 giờ trưa ngày check-in: Hoàn 100% cọc.");
+            polEnd.setText("Khách gọi điện thông báo kịp thời, được hoàn lại toàn bộ tiền cọc.");
+        } else if (hoursBeforeCheckin >= 12) {
+            penalty = 0;
+            polSub.setText("Hủy trước 12 giờ so với giờ check-in: Hoàn 100% cọc.");
+            polEnd.setText("Không thuộc khoảng thời gian bị phạt (từ 12 tiếng trở xuống).");
+        } else if (hoursBeforeCheckin >= 6) {
+            penalty = deposit * 0.3;
+            polSub.setText("Hủy trong khoảng 6-12 giờ trước check-in: Trừ 30% cọc.");
+            polEnd.setText("Khách sẽ bị trừ 30% số tiền đã cọc theo chính sách.");
+        } else if (hoursBeforeCheckin >= 0) {
+            penalty = deposit * 0.5;
+            polSub.setText("Hủy dưới 6 giờ trước check-in: Trừ 50% cọc.");
+            polEnd.setText("Khách hủy sát giờ check-in nên bị trừ 50% số tiền đã cọc.");
+        } else {
+            long hoursAfterCheckin = Duration.between(checkInTime, cancelTime).toHours();
+            if (hoursAfterCheckin >= 1) {
+                penalty = deposit;
+                polSub.setText("Khách không đến nhận phòng (No-show): Không hoàn cọc.");
+                polEnd.setText("Quá 1h sau check-in không có lý do chính đáng: Không được hoàn lại cọc.");
+            } else {
+                penalty = deposit * 0.5;
+                polSub.setText("Hủy trễ (sau khi đến giờ check-in): Trừ 50% cọc.");
+                polEnd.setText("Khách hủy phòng sau khi đã đến giờ check-in.");
+            }
+        }
+        
+        this.computedPenalty = penalty;
+        lblTienTru.setText(df.format(penalty));
+        lblTienHoan.setText(df.format(deposit - penalty));
+    }
+
     private JPanel createSearchResultCard(boolean isConfirming) {
-        JPanel wrap = new JPanel(new MigLayout("wrap 1,insets 0 0 0 0", "[fill]", "[][][grow,fill]"));
+        JPanel wrap = new JPanel(new MigLayout("wrap 1,insets 0 0 0 0", "[grow,fill]", "[][][grow,fill]"));
         wrap.setOpaque(false);
         
         JPanel titleRow = new JPanel(new MigLayout("insets 0", "[]", "[]"));
@@ -369,30 +482,23 @@ public class CancelRoomPanel extends JPanel {
         wrap.add(sub, "gapy 0 16");
 
         // Scrollable panel: ép chiều rộng theo viewport (không bể), cuộn dọc khi nhiều phòng
-        JPanel listPnl = new ScrollablePanel(new MigLayout("insets 0, wrap 2, gap 16", "[grow,fill][grow,fill]", "[]"));
+        JPanel listPnl = new ScrollablePanel(new WrapLayout(java.awt.FlowLayout.LEFT,40, 40));
         listPnl.setOpaque(false);
 
         int count = 0;
 
-        if (isConfirming) {
-            listPnl.add(createSingleRoomCard(selectedRoomId, selectedRoomType, selectedFloor, selectedCusName, isConfirming));
+        if (isConfirming && selectedBooking != null) {
+            listPnl.add(createSingleRoomCard(selectedBooking, selectedRoomType, selectedFloor, isConfirming));
             count = 1;
         } else {
-            if (checkMatch("DP001", "Nguyễn Văn A", "0912345678")) {
-                listPnl.add(createSingleRoomCard("DP001", "Phòng 201 - Deluxe", "Tầng 2", "Nguyễn Văn A", isConfirming));
-                count++;
-            }
-            if (checkMatch("DP002", "Trần Thị B", "0987654321")) {
-                listPnl.add(createSingleRoomCard("DP002", "Phòng 305 - Suite", "Tầng 3", "Trần Thị B", isConfirming));
-                count++;
-            }
-            if (checkMatch("DP003", "Lê Văn C", "0123456789")) {
-                listPnl.add(createSingleRoomCard("DP003", "Phòng 502 - Standard", "Tầng 5", "Lê Văn C", isConfirming));
-                count++;
-            }
-            if (checkMatch("DP004", "Phạm Văn D", "0999888777")) {
-                listPnl.add(createSingleRoomCard("DP004", "Phòng 101 - Basic", "Tầng 1", "Phạm Văn D", isConfirming));
-                count++;
+            List<BookingDTO> dbList = fetchBookingsFromDB();
+            for (BookingDTO b : dbList) {
+                if (checkMatch(b.maDatPhong, b.tenKhach, b.sdt)) {
+                    String rType = "Phòng " + b.maPhong.replace("P", "") + " - " + b.tenLoaiPhong;
+                    String fl = "Tầng " + b.tang;
+                    listPnl.add(createSingleRoomCard(b, rType, fl, isConfirming));
+                    count++;
+                }
             }
         }
         
@@ -425,19 +531,19 @@ public class CancelRoomPanel extends JPanel {
         return match;
     }
 
-    private JPanel createSingleRoomCard(String id, String type, String floor, String cusName, boolean isConfirming) {
+    private JPanel createSingleRoomCard(BookingDTO b, String type, String floor, boolean isConfirming) {
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(180, 200, 240), 1.5f);
-        card.setLayout(new MigLayout("insets 16 20, wrap 1, gap 8", "[grow,fill]", "[]"));
+        card.setLayout(new MigLayout("insets 16 20, wrap 1, gap 4", "[grow,fill]", "[]"));
+        card.setPreferredSize(new Dimension(330, 370));
         
         if (!isConfirming) {
             card.setCursor(new Cursor(Cursor.HAND_CURSOR));
             card.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    selectedRoomId = id;
+                    selectedBooking = b;
                     selectedRoomType = type;
                     selectedFloor = floor;
-                    selectedCusName = cusName;
                     setState("CONFIRM");
                 }
             });
@@ -445,7 +551,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel hRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         hRow.setOpaque(false);
-        JLabel dpId = new JLabel(id);
+        JLabel dpId = new JLabel(b.maDatPhong);
         dpId.setFont(dpId.getFont().deriveFont(Font.BOLD, 16f));
         dpId.setForeground(new Color(24, 40, 66));
         JPanel bedgeT2 = new RoundedPanel(16, new Color(230, 240, 255), null, 0);
@@ -463,18 +569,20 @@ public class CancelRoomPanel extends JPanel {
         card.add(rType);
         
         RoundedPanel infoBox = new RoundedPanel(8, new Color(248, 250, 253), new Color(230, 235, 245), 1);
-        infoBox.setLayout(new MigLayout("insets 12, wrap 1, gap 4", "[]", "[]"));
-        infoBox.add(createIconText("", cusName, true));
-        infoBox.add(createIconText("", "0912345678", false));
-        infoBox.add(createIconText("", "10/04/2026 14:00", false));
-        infoBox.add(createIconText("", "2 khách", false));
-        card.add(infoBox, "gapy 8 8");
+        infoBox.setLayout(new MigLayout("insets 12, wrap 1, gap 2", "[]", "[]"));
+        infoBox.add(createIconText("", b.tenKhach, true));
+        infoBox.add(createIconText("", b.sdt, false));
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        infoBox.add(createIconText("", b.ngayNhanDuKien.format(dtf), false));
+        infoBox.add(createIconText("", b.isFullyPaid ? "Đã thanh toán 100%" : "Chưa thanh toán đủ", false));
+        card.add(infoBox, "gapy 4 4");
 
-        JPanel moneyRow = new JPanel(new MigLayout("insets 0, gap 12", "[grow,fill][grow,fill]", "[]"));
+        JPanel moneyRow = new JPanel(new MigLayout("insets 0, gap 8", "[grow,fill][grow,fill]", "[]"));
         moneyRow.setOpaque(false);
-        moneyRow.add(createMoneyBox("Tiền cọc", "500.000đ"));
-        moneyRow.add(createMoneyBox("Đã thanh toán", "500.000đ"));
-        card.add(moneyRow);
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###đ");
+        moneyRow.add(createMoneyBox("Tiền cọc", df.format(b.tienCoc)));
+        moneyRow.add(createMoneyBox("Đã thanh toán", b.isFullyPaid ? "Toàn bộ" : df.format(b.tienCoc)));
+        card.add(moneyRow, "gapy 4 4");
 
         JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         botRow.setOpaque(false);
@@ -496,20 +604,19 @@ public class CancelRoomPanel extends JPanel {
             btnCancel.setFont(btnCancel.getFont().deriveFont(Font.BOLD, 12f));
             btnCancel.setForeground(new Color(220, 50, 60));
             btnCancel.setBackground(new Color(255, 235, 235));
-            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
             btnCancel.setFocusPainted(false);
             btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
             btnCancel.addActionListener(e -> {
-                selectedRoomId = id;
+                selectedBooking = b;
                 selectedRoomType = type;
                 selectedFloor = floor;
-                selectedCusName = cusName;
                 setState("CONFIRM");
             });
             botRow.add(btnCancel, "aligny center, alignx right");
         }
 
-        card.add(botRow, "gapy 8 0");
+        card.add(botRow, "gapy 4 0");
         return card;
     }
 
@@ -553,15 +660,18 @@ public class CancelRoomPanel extends JPanel {
     }
 
     private JPanel createMoneyBox(String title, String val) {
+        return createMoneyBox(title, new JLabel(val));
+    }
+
+    private JPanel createMoneyBox(String title, JLabel valLabel) {
         RoundedPanel p = new RoundedPanel(8, Color.WHITE, new Color(230, 235, 245), 1);
-        p.setLayout(new MigLayout("insets 8, wrap 1, gap 2", "[]", "[]"));
+        p.setLayout(new MigLayout("insets 4 8, wrap 1, gap 0", "[]", "[]"));
         JLabel t = new JLabel(title);
         t.setFont(t.getFont().deriveFont(10f));
-        t.setForeground(new Color(130, 145, 170));
-        JLabel v = new JLabel(val);
-        v.setFont(v.getFont().deriveFont(Font.BOLD, 13f));
-        v.setForeground(new Color(24, 40, 66));
-        p.add(t); p.add(v);
+        t.setForeground(new Color(150, 165, 190));
+        valLabel.setFont(valLabel.getFont().deriveFont(Font.BOLD, 12f));
+        valLabel.setForeground(new Color(24, 40, 66));
+        p.add(t); p.add(valLabel);
         return p;
     }
 
@@ -655,5 +765,206 @@ public class CancelRoomPanel extends JPanel {
         public boolean getScrollableTracksViewportHeight() {
             return false; // Cho phép cuộn dọc khi nội dung dài hơn viewport
         }
+    }
+
+    private static class WrapLayout extends java.awt.FlowLayout {
+        WrapLayout(int align, int hgap, int vgap) {
+            super(align, hgap, vgap);
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(java.awt.Container target) {
+            return layoutSize(target, true);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(java.awt.Container target) {
+            Dimension minimum = layoutSize(target, false);
+            minimum.width -= getHgap() + 1;
+            return minimum;
+        }
+
+        private Dimension layoutSize(java.awt.Container target, boolean preferred) {
+            synchronized (target.getTreeLock()) {
+                int targetWidth = target.getWidth();
+
+                if (targetWidth == 0) {
+                    targetWidth = Integer.MAX_VALUE;
+                    for (java.awt.Container parent = target.getParent(); parent != null; parent = parent.getParent()) {
+                        if (parent.getWidth() > 0) {
+                            targetWidth = parent.getWidth();
+                            break;
+                        }
+                    }
+                }
+
+                java.awt.Insets insets = target.getInsets();
+                int horizontalInsetsAndGap = insets.left + insets.right + getHgap() * 2;
+                int maxWidth = targetWidth - horizontalInsetsAndGap;
+
+                Dimension dim = new Dimension(0, 0);
+                int rowWidth = 0;
+                int rowHeight = 0;
+
+                int members = target.getComponentCount();
+                for (int i = 0; i < members; i++) {
+                    java.awt.Component component = target.getComponent(i);
+                    if (!component.isVisible()) {
+                        continue;
+                    }
+
+                    Dimension componentSize = preferred ? component.getPreferredSize() : component.getMinimumSize();
+                    if (rowWidth + componentSize.width > maxWidth) {
+                        addRow(dim, rowWidth, rowHeight);
+                        rowWidth = 0;
+                        rowHeight = 0;
+                    }
+
+                    if (rowWidth != 0) {
+                        rowWidth += getHgap();
+                    }
+                    rowWidth += componentSize.width;
+                    rowHeight = Math.max(rowHeight, componentSize.height);
+                }
+
+                addRow(dim, rowWidth, rowHeight);
+                dim.width += horizontalInsetsAndGap;
+                dim.height += insets.top + insets.bottom + getVgap() * 2;
+
+                java.awt.Container scrollPane = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, target);
+                if (scrollPane != null) {
+                    dim.width -= getHgap() + 1;
+                }
+
+                return dim;
+            }
+        }
+
+        private void addRow(Dimension dim, int rowWidth, int rowHeight) {
+            dim.width = Math.max(dim.width, rowWidth);
+            if (dim.height > 0) {
+                dim.height += getVgap();
+            }
+            dim.height += rowHeight;
+        }
+    }
+
+    private List<BookingDTO> fetchBookingsFromDB() {
+        List<BookingDTO> list = new ArrayList<>();
+        String sql = "SELECT dp.maDatPhong, ctdp.maPhong, lp.tenLoaiPhong, p.tang, " +
+                     "kh.hoTenKH, kh.sdt, ctdp.ngayNhanDuKien, dp.tienCoc, hd.maHD, " +
+                     "(CASE WHEN hd.tongTienThanhToan > 0 AND hd.tongTienThanhToan <= (SELECT ISNULL(SUM(soTienTT), 0) FROM ThanhToan WHERE maHD = hd.maHD AND trangThaiTT = 'ThanhToanThanhCong') THEN 1 ELSE 0 END) as isFullyPaid " +
+                     "FROM DatPhong dp " +
+                     "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
+                     "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
+                     "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
+                     "JOIN KhachHang kh ON dp.maKH = kh.maKH " +
+                     "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
+                     "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                     "AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong) ";
+        
+        try (Connection con = ConnectDB.getConnection();
+             PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                BookingDTO b = new BookingDTO();
+                b.maDatPhong = rs.getString("maDatPhong");
+                b.maPhong = rs.getString("maPhong");
+                b.tenLoaiPhong = rs.getString("tenLoaiPhong");
+                b.tang = rs.getInt("tang");
+                b.tenKhach = rs.getString("hoTenKH");
+                b.sdt = rs.getString("sdt");
+                b.ngayNhanDuKien = rs.getTimestamp("ngayNhanDuKien").toLocalDateTime();
+                b.tienCoc = rs.getDouble("tienCoc");
+                b.maHD = rs.getString("maHD");
+                b.isFullyPaid = rs.getInt("isFullyPaid") == 1;
+                list.add(b);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private boolean cancelBookingInDB(String maDatPhong, String maHD, double tienHoan, double tienCoc) {
+        Connection con = null;
+        try {
+            con = ConnectDB.getConnection();
+            con.setAutoCommit(false);
+
+            double refund = Math.max(0, tienHoan);
+            double penalty = Math.max(0, tienCoc - refund);
+
+            // 1. Cập nhật HoaDon: đánh dấu đã hủy, chỉ giữ phí phạt, xóa khuyến mãi
+            String updateHoaDon = "UPDATE HoaDon SET trangThai = 'DaHuy', tienPhong = 0, tienThue = 0, tienKhuyenMai = 0, tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?";
+            try (PreparedStatement pst1 = con.prepareStatement(updateHoaDon)) {
+                pst1.setDouble(1, penalty);
+                pst1.setDouble(2, penalty);
+                pst1.setString(3, maHD);
+                pst1.executeUpdate();
+            }
+
+            // 2. Xóa giá trị ChiTietHoaDon (nếu có)
+            String updateCTHD = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0 WHERE maHD = ?";
+            try (PreparedStatement pstCTHD = con.prepareStatement(updateCTHD)) {
+                pstCTHD.setString(1, maHD);
+                pstCTHD.executeUpdate();
+            }
+
+            // 3. Xóa dịch vụ
+            String deleteCTDV = "DELETE FROM ChiTietDichVu WHERE maHD = ?";
+            try (PreparedStatement pstCTDV = con.prepareStatement(deleteCTDV)) {
+                pstCTDV.setString(1, maHD);
+                pstCTDV.executeUpdate();
+            }
+
+            // 4. Trả phòng về trạng thái Trống
+            String updatePhong = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong IN (SELECT maPhong FROM ChiTietDatPhong WHERE maDatPhong = ?)";
+            try (PreparedStatement pstP = con.prepareStatement(updatePhong)) {
+                pstP.setString(1, maDatPhong);
+                pstP.executeUpdate();
+            }
+
+            // 5. Ghi nhận hoàn tiền (nếu có)
+            if (refund > 0) {
+                String newMaTT = getNextMaTT(con);
+                String insertTT = "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maNV) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pst2 = con.prepareStatement(insertTT)) {
+                    pst2.setString(1, newMaTT);
+                    pst2.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+                    pst2.setDouble(3, refund);
+                    pst2.setString(4, "Hoàn tiền cọc do hủy phòng");
+                    pst2.setString(5, "TienMat");
+                    pst2.setString(6, "DaHuy");
+                    pst2.setString(7, maHD);
+                    pst2.setString(8, "NV001");
+                    pst2.executeUpdate();
+                }
+            }
+
+            con.commit();
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            if (con != null) try { con.rollback(); } catch (Exception ignore) {}
+            return false;
+        } finally {
+            if (con != null) try { con.close(); } catch (Exception ignore) {}
+        }
+    }
+
+    private String getNextMaTT(Connection con) throws Exception {
+        String sql = "SELECT MAX(maTT) FROM ThanhToan";
+        try (PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+            if (rs.next()) {
+                String maxId = rs.getString(1);
+                if (maxId != null && maxId.startsWith("TT")) {
+                    int num = Integer.parseInt(maxId.substring(2)) + 1;
+                    return String.format("TT%03d", num);
+                }
+            }
+        }
+        return "TT001";
     }
 }

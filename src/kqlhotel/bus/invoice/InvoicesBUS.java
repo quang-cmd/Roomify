@@ -42,7 +42,16 @@ public class InvoicesBUS {
             return details;
         }
 
-        return invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
+        List<InvoiceDetail> bookingDetails = invoiceDetailDAO.getByBooking(hd.getMaHD(), hd.getMaDatPhong());
+        
+        if ("DaHuy".equals(hd.getTrangThai())) {
+            for (InvoiceDetail d : bookingDetails) {
+                d.setThanhTien(0);
+                d.setPhuThu(0);
+            }
+        }
+        
+        return bookingDetails;
     }
 
     public List<ServiceDetail> getServiceDetails(String maHD) {
@@ -54,6 +63,13 @@ public class InvoicesBUS {
     }
 
     public String getComputedStatus(Invoice hd) {
+        if ("DaHuy".equals(hd.getTrangThai())) {
+            return "DaHuy";
+        }
+        if ("DaThanhToan".equals(hd.getTrangThai())) {
+            return "DaThanhToan";
+        }
+        
         List<InvoiceDetail> roomDetails = getRoomDetails(hd.getMaHD());
         if (roomDetails == null || roomDetails.isEmpty()) {
             return "ChuaThanhToan";
@@ -81,6 +97,7 @@ public class InvoicesBUS {
         int fullyPaid = 0;
         int partialPaid = 0;
         int unpaid = 0;
+        int cancelled = 0;
 
         for (Invoice hd : allInvoices) {
             String status = getComputedStatus(hd);
@@ -88,13 +105,15 @@ public class InvoicesBUS {
                 fullyPaid++;
             } else if ("DangThanhToan".equals(status)) {
                 partialPaid++;
+            } else if ("DaHuy".equals(status)) {
+                cancelled++;
             } else {
                 unpaid++;
             }
         }
 
-        return String.format("%d hóa đơn · %d đã thanh toán · %d đang thanh toán · %d chưa thanh toán",
-                total, fullyPaid, partialPaid, unpaid);
+        return String.format("%d hóa đơn · %d đã thanh toán · %d đang TT · %d chưa TT · %d đã hủy",
+                total, fullyPaid, partialPaid, unpaid, cancelled);
     }
 
     public boolean confirmPayment(String maHD) {
@@ -107,5 +126,9 @@ public class InvoicesBUS {
     }
     public String getServiceName(String maDV) {
         return invoiceDAO.getServiceName(maDV);
+    }
+
+    public double getRefundAmount(String maHD) {
+        return invoiceDAO.getRefundAmount(maHD);
     }
 }

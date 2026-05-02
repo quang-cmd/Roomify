@@ -489,7 +489,7 @@ public class RoomDetailDialog extends JDialog {
         // Nút thanh toán
         JPanel payRow = new JPanel(new MigLayout("insets 0 20 16 20", "[grow,fill]", "[]"));
         payRow.setOpaque(false);
-        JButton btnThanhToan = new JButton("✔ Thanh toán");
+        JButton btnThanhToan = new JButton("Thanh toán");
         btnThanhToan.setFont(btnThanhToan.getFont().deriveFont(Font.BOLD, 14f));
         btnThanhToan.setBackground(new Color(34, 197, 94));
         btnThanhToan.setForeground(Color.WHITE);

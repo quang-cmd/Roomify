@@ -61,6 +61,8 @@ public class AppFrame extends JFrame {
     private String currentRoute = "booking";
     private String pendingCardName;
     private RoomManagementPanel roomManagementPanel;
+    private InvoicesPanel invoicesPanel;
+    private CheckoutPanel checkoutPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -107,7 +109,8 @@ public class AppFrame extends JFrame {
         statisticsScroll.getViewport().setOpaque(false);
         statisticsScroll.setOpaque(false);
         screenPanel.add(statisticsScroll, "statistics");
-        screenPanel.add(new CheckoutPanel(), "checkout");
+        checkoutPanel = new CheckoutPanel();
+        screenPanel.add(checkoutPanel, "checkout");
         screenPanel.add(new DoiPhongPanel(), "swap-room");
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
         roomManagementPanel = new RoomManagementPanel();
@@ -116,7 +119,10 @@ public class AppFrame extends JFrame {
         screenPanel.add(new KhachHangPanel(), "customers");
         screenPanel.add(new DichVuPanel(), "services");
         screenPanel.add(new PromotionsPanel(), "promotions");
-        screenPanel.add(new InvoicesPanel(), "invoices");
+        
+        invoicesPanel = new InvoicesPanel();
+        screenPanel.add(invoicesPanel, "invoices");
+        
         activateRoute(currentRoute);
 
         contentWrap.add(screenPanel, BorderLayout.CENTER);
@@ -515,6 +521,13 @@ public class AppFrame extends JFrame {
         activateRoute(route);
     }
 
+    public void navigateToCheckoutWithRoom(String roomCode) {
+        if (checkoutPanel != null) {
+            checkoutPanel.prefillAndSearchRoom(roomCode);
+        }
+        activateRoute("checkout");
+    }
+
     public void refreshRoomManagementData() {
         if (roomManagementPanel != null) {
             roomManagementPanel.reloadData();
@@ -617,6 +630,14 @@ public class AppFrame extends JFrame {
     private void activateRoute(String route) {
         currentRoute = route;
         screenCards.show(screenPanel, route);
+        
+        if (route.equals("invoices") && invoicesPanel != null) {
+            invoicesPanel.refreshData();
+        }
+        
+        if (route.equals("room-management") && roomManagementPanel != null) {
+            roomManagementPanel.reloadData();
+        }
 
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
