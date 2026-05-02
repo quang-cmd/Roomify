@@ -41,6 +41,8 @@ public class CheckoutPanel extends JPanel {
     private final JTextField roomCodeField = new JTextField();
     private final JTextField customerIdField = new JTextField();
     private final JTextField customerNameField = new JTextField();
+    private final JLabel detailDepositLabel = new JLabel();
+    private final JLabel detailPenaltyLabel = new JLabel();
 
     private final JPanel roomListPanel = new JPanel(
             new MigLayout("wrap 2,insets 0,gap 12", "[grow,fill][grow,fill]", "[]")
@@ -513,6 +515,24 @@ public class CheckoutPanel extends JPanel {
         detailDiscountLabel.setFont(detailDiscountLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailDiscountLabel, "gapy 4 0");
 
+        JLabel penalty = new JLabel("Tiền phạt trả sớm");
+        penalty.setForeground(new Color(110, 125, 145));
+        costBox.add(penalty, "gapy 4 0");
+
+        detailPenaltyLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        detailPenaltyLabel.setForeground(new Color(220, 38, 38));
+        detailPenaltyLabel.setFont(detailPenaltyLabel.getFont().deriveFont(Font.BOLD, 13f));
+        costBox.add(detailPenaltyLabel, "gapy 4 0");
+
+        JLabel depositTitle = new JLabel("Tiền cọc");
+        depositTitle.setForeground(new Color(110, 125, 145));
+        costBox.add(depositTitle, "gapy 4 0");
+
+        detailDepositLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        detailDepositLabel.setForeground(new Color(40, 167, 69));
+        detailDepositLabel.setFont(detailDepositLabel.getFont().deriveFont(Font.BOLD, 13f));
+        costBox.add(detailDepositLabel, "gapy 4 0");
+
         JPanel divider = new JPanel();
         divider.setBackground(new Color(230, 235, 245));
         costBox.add(divider, "span 2, growx, h 1!, gapy 8 8");
@@ -602,19 +622,20 @@ public class CheckoutPanel extends JPanel {
         submitBtn.setBackground(ThemeColors.SUCCESS);
         submitBtn.setForeground(Color.WHITE);
         submitBtn.addActionListener(e -> {
-            if (currentHoaDon == null) {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn hiện tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
             CheckoutBUS.CheckoutTotals totals =
                     checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
+
+            double depositAmount = new kqlhotel.dao.invoice.InvoiceDAO()
+                    .getTienCocByMaHD(currentHoaDon.getMaHD());
+
+            double amountToPay = Math.max(0, totals.total - depositAmount);
 
             String[] options = {"Tiền mặt", "QR Code", "Hủy"};
 
             int choice = JOptionPane.showOptionDialog(
                     this,
-                    "Chọn phương thức thanh toán:",
+                    "Số tiền cần thanh toán: " + CurrencyUtils.formatVND(amountToPay)
+                            + "\n\nChọn phương thức thanh toán:",
                     "Phương thức thanh toán",
                     JOptionPane.DEFAULT_OPTION,
                     JOptionPane.QUESTION_MESSAGE,
@@ -628,7 +649,7 @@ public class CheckoutPanel extends JPanel {
             }
 
             if (choice == 1) {
-                showQrPayment(currentHoaDon.getMaHD(), totals.total);
+                showQrPayment(currentHoaDon.getMaHD(), amountToPay);
 
                 int confirmQr = JOptionPane.showConfirmDialog(
                         this,
@@ -643,13 +664,7 @@ public class CheckoutPanel extends JPanel {
                 }
             }
 
-            boolean success = checkoutBUS.completeCheckout(
-                    currentHoaDon,
-                    currentRoomCodes,
-                    nextRoomStatus,
-                    selectedPromotionCode
-            );
-
+            boolean success = checkoutBUS.completeCheckout(currentHoaDon, currentRoomCodes, nextRoomStatus, selectedPromotionCode);
             if (success) {
                 refreshInvoicePreview();
 
@@ -668,16 +683,6 @@ public class CheckoutPanel extends JPanel {
 
                 setStep(1);
                 mainCards.show(contentPanel, "step1");
-
-                java.awt.Container c = CheckoutPanel.this;
-                while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) {
-                    c = c.getParent();
-                }
-
-                if (c instanceof kqlhotel.gui.AppFrame) {
-                    ((kqlhotel.gui.AppFrame) c).refreshRoomManagementData();
-                }
-
             } else {
                 JOptionPane.showMessageDialog(this, "Có lỗi xảy ra khi cập nhật DB!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
@@ -783,17 +788,40 @@ public class CheckoutPanel extends JPanel {
         CheckoutBUS.CheckoutTotals totals =
                 checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
 
+        double deposit = new kqlhotel.dao.invoice.InvoiceDAO()
+                .getDepositAmount(currentHoaDon.getMaDatPhong());
+
+        double finalPay = Math.max(0, totals.total - deposit);
+
         detailTotalRoomLabel.setText(CurrencyUtils.formatVND(totals.roomFee));
         detailTotalServiceLabel.setText(CurrencyUtils.formatVND(totals.serviceFee));
         detailSurchargeLabel.setText(CurrencyUtils.formatVND(totals.surcharge));
         detailTaxLabel.setText(CurrencyUtils.formatVND(totals.tax));
         detailDiscountLabel.setText("-" + CurrencyUtils.formatVND(totals.discount));
-        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(totals.total));
+
+        // dòng mới
+        detailPenaltyLabel.setText(CurrencyUtils.formatVND(totals.earlyCheckoutPenalty));
+        detailDepositLabel.setText("-" + CurrencyUtils.formatVND(deposit));
+
+        // tổng cuối đã trừ cọc
+        detailTotalFinalLabel.setText(CurrencyUtils.formatVND(finalPay));
 
         if (totals.surcharge > 0) {
             detailSurchargeLabel.setForeground(new Color(220, 38, 38));
         } else {
             detailSurchargeLabel.setForeground(new Color(110, 125, 145));
+        }
+
+        if (totals.earlyCheckoutPenalty > 0) {
+            detailPenaltyLabel.setForeground(new Color(220, 38, 38));
+        } else {
+            detailPenaltyLabel.setForeground(new Color(110, 125, 145));
+        }
+
+        if (deposit > 0) {
+            detailDepositLabel.setForeground(new Color(40, 167, 69));
+        } else {
+            detailDepositLabel.setForeground(new Color(110, 125, 145));
         }
 
         if (totals.discount > 0) {
@@ -998,36 +1026,38 @@ public class CheckoutPanel extends JPanel {
     }
     private void showQrPayment(String maHD, double amount) {
         try {
-            String qrUrl = kqlhotel.service.QrService.generateQrUrl(maHD, amount);
+            String bankId = "970422";        // MB Bank
+            String accountNo = "0868465911";
+            String accountName = "NGUYEN KHA LUAN";
 
-            if (qrUrl == null) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Không tạo được QR");
-                return;
-            }
+            String amountStr = String.valueOf((long) amount);
 
-            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(new java.net.URL(qrUrl));
-            java.awt.Image img = icon.getImage().getScaledInstance(300, 300, java.awt.Image.SCALE_SMOOTH);
+            String qrUrl = "https://img.vietqr.io/image/"
+                    + bankId + "-" + accountNo + "-compact2.png"
+                    + "?amount=" + amountStr
+                    + "&addInfo=" + java.net.URLEncoder.encode(maHD, "UTF-8")
+                    + "&accountName=" + java.net.URLEncoder.encode(accountName, "UTF-8");
 
-            javax.swing.JLabel qrLabel = new javax.swing.JLabel(new javax.swing.ImageIcon(img));
-            javax.swing.JLabel moneyLabel = new javax.swing.JLabel(
-                    "Số tiền: " + kqlhotel.utils.CurrencyUtils.formatVND(amount),
-                    javax.swing.SwingConstants.CENTER
-            );
+            java.net.URL url = new java.net.URL(qrUrl);
+            ImageIcon icon = new ImageIcon(url);
 
-            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout());
-            panel.add(qrLabel, java.awt.BorderLayout.CENTER);
-            panel.add(moneyLabel, java.awt.BorderLayout.SOUTH);
+            JLabel label = new JLabel(icon);
 
-            javax.swing.JOptionPane.showMessageDialog(
+            JOptionPane.showMessageDialog(
                     this,
-                    panel,
-                    "Thanh toán QR",
-                    javax.swing.JOptionPane.PLAIN_MESSAGE
+                    label,
+                    "Quét mã QR thanh toán: " + CurrencyUtils.formatVND(amount),
+                    JOptionPane.PLAIN_MESSAGE
             );
 
         } catch (Exception e) {
             e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(this, "Lỗi tạo QR");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể tạo QR thanh toán!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 }

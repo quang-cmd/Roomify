@@ -13,7 +13,7 @@ public class ServiceDetailDAO {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT ctdv.*, dv.tenDV FROM ChiTietDichVu ctdv " +
-                         "JOIN DichVu dv ON ctdv.maDV = dv.maDV WHERE ctdv.maHD = ?";
+                    "JOIN DichVu dv ON ctdv.maDV = dv.maDV WHERE ctdv.maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maHD);
             ResultSet rs = pstmt.executeQuery();
@@ -69,7 +69,7 @@ public class ServiceDetailDAO {
 
             // 2. Insert ChiTietDichVu
             String sqlInsert = "INSERT INTO ChiTietDichVu (maCTDV, maHD, maDV, soLuong, donGia, thanhTien, ghiChu) " +
-                               "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sqlInsert);
             ps.setString(1, maCTDV);
             ps.setString(2, sd.getMaHD());
@@ -80,20 +80,16 @@ public class ServiceDetailDAO {
             ps.setString(7, sd.getGhiChu());
             ps.executeUpdate();
 
-            // 3. Cập nhật HoaDon: tienDichVu, tienThue, tongTienThanhToan
+            // 3. Cập nhật HoaDon: chỉ cộng tiền dịch vụ.
+            // Thuế VAT của hệ thống được tính theo tiền phòng thực tế, không tính trên dịch vụ.
             String sqlUpdate = "UPDATE HoaDon SET " +
-                               "tienDichVu = tienDichVu + ?, " +
-                               "tienThue   = (tienPhong + tienDichVu + ?) * 0.1, " +
-                               "tongTienThanhToan = tienPhong + (tienDichVu + ?) " +
-                               "  + ((tienPhong + tienDichVu + ?) * 0.1) " +
-                               "  - tienKhuyenMai + phiDoiPhong " +
-                               "WHERE maHD = ?";
+                    "tienDichVu = tienDichVu + ?, " +
+                    "tongTienThanhToan = tienPhong + (tienDichVu + ?) + tienThue - tienKhuyenMai + phiDoiPhong " +
+                    "WHERE maHD = ?";
             PreparedStatement psUpd = con.prepareStatement(sqlUpdate);
             psUpd.setDouble(1, sd.getThanhTien());
             psUpd.setDouble(2, sd.getThanhTien());
-            psUpd.setDouble(3, sd.getThanhTien());
-            psUpd.setDouble(4, sd.getThanhTien());
-            psUpd.setString(5, sd.getMaHD());
+            psUpd.setString(3, sd.getMaHD());
             psUpd.executeUpdate();
 
             return true;
@@ -125,20 +121,16 @@ public class ServiceDetailDAO {
             psDel.setString(1, maCTDV);
             psDel.executeUpdate();
 
-            // Cập nhật HoaDon
+            // Cập nhật HoaDon: chỉ trừ tiền dịch vụ.
+            // Thuế VAT của hệ thống được tính theo tiền phòng thực tế, không tính trên dịch vụ.
             String sqlUpd = "UPDATE HoaDon SET " +
-                            "tienDichVu = tienDichVu - ?, " +
-                            "tienThue   = (tienPhong + tienDichVu - ?) * 0.1, " +
-                            "tongTienThanhToan = tienPhong + (tienDichVu - ?) " +
-                            "  + ((tienPhong + tienDichVu - ?) * 0.1) " +
-                            "  - tienKhuyenMai + phiDoiPhong " +
-                            "WHERE maHD = ?";
+                    "tienDichVu = tienDichVu - ?, " +
+                    "tongTienThanhToan = tienPhong + (tienDichVu - ?) + tienThue - tienKhuyenMai + phiDoiPhong " +
+                    "WHERE maHD = ?";
             PreparedStatement psUpd = con.prepareStatement(sqlUpd);
             psUpd.setDouble(1, thanhTien);
             psUpd.setDouble(2, thanhTien);
-            psUpd.setDouble(3, thanhTien);
-            psUpd.setDouble(4, thanhTien);
-            psUpd.setString(5, maHD);
+            psUpd.setString(3, maHD);
             psUpd.executeUpdate();
 
             return true;
