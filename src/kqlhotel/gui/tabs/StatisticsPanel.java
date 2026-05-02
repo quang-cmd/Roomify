@@ -29,6 +29,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import kqlhotel.bus.statistics.StatisticsBUS;
 import kqlhotel.entity.statistics.KpiSummary;
+import kqlhotel.entity.statistics.OccupancyPoint;
 import kqlhotel.entity.statistics.RecentBooking;
 import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.entity.statistics.RoomTypeShare;
@@ -62,6 +63,9 @@ public class StatisticsPanel extends JPanel {
     private final JLabel kpiOccupancySub    = new JLabel("Chờ dữ liệu");
     private final JLabel kpiBookingsValue   = new JLabel("--");
     private final JLabel kpiBookingsSub     = new JLabel("Chờ dữ liệu");
+
+    // Chart subtitle labels — cập nhật động
+    private JLabel revenueChartSubtitle;
 
     // Recent bookings container — GridLayout 2 cột để mọi row grow đều, fill toàn card.
     private final JPanel recentListBox = new JPanel(new GridLayout(0, 2, 10, 8));
@@ -131,8 +135,8 @@ public class StatisticsPanel extends JPanel {
 
     // ============================== KPI ROW ==============================
     private JPanel createKpiRow() {
-        JPanel row = new JPanel(new MigLayout("insets 0,gap 10,fillx",
-            "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
+        // Dùng GridLayout để 4 card luôn có cùng kích thước, không bị xê dịch khi nội dung thay đổi
+        JPanel row = new JPanel(new GridLayout(1, 4, 10, 0));
         row.setOpaque(false);
 
         row.add(kpiCard("Doanh thu",     kpiRevenueValue,    kpiRevenueSub));
@@ -213,7 +217,18 @@ public class StatisticsPanel extends JPanel {
 
         RoundedPanel revenueCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
         revenueCard.setLayout(new MigLayout(cardLayout, cardCols, cardRows));
-        revenueCard.add(sectionTitle("Doanh thu theo tháng", "6 tháng gần nhất"), "aligny top");
+        // Tạo title block thủ công để giữ reference đến subtitle
+        JPanel revenueTitleBlock = new JPanel(new MigLayout("wrap 1,insets 0,gap 2", "[grow,fill]", "[][]"));
+        revenueTitleBlock.setOpaque(false);
+        JLabel revenueTitle = new JLabel("Doanh thu");
+        revenueTitle.setForeground(new Color(14, 30, 62));
+        revenueTitle.setFont(revenueTitle.getFont().deriveFont(Font.BOLD, 14f));
+        revenueChartSubtitle = new JLabel("7 ngày gần nhất");
+        revenueChartSubtitle.setForeground(new Color(124, 142, 171));
+        revenueChartSubtitle.setFont(revenueChartSubtitle.getFont().deriveFont(12f));
+        revenueTitleBlock.add(revenueTitle);
+        revenueTitleBlock.add(revenueChartSubtitle);
+        revenueCard.add(revenueTitleBlock, "aligny top");
         revenueCard.add(monthlyRevenueChartPanel, "grow,push");
 
         RoundedPanel roomDistCard = new RoundedPanel(18, Color.WHITE, new Color(214, 223, 238), 1f);
@@ -362,8 +377,12 @@ public class StatisticsPanel extends JPanel {
             kpiBookingsValue.setText(String.valueOf(kpi.getTotalBookings()));
             kpiBookingsSub.setText("Đặt phòng " + activeRange);
 
-            monthlyRevenueChartPanel.setData(bus.loadMonthlyRevenue());
+            monthlyRevenueChartPanel.setData(bus.loadRevenueByRange(days));
+            if (revenueChartSubtitle != null) {
+                revenueChartSubtitle.setText(activeRange + " gần nhất");
+            }
             roomDistributionPanel.setData(bus.loadRoomTypeDistribution());
+            occupancyTrendPanel.setData(bus.loadOccupancyTrend(Math.min(days, 30))); // Tối đa 30 điểm trên chart
             populateRecentList(bus.loadRecentBookings());
         } catch (Exception ex) {
             System.err.println("StatisticsPanel.loadData: " + ex.getMessage());
@@ -436,15 +455,8 @@ public class StatisticsPanel extends JPanel {
             double maxVal = 0;
             for (RevenuePoint p : data) maxVal = Math.max(maxVal, p.getRevenue());
 
-            if (data.isEmpty() || maxVal <= 0) {
-                g2.setColor(new Color(124, 142, 171));
-                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
-                g2.drawString("Chưa có dữ liệu doanh thu", left + 20, top + chartH / 2);
-                g2.dispose();
-                return;
-            }
-
-            double max = niceCeil(maxVal * 1.1);
+            // Luôn vẽ grid và axes, dù có dữ liệu hay không
+            double max = (data.isEmpty() || maxVal <= 0) ? 1_000_000.0 : niceCeil(maxVal * 1.1);
 
             g2.setFont(g2.getFont().deriveFont(11f));
             for (int i = 0; i <= 4; i++) {
@@ -456,18 +468,21 @@ public class StatisticsPanel extends JPanel {
                 g2.drawString(formatAxis(val), 4, y + 4);
             }
 
-            int n = data.size();
-            int gap = chartW / n;
-            int bw = Math.max(22, gap / 3);
-            for (int i = 0; i < n; i++) {
-                RevenuePoint p = data.get(i);
-                int barH = (int) (chartH * (p.getRevenue() / max));
-                int x = left + i * gap + (gap - bw) / 2;
-                int y = top + chartH - barH;
-                g2.setColor(new Color(59, 130, 246, 230));
-                g2.fillRoundRect(x, y, bw, barH, 10, 10);
-                g2.setColor(new Color(129, 145, 176));
-                g2.drawString(p.getLabel(), x - 4, top + chartH + 20);
+            // Vẽ cột nếu có dữ liệu
+            if (!data.isEmpty() && maxVal > 0) {
+                int n = data.size();
+                int gap = chartW / n;
+                int bw = Math.max(22, gap / 3);
+                for (int i = 0; i < n; i++) {
+                    RevenuePoint p = data.get(i);
+                    int barH = (int) (chartH * (p.getRevenue() / max));
+                    int x = left + i * gap + (gap - bw) / 2;
+                    int y = top + chartH - barH;
+                    g2.setColor(new Color(59, 130, 246, 230));
+                    g2.fillRoundRect(x, y, bw, barH, 10, 10);
+                    g2.setColor(new Color(129, 145, 176));
+                    g2.drawString(p.getLabel(), x - 4, top + chartH + 20);
+                }
             }
 
             g2.dispose();
@@ -570,32 +585,103 @@ public class StatisticsPanel extends JPanel {
     }
 
     private static final class OccupancyTrendPanel extends JPanel {
+        private List<OccupancyPoint> data = Collections.emptyList();
+        private final Color lineColor = new Color(59, 130, 246);
+        private final Color fillColor = new Color(59, 130, 246, 40);
+        private final Color gridColor = new Color(229, 236, 246);
+        private final Color textColor = new Color(100, 116, 139);
+
         private OccupancyTrendPanel() {
             setOpaque(false);
+        }
+
+        void setData(List<OccupancyPoint> newData) {
+            this.data = newData == null ? Collections.emptyList() : newData;
+            repaint();
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
+            if (data.isEmpty()) return;
+
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             int w = getWidth(), h = getHeight();
-            int left = 42, top = 20, bottom = 36;
+            int left = 50, right = 20, top = 24, bottom = 40;
+            int chartW = w - left - right;
             int chartH = h - top - bottom;
 
-            g2.setColor(new Color(229, 236, 246));
-            for (int i = 0; i <= 3; i++) {
-                int y = top + i * chartH / 3;
-                g2.drawLine(left, y, w - 16, y);
+            // Grid lines
+            g2.setColor(gridColor);
+            for (int i = 0; i <= 4; i++) {
+                int y = top + i * chartH / 4;
+                g2.drawLine(left, y, w - right, y);
             }
 
-            g2.setColor(new Color(124, 142, 171));
-            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 15f));
-            String msg = "Tính năng đang được hoàn thiện";
-            int textW = g2.getFontMetrics().stringWidth(msg);
-            int textH = g2.getFontMetrics().getAscent();
-            g2.drawString(msg, (w - textW) / 2, (h + textH) / 2);
+            // Calculate points
+            int n = data.size();
+            int[] xs = new int[n];
+            int[] ys = new int[n];
+            for (int i = 0; i < n; i++) {
+                xs[i] = left + (i * chartW) / Math.max(1, n - 1);
+                double rate = data.get(i).getRate();
+                ys[i] = top + (int) ((1 - rate) * chartH);
+            }
+
+            // Fill area under line
+            if (n > 1) {
+                int[] fillXs = new int[n + 2];
+                int[] fillYs = new int[n + 2];
+                System.arraycopy(xs, 0, fillXs, 0, n);
+                System.arraycopy(ys, 0, fillYs, 0, n);
+                fillXs[n] = xs[n - 1];
+                fillYs[n] = top + chartH;
+                fillXs[n + 1] = xs[0];
+                fillYs[n + 1] = top + chartH;
+                g2.setColor(fillColor);
+                g2.fillPolygon(fillXs, fillYs, n + 2);
+            }
+
+            // Draw line
+            g2.setColor(lineColor);
+            g2.setStroke(new java.awt.BasicStroke(2.5f));
+            for (int i = 0; i < n - 1; i++) {
+                g2.drawLine(xs[i], ys[i], xs[i + 1], ys[i + 1]);
+            }
+
+            // Draw points
+            for (int i = 0; i < n; i++) {
+                g2.setColor(Color.WHITE);
+                g2.fillOval(xs[i] - 4, ys[i] - 4, 8, 8);
+                g2.setColor(lineColor);
+                g2.drawOval(xs[i] - 4, ys[i] - 4, 8, 8);
+            }
+
+            // Y-axis labels (100% ở trên, 0% ở dưới)
+            g2.setColor(textColor);
+            g2.setFont(g2.getFont().deriveFont(10f));
+            for (int i = 0; i <= 4; i++) {
+                String label = ((4 - i) * 25) + "%";
+                int y = top + i * chartH / 4 + 4;
+                g2.drawString(label, left - 40, y);
+            }
+
+            // X-axis labels (first, middle, last date)
+            if (n > 0) {
+                g2.setFont(g2.getFont().deriveFont(10f));
+                String first = data.get(0).getLabel();
+                String last = data.get(n - 1).getLabel();
+                g2.drawString(first, left, h - 16);
+                int lastW = g2.getFontMetrics().stringWidth(last);
+                g2.drawString(last, w - right - lastW, h - 16);
+                if (n > 2) {
+                    String mid = data.get(n / 2).getLabel();
+                    int midW = g2.getFontMetrics().stringWidth(mid);
+                    g2.drawString(mid, left + chartW / 2 - midW / 2, h - 16);
+                }
+            }
 
             g2.dispose();
         }

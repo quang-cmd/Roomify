@@ -1,9 +1,11 @@
 package kqlhotel.bus.statistics;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import kqlhotel.dao.statistics.StatisticsDAO;
 import kqlhotel.entity.statistics.KpiSummary;
+import kqlhotel.entity.statistics.OccupancyPoint;
 import kqlhotel.entity.statistics.RecentBooking;
 import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.entity.statistics.RoomTypeShare;
@@ -39,6 +41,21 @@ public class StatisticsBUS {
         return dao.getMonthlyRevenue(MONTHLY_CHART_MONTHS);
     }
 
+    /**
+     * Tải doanh thu theo range: 7/30 ngày → daily, 6 tháng → monthly.
+     */
+    public List<RevenuePoint> loadRevenueByRange(int daysBack) {
+        if (daysBack <= 30) {
+            // 7 hoặc 30 ngày: doanh thu theo ngày
+            LocalDate end = LocalDate.now();
+            LocalDate start = end.minusDays(daysBack - 1);
+            return dao.getDailyRevenue(start, end);
+        } else {
+            // 6 tháng: doanh thu theo tháng
+            return dao.getMonthlyRevenue(6);
+        }
+    }
+
     public List<RoomTypeShare> loadRoomTypeDistribution() {
         return dao.getRoomTypeDistribution();
     }
@@ -50,6 +67,16 @@ public class StatisticsBUS {
     /** Toàn bộ booking gần đây cho dialog "Xem tất cả" (cap 1000 trong DAO). */
     public List<RecentBooking> loadAllRecentBookings() {
         return dao.getAllRecentBookings();
+    }
+
+    /**
+     * Tải tỷ lệ lấp đầy theo ngày trong khoảng thời gian.
+     * @param daysBack Số ngày lùi về từ hôm nay
+     */
+    public List<OccupancyPoint> loadOccupancyTrend(int daysBack) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(daysBack - 1);
+        return dao.getOccupancyTrend(start, end);
     }
 
     /** Map nhãn nút range trên UI sang số ngày. */

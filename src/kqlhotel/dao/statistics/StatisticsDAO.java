@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.entity.statistics.OccupancyPoint;
 import kqlhotel.entity.statistics.RecentBooking;
 import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.entity.statistics.RoomTypeShare;
@@ -122,6 +123,49 @@ public class StatisticsDAO {
         return result;
     }
 
+    /**
+     * Doanh thu theo ngày trong khoảng [start, end].
+     * Ngày không có dữ liệu vẫn xuất hiện với revenue = 0.
+     */
+    public List<RevenuePoint> getDailyRevenue(LocalDate start, LocalDate end) {
+        Map<String, Double> buckets = new LinkedHashMap<>();
+        LocalDate cur = start;
+        while (!cur.isAfter(end)) {
+            buckets.put(String.format("%02d/%02d", cur.getDayOfMonth(), cur.getMonthValue()), 0.0);
+            cur = cur.plusDays(1);
+        }
+
+        String sql =
+            "SELECT CAST(ngayThanhToan AS DATE) AS dt, SUM(tongTienThanhToan) AS total " +
+            "FROM HoaDon " +
+            "WHERE trangThai = 'DaThanhToan' " +
+            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
+            "GROUP BY CAST(ngayThanhToan AS DATE)";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate dt = rs.getDate("dt").toLocalDate();
+                    String key = String.format("%02d/%02d", dt.getDayOfMonth(), dt.getMonthValue());
+                    if (buckets.containsKey(key)) {
+                        buckets.put(key, rs.getDouble("total"));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getDailyRevenue: " + e.getMessage());
+        }
+
+        List<RevenuePoint> result = new ArrayList<>(buckets.size());
+        for (Map.Entry<String, Double> e : buckets.entrySet()) {
+            result.add(new RevenuePoint(e.getKey(), e.getValue()));
+        }
+        return result;
+    }
+
     public List<RoomTypeShare> getRoomTypeDistribution() {
         List<RoomTypeShare> list = new ArrayList<>();
         String sql =
@@ -195,6 +239,54 @@ public class StatisticsDAO {
             }
         } catch (SQLException e) {
             System.err.println("StatisticsDAO.queryRecentBookings: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Tỷ lệ lấp đầy theo ngày trong khoảng [start, end].
+     * Đếm số phòng đang sử dụng tại mỗi ngày dựa trên ChiTietHoaDon.
+     * Phòng được coi là "đang dùng" nếu ngayNhanPhong <= date < COALESCE(ngayTraThucTe, ngayTraPhong).
+     */
+    public List<OccupancyPoint> getOccupancyTrend(LocalDate start, LocalDate end) {
+        List<OccupancyPoint> list = new ArrayList<>();
+
+        String sql =
+            "WITH DateSeries AS (" +
+            "    SELECT CAST(? AS DATE) AS dt " +
+            "    UNION ALL" +
+            "    SELECT DATEADD(DAY, 1, dt) FROM DateSeries WHERE dt < ?" +
+            ")," +
+            "TotalRooms AS (SELECT COUNT(*) AS cnt FROM Phong WHERE trangThaiPhong != 'BaoTri')," +
+            "Occupied AS (" +
+            "    SELECT CAST(cthd.ngayNhanPhong AS DATE) AS inDate, " +
+            "           COALESCE(CAST(cthd.ngayTraThucTe AS DATE), CAST(cthd.ngayTraPhong AS DATE), CAST(GETDATE() AS DATE)) AS outDate, " +
+            "           cthd.maPhong " +
+            "    FROM ChiTietHoaDon cthd " +
+            "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy'" +
+            ")" +
+            "SELECT ds.dt AS date, (SELECT cnt FROM TotalRooms) AS totalRooms, COUNT(DISTINCT o.maPhong) AS occupiedRooms " +
+            "FROM DateSeries ds " +
+            "LEFT JOIN Occupied o ON ds.dt >= o.inDate AND ds.dt < o.outDate " +
+            "GROUP BY ds.dt " +
+            "ORDER BY ds.dt";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(start));
+            ps.setDate(2, java.sql.Date.valueOf(end));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate date = rs.getDate("date").toLocalDate();
+                    int total = rs.getInt("totalRooms");
+                    int occupied = rs.getInt("occupiedRooms");
+                    list.add(new OccupancyPoint(date, occupied, total));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getOccupancyTrend: " + e.getMessage());
         }
         return list;
     }
