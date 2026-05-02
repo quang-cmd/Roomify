@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
@@ -546,7 +546,7 @@ public class InvoicesPanel extends JPanel {
         }
 
         tFooter.add(makeTText("Tiền cọc đã thu", false), "alignx left");
-        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienCoc), true), "alignx right");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(tienCoc), true), "alignx right");
 
         if (!"DaHuy".equals(hd.getTrangThai())) {
             tFooter.add(makeTText("Tiền phòng đã trả", false), "alignx left");
@@ -555,7 +555,7 @@ public class InvoicesPanel extends JPanel {
 
         if ("DaHuy".equals(hd.getTrangThai()) || tienHoanTra > 0) {
             tFooter.add(makeTText("Tiền hoàn trả cho khách", false), "alignx left");
-            tFooter.add(makeTText("+" + CurrencyUtils.formatVND(tienHoanTra), true), "alignx right");
+            tFooter.add(makeTText(CurrencyUtils.formatVND(tienHoanTra), true), "alignx right");
         }
 
         JPanel divider = new JPanel();
