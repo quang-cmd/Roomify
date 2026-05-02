@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;

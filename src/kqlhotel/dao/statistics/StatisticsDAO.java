@@ -93,12 +93,12 @@ public class StatisticsDAO {
         LocalDateTime endBound   = LocalDateTime.now().plusDays(1);
 
         String sql =
-            "SELECT YEAR(ngayLapHD) AS yr, MONTH(ngayLapHD) AS mo, " +
+            "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
             "       SUM(tongTienThanhToan) AS total " +
             "FROM HoaDon " +
             "WHERE trangThai = 'DaThanhToan' " +
-            "  AND ngayLapHD >= ? AND ngayLapHD < ? " +
-            "GROUP BY YEAR(ngayLapHD), MONTH(ngayLapHD)";
+            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
+            "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(startBound));
@@ -164,10 +164,10 @@ public class StatisticsDAO {
         String sql =
             "SELECT TOP (?) maPhong, hoTenKH, tenLoaiPhong, trangThai, ngayDat " +
             "FROM ( " +
-            "    SELECT dp.maDatPhong, dp.ngayDat, dp.ngayNhanDuKien, dp.ngayTraDuKien, " +
+            "    SELECT dp.maDatPhong, dp.ngayDat, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
             "           kh.hoTenKH, p.maPhong, lp.tenLoaiPhong, " +
-            "           CASE WHEN dp.ngayNhanDuKien > GETDATE() THEN N'Sắp đến' " +
-            "                WHEN dp.ngayTraDuKien  < GETDATE() THEN N'Đã xong' " +
+            "           CASE WHEN ctdp.ngayNhanDuKien > GETDATE() THEN N'Sắp đến' " +
+            "                WHEN ctdp.ngayTraDuKien  < GETDATE() THEN N'Đã xong' " +
             "                ELSE N'Đang ở' END AS trangThai, " +
             "           ROW_NUMBER() OVER (PARTITION BY dp.maDatPhong ORDER BY p.maPhong) AS rn " +
             "    FROM DatPhong dp " +
