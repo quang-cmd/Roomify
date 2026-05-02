@@ -3,13 +3,10 @@ package kqlhotel.gui.components;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.event.MouseAdapter;
@@ -23,7 +20,6 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.model.RoomCardData;
 import net.miginfocom.swing.MigLayout;
 import javax.swing.SwingConstants;
-import kqlhotel.gui.components.PrimaryButton;
 
 public class RoomCard extends JPanel {
     private final RoomCardData data;

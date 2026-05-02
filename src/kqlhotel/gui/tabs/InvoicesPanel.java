@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-import kqlhotel.bus.Invoice.InvoicesBUS;
+import kqlhotel.bus.invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
@@ -328,7 +328,9 @@ public class InvoicesPanel extends JPanel {
         }
 
         double tienPhongDaTra = calculatePaidRoomAmount(roomDetails);
-        double tongTruocGiam = hd.getTienPhong() + hd.getTienDichVu() + hd.getTienThue();
+        double tongPhuThu = calculateTotalSurcharge(roomDetails);
+        double tienPhongGoc = calculateBaseRoomAmount(roomDetails);
+        double tongTruocGiam = tienPhongGoc + tongPhuThu + hd.getTienDichVu() + hd.getTienThue();
         double tongSauKhuyenMai = Math.max(0, tongTruocGiam - hd.getTienKhuyenMai());
         double conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc - tienPhongDaTra);
 
@@ -452,10 +454,13 @@ public class InvoicesPanel extends JPanel {
         tablePanel.add(tHeader, "growx");
 
         for (InvoiceDetail ct : roomDetails) {
-            double donGiaTheoDem = ct.getSoDem() > 0 ? ct.getThanhTien() / ct.getSoDem() : 0;
             String ngayTraText = ct.getNgayTraThucTe() != null
                     ? ct.getNgayTraThucTe().format(DATE_TIME_FORMATTER)
                     : "--";
+
+            double surcharge = Math.max(0, ct.getPhuThu());
+            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
+            double donGiaTheoDem = ct.getSoDem() > 0 ? baseRoom / ct.getSoDem() : 0;
 
             tablePanel.add(createTRow(
                     "Tiền phòng " + ct.getMaPhong(),
@@ -463,8 +468,19 @@ public class InvoicesPanel extends JPanel {
                     CurrencyUtils.formatVND(donGiaTheoDem),
                     getRoomStatus(ct),
                     ngayTraText,
-                    CurrencyUtils.formatVND(ct.getThanhTien())
+                    CurrencyUtils.formatVND(baseRoom)
             ), "growx");
+
+            if (surcharge > 0) {
+                tablePanel.add(createTRow(
+                        "Phụ thu phòng " + ct.getMaPhong(),
+                        "",
+                        "",
+                        "",
+                        "",
+                        CurrencyUtils.formatVND(surcharge)
+                ), "growx");
+            }
         }
 
         for (ServiceDetail ct : serviceDetails) {
@@ -488,8 +504,11 @@ public class InvoicesPanel extends JPanel {
         ));
         tFooter.setBackground(Color.WHITE);
 
-        tFooter.add(makeTText("Tiền phòng", false), "alignx left");
-        tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienPhong()), true), "alignx right");
+        //tFooter.add(makeTText("Tiền phòng", false), "alignx left");
+        //tFooter.add(makeTText(CurrencyUtils.formatVND(tienPhongGoc), true), "alignx right");
+
+        //tFooter.add(makeTText("Phụ thu", false), "alignx left");
+        //tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
 
         tFooter.add(makeTText("Tiền dịch vụ", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienDichVu()), true), "alignx right");
@@ -642,5 +661,22 @@ public class InvoicesPanel extends JPanel {
         } catch (Exception ignored) {
         }
         return null;
+    }
+    private double calculateTotalSurcharge(List<InvoiceDetail> roomDetails) {
+        double total = 0;
+        for (InvoiceDetail ct : roomDetails) {
+            total += Math.max(0, ct.getPhuThu());
+        }
+        return total;
+    }
+
+    private double calculateBaseRoomAmount(List<InvoiceDetail> roomDetails) {
+        double total = 0;
+        for (InvoiceDetail ct : roomDetails) {
+            double surcharge = Math.max(0, ct.getPhuThu());
+            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
+            total += baseRoom;
+        }
+        return total;
     }
 }
