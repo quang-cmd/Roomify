@@ -1,7 +1,7 @@
-package kqlhotel.bus;
+package kqlhotel.bus.service;
 
 import java.util.List;
-import kqlhotel.dao.DichVuDao;
+import kqlhotel.dao.service.DichVuDao;
 import kqlhotel.entity.DichVuEntity;
 
 public class DichVuBus {

@@ -34,7 +34,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.DoiPhongBus;
+import kqlhotel.bus.booking.DoiPhongBus;
 import kqlhotel.entity.DoiPhongRoomOption;
 import kqlhotel.entity.DoiPhongSearchResult;
 

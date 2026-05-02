@@ -35,7 +35,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.DichVuBus;
+import kqlhotel.bus.service.DichVuBus;
 import kqlhotel.entity.DichVuEntity;
 
 public class DichVuPanel extends JPanel {

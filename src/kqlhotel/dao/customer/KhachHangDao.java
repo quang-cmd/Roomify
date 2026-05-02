@@ -1,5 +1,6 @@
-package kqlhotel.dao;
+package kqlhotel.dao.customer;
 
+import kqlhotel.dao.ConnectDB;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

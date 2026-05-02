@@ -34,7 +34,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.KhachHangBus;
+import kqlhotel.bus.customer.KhachHangBus;
 import kqlhotel.entity.KhachHangBookingHistory;
 import kqlhotel.entity.KhachHangEntity;
 

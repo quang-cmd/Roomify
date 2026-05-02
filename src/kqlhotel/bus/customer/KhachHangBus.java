@@ -1,7 +1,7 @@
-package kqlhotel.bus;
+package kqlhotel.bus.customer;
 
 import java.util.List;
-import kqlhotel.dao.KhachHangDao;
+import kqlhotel.dao.customer.KhachHangDao;
 import kqlhotel.entity.KhachHangBookingHistory;
 import kqlhotel.entity.KhachHangEntity;
 

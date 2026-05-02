@@ -1,7 +1,7 @@
-package kqlhotel.bus;
+package kqlhotel.bus.booking;
 
 import java.util.List;
-import kqlhotel.dao.DoiPhongDao;
+import kqlhotel.dao.booking.DoiPhongDao;
 import kqlhotel.entity.DoiPhongRoomOption;
 import kqlhotel.entity.DoiPhongSearchResult;
 
