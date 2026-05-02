@@ -1,4 +1,4 @@
-package kqlhotel.dao.invoice;
+﻿package kqlhotel.dao.invoice;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.ServiceDetail;
@@ -11,7 +11,7 @@ public class ServiceDetailDAO {
     public List<ServiceDetail> getByInvoice(String maHD) {
         List<ServiceDetail> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT ctdv.*, dv.tenDV FROM ChiTietDichVu ctdv " +
                          "JOIN DichVu dv ON ctdv.maDV = dv.maDV WHERE ctdv.maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -62,7 +62,7 @@ public class ServiceDetailDAO {
      */
     public boolean insert(ServiceDetail sd) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             // 1. Generate maCTDV
             String maCTDV = generateMaCTDV(con);
             sd.setMaCTDV(maCTDV);
@@ -108,7 +108,7 @@ public class ServiceDetailDAO {
      */
     public boolean delete(String maCTDV) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             // Lấy thông tin trước khi xóa
             String sqlGet = "SELECT maHD, thanhTien FROM ChiTietDichVu WHERE maCTDV = ?";

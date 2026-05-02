@@ -1,436 +1,784 @@
 package kqlhotel.gui.tabs;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Insets;
 import java.awt.RenderingHints;
-import java.util.Arrays;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import kqlhotel.gui.components.PrimaryButton;
-import kqlhotel.gui.components.RoundedPanel;
-import kqlhotel.gui.theme.ThemeColors;
-import net.miginfocom.swing.MigLayout;
+import javax.swing.border.EmptyBorder;
+import kqlhotel.bus.customer.CustomerBUS;
+import kqlhotel.entity.KhachHangBookingHistory;
+import kqlhotel.entity.Customer;
 
 public class CustomersPanel extends JPanel {
-    private static final Color COLOR_VIP = new Color(237, 137, 54);
-    private static final Color COLOR_STAYING = new Color(49, 130, 206);
-    private static final Color COLOR_POTENTIAL = new Color(56, 161, 105);
-    private static final Color COLOR_BLOCKED = new Color(220, 53, 69);
-    private static final Color ACTIVE_FILTER = new Color(18, 35, 67);
 
-    private final JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
-    private final JPanel listContainer = new JPanel(new MigLayout("insets 0,wrap 1,gap 14", "[grow,fill]", "[]"));
-    private final JTextField searchField = createSearchField();
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
 
-    private final List<CustomerCardData> mockData = Arrays.asList(
-        new CustomerCardData("KH001", "Nguyen Thi Minh Anh", "VIP", "0909123456", "anh.m@roomify.vn", "Da luu tru 8 lan", "Da luu tru", "Ha Noi", 1840, COLOR_VIP),
-        new CustomerCardData("KH002", "Tran Quoc Bao", "Than thiet", "0938222111", "bao.tq@roomify.vn", "Can xac nhan phong suite", "Tiem nang", "Da Nang", 640, COLOR_POTENTIAL),
-        new CustomerCardData("KH003", "Le Gia Han", "VIP", "0988111222", "han.lg@roomify.vn", "Dang o phong 402", "Dang luu tru", "TP HCM", 2260, COLOR_STAYING),
-        new CustomerCardData("KH004", "Pham Duc Long", "Co ban", "0912000888", "long.pd@roomify.vn", "Hay dat phong cho doi tac", "Tiem nang", "Hai Phong", 320, COLOR_POTENTIAL),
-        new CustomerCardData("KH005", "Vo Thu Trang", "Can luu y", "0977666444", "trang.vt@roomify.vn", "Yeu cau ho tro check-in muon", "Can theo doi", "Can Tho", 110, COLOR_BLOCKED)
-    );
+    private final CustomerBUS bus = new CustomerBUS();
+    private final JTextField searchField = new JTextField();
+    private final JPanel customerListPanel = new JPanel();
+    private final JPanel detailPanel = new JPanel(new BorderLayout());
+    private final JLabel countLabel = new JLabel();
+    private List<Customer> customers = new ArrayList<>();
+    private Customer selectedCustomer;
 
     public CustomersPanel() {
         setOpaque(false);
-        setLayout(new MigLayout("insets 24,gap 18,wrap 1", "[grow,fill]", "[][][][][grow,fill]"));
+        setLayout(new BorderLayout(0, 18));
+        setBorder(new EmptyBorder(22, 26, 22, 26));
 
-        add(createHeader());
-        add(createStatsRow());
-        add(createControlRow());
-        add(createFilterRow());
-        add(createContent(), "grow");
+        add(createHeader(), BorderLayout.NORTH);
+        add(createContent(), BorderLayout.CENTER);
 
-        applyFilter("Tat ca");
+        loadCustomers();
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new MigLayout("insets 0", "[grow,fill][][]", "[]"));
+        JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
 
-        JPanel titleWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
+        JPanel titleWrap = new JPanel();
         titleWrap.setOpaque(false);
+        titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Khach hang");
-        title.setForeground(new Color(24, 40, 66));
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
+        JLabel title = new JLabel("Customers");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        title.setForeground(new Color(15, 23, 42));
 
-        JLabel subtitle = new JLabel("Quan ly ho so, hang thanh vien va lich su cham soc khach hang");
-        subtitle.setForeground(new Color(130, 145, 170));
+        countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        countLabel.setForeground(new Color(100, 116, 139));
 
-        titleWrap.add(title);
-        titleWrap.add(subtitle);
+        titleWrap.add(countLabel);
 
-        JButton exportButton = createGhostButton("Xuat danh sach");
+        JButton addButton = createPrimaryButton("Thêm khách hàng", "customers.png");
+        addButton.addActionListener(e -> showCustomerDialog(null));
 
-        PrimaryButton addButton = new PrimaryButton("+ Them khach hang");
-        addButton.setBackground(new Color(17, 24, 39));
-        addButton.setForeground(Color.WHITE);
-
-        header.add(titleWrap);
-        header.add(exportButton, "h 42!");
-        header.add(addButton, "h 42!");
+        header.add(titleWrap, BorderLayout.WEST);
+        header.add(addButton, BorderLayout.EAST);
         return header;
     }
 
-    private JPanel createStatsRow() {
-        JPanel row = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
-        row.setOpaque(false);
-        row.add(createStatCard("Tong khach hang", "248", "18 ho so moi thang nay", new Color(17, 24, 39)));
-        row.add(createStatCard("Khach VIP", "36", "14.5% tong tep", COLOR_VIP));
-        row.add(createStatCard("Dang luu tru", "12", "4 doan khach lon", COLOR_STAYING));
-        row.add(createStatCard("Can cham soc", "7", "2 can goi lai hom nay", COLOR_BLOCKED));
-        return row;
-    }
-
-    private JPanel createControlRow() {
-        JPanel row = new JPanel(new MigLayout("insets 0,gap 14", "[grow,fill][220!]", "[]"));
-        row.setOpaque(false);
-
-        RoundedPanel searchWrap = new RoundedPanel(16, Color.WHITE, ThemeColors.BORDER, 1f);
-        searchWrap.setLayout(new BorderLayout());
-        searchWrap.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
-        searchWrap.add(searchField, BorderLayout.CENTER);
-
-        RoundedPanel quickNote = new RoundedPanel(16, new Color(255, 247, 237), new Color(251, 211, 141), 1f);
-        quickNote.setLayout(new MigLayout("insets 12 14,wrap 1,gap 2", "[grow,fill]", "[]"));
-        JLabel label = new JLabel("Cham soc uu tien");
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 13f));
-        label.setForeground(new Color(154, 52, 18));
-        JLabel value = new JLabel("03 khach VIP sinh nhat trong 7 ngay toi");
-        value.setForeground(new Color(180, 83, 9));
-        value.setFont(value.getFont().deriveFont(12f));
-        quickNote.add(label);
-        quickNote.add(value);
-
-        row.add(searchWrap, "h 48!");
-        row.add(quickNote, "growx,h 48!");
-        return row;
-    }
-
-    private JPanel createFilterRow() {
-        filterRow.setOpaque(false);
-        filterRow.add(createFilterButton("Tat ca", "5", true));
-        filterRow.add(createFilterButton("VIP", "2", false));
-        filterRow.add(createFilterButton("Dang luu tru", "1", false));
-        filterRow.add(createFilterButton("Tiem nang", "2", false));
-        filterRow.add(createFilterButton("Can theo doi", "1", false));
-        return filterRow;
-    }
-
-    private JScrollPane createContent() {
-        listContainer.setOpaque(false);
-        JPanel content = new JPanel(new BorderLayout());
+    private JPanel createContent() {
+        JPanel content = new JPanel(new BorderLayout(18, 0));
         content.setOpaque(false);
-        content.add(listContainer, BorderLayout.NORTH);
+
+        JPanel leftPane = new RoundedPanel(20, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        leftPane.setLayout(new BorderLayout(0, 12));
+        leftPane.setPreferredSize(new Dimension(360, 0));
+        leftPane.setBorder(new EmptyBorder(18, 18, 18, 18));
+
+        leftPane.add(createSearchBox(), BorderLayout.NORTH);
+
+        customerListPanel.setOpaque(false);
+        customerListPanel.setLayout(new BoxLayout(customerListPanel, BoxLayout.Y_AXIS));
+
+        JScrollPane listScroll = new JScrollPane(customerListPanel);
+        listScroll.setOpaque(false);
+        listScroll.getViewport().setOpaque(false);
+        listScroll.setBorder(null);
+        listScroll.getVerticalScrollBar().setUnitIncrement(16);
+        leftPane.add(listScroll, BorderLayout.CENTER);
+
+        detailPanel.setOpaque(false);
+
+        content.add(leftPane, BorderLayout.WEST);
+        content.add(detailPanel, BorderLayout.CENTER);
+        return content;
+    }
+
+    private JPanel createSearchBox() {
+        JPanel wrapper = new RoundedPanel(16, new Color(248, 250, 252), new Color(226, 232, 240), 1f, new Color(15, 23, 42, 0), 0);
+        wrapper.setLayout(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        JLabel icon = new JLabel();
+        ImageIcon searchIcon = loadIcon("search.png", 16, 16);
+        if (searchIcon != null) {
+            icon.setIcon(searchIcon);
+        } else {
+            icon.setText("?");
+        }
+        icon.setBorder(new EmptyBorder(0, 0, 0, 8));
+
+        searchField.setBorder(null);
+        searchField.setOpaque(false);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setToolTipText("Search by name, phone or ID...");
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                renderCustomerList(filterCustomers(searchField.getText().trim()));
+            }
+        });
+
+        wrapper.add(icon, BorderLayout.WEST);
+        wrapper.add(searchField, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private void loadCustomers() {
+        customers = bus.getAll();
+        updateCounts();
+        renderCustomerList(customers);
+        if (!customers.isEmpty()) {
+            showCustomerDetail(customers.get(0));
+        } else {
+            showEmptyDetail();
+        }
+    }
+
+    private void updateCounts() {
+        long activeCount = customers.stream().filter(Customer::isDangHoatDong).count();
+        countLabel.setText(customers.size() + " khách hàng · " + activeCount + " đang hoạt động");
+    }
+
+    private List<Customer> filterCustomers(String keyword) {
+        if (keyword.isBlank()) {
+            return customers;
+        }
+        String lowered = keyword.toLowerCase();
+        List<Customer> filtered = new ArrayList<>();
+        for (Customer customer : customers) {
+            if (safe(customer.getHoTenKH()).toLowerCase().contains(lowered)
+                || safe(customer.getSdt()).contains(lowered)
+                || safe(customer.getMaKH()).toLowerCase().contains(lowered)) {
+                filtered.add(customer);
+            }
+        }
+        return filtered;
+    }
+
+    private void renderCustomerList(List<Customer> data) {
+        customerListPanel.removeAll();
+        for (Customer customer : data) {
+            customerListPanel.add(createCustomerRow(customer));
+            customerListPanel.add(Box.createVerticalStrut(10));
+        }
+        customerListPanel.revalidate();
+        customerListPanel.repaint();
+    }
+
+    private JPanel createCustomerRow(Customer customer) {
+        boolean selected = selectedCustomer != null && safe(selectedCustomer.getMaKH()).equals(customer.getMaKH());
+        JPanel row = new RoundedPanel(18, selected ? new Color(239, 246, 255) : Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 4), 2);
+        row.setLayout(new BorderLayout(12, 0));
+        row.setBorder(new EmptyBorder(14, 14, 14, 14));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 84));
+        row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JLabel avatar = createAvatar(customer.getHoTenKH(), selected ? new Color(16, 185, 129) : pickAvatarColor(customer.getMaKH()));
+        row.add(avatar, BorderLayout.WEST);
+
+        JPanel textWrap = new JPanel(new GridLayout(2, 1, 0, 2));
+        textWrap.setOpaque(false);
+
+        JLabel name = new JLabel(customer.getHoTenKH());
+        name.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        name.setForeground(new Color(15, 23, 42));
+
+        JLabel phone = new JLabel(safe(customer.getSdt()));
+        phone.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        phone.setForeground(new Color(148, 163, 184));
+
+        textWrap.add(name);
+        textWrap.add(phone);
+        row.add(textWrap, BorderLayout.CENTER);
+
+        JPanel statusWrap = new JPanel();
+        statusWrap.setOpaque(false);
+        statusWrap.setLayout(new BoxLayout(statusWrap, BoxLayout.Y_AXIS));
+
+        JLabel badge = createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong());
+        badge.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        JLabel arrow = new JLabel("›");
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        arrow.setForeground(new Color(148, 163, 184));
+        arrow.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        statusWrap.add(badge);
+        statusWrap.add(Box.createVerticalGlue());
+        statusWrap.add(arrow);
+        row.add(statusWrap, BorderLayout.EAST);
+
+        row.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                showCustomerDetail(customer);
+                renderCustomerList(filterCustomers(searchField.getText().trim()));
+            }
+        });
+        return row;
+    }
+
+    private void showCustomerDetail(Customer customer) {
+        selectedCustomer = customer;
+        detailPanel.removeAll();
+
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        RoundedPanel profileCard = new RoundedPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        profileCard.setLayout(new BoxLayout(profileCard, BoxLayout.Y_AXIS));
+        profileCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        profileCard.add(createProfileHeader(customer));
+        profileCard.add(Box.createVerticalStrut(18));
+        profileCard.add(createStatsRow(customer));
+        profileCard.add(Box.createVerticalStrut(18));
+        profileCard.add(createInfoGrid(customer));
+
+        RoundedPanel historyCard = new RoundedPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
+        historyCard.setLayout(new BoxLayout(historyCard, BoxLayout.Y_AXIS));
+        historyCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+        historyCard.add(createHistorySection(customer));
+
+        content.add(profileCard);
+        content.add(Box.createVerticalStrut(16));
+        content.add(historyCard);
 
         JScrollPane scrollPane = new JScrollPane(content);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        return scrollPane;
+
+        detailPanel.add(scrollPane, BorderLayout.CENTER);
+        detailPanel.revalidate();
+        detailPanel.repaint();
     }
 
-    private RoundedPanel createStatCard(String label, String value, String note, Color accent) {
-        RoundedPanel card = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
-        card.setLayout(new MigLayout("insets 18,wrap 1,gap 6", "[grow,fill]", "[]"));
+    private JPanel createProfileHeader(Customer customer) {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
 
-        JPanel top = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
-        top.setOpaque(false);
-        JLabel title = new JLabel(label);
-        title.setForeground(new Color(130, 145, 170));
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 13f));
-        top.add(title);
-        top.add(createDot(accent), "w 10!,h 10!");
+        JPanel left = new JPanel(new BorderLayout(14, 0));
+        left.setOpaque(false);
 
-        JLabel bigValue = new JLabel(value);
-        bigValue.setForeground(new Color(24, 40, 66));
-        bigValue.setFont(bigValue.getFont().deriveFont(Font.BOLD, 28f));
+        JLabel avatar = createAvatar(customer.getHoTenKH(), new Color(16, 185, 129));
+        avatar.setPreferredSize(new Dimension(52, 52));
+        avatar.setMinimumSize(new Dimension(52, 52));
+        avatar.setMaximumSize(new Dimension(52, 52));
 
-        JLabel smallNote = new JLabel(note);
-        smallNote.setForeground(new Color(150, 165, 190));
+        JPanel text = new JPanel(new GridLayout(2, 1, 0, 6));
+        text.setOpaque(false);
 
-        card.add(top);
-        card.add(bigValue);
-        card.add(smallNote);
-        return card;
-    }
+        JLabel name = new JLabel(customer.getHoTenKH());
+        name.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        name.setForeground(new Color(15, 23, 42));
 
-    private JButton createFilterButton(String label, String badge, boolean active) {
-        JButton button = new JButton();
-        button.putClientProperty("filterLabel", label);
-        button.putClientProperty("filterBadge", badge);
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setFont(button.getFont().deriveFont(13f));
-        styleFilterButton(button, active);
-        button.addActionListener(e -> applyFilter(label));
-        return button;
-    }
-
-    private void styleFilterButton(JButton button, boolean active) {
-        String label = (String) button.getClientProperty("filterLabel");
-        String badge = (String) button.getClientProperty("filterBadge");
-        String text = "<html>" + label + " <span style='color:" + (active ? "#A0B0E0" : "#A0B0C0")
-            + ";font-size:10px;'>&nbsp;" + badge + "&nbsp;</span></html>";
-        button.setText(text);
-        if (active) {
-            button.setBackground(ACTIVE_FILTER);
-            button.setForeground(Color.WHITE);
-            button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ACTIVE_FILTER, 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
-            ));
-        } else {
-            button.setBackground(Color.WHITE);
-            button.setForeground(new Color(100, 120, 150));
-            button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
-            ));
-        }
-    }
-
-    private void applyFilter(String filter) {
-        for (int i = 0; i < filterRow.getComponentCount(); i++) {
-            if (filterRow.getComponent(i) instanceof JButton) {
-                JButton button = (JButton) filterRow.getComponent(i);
-                styleFilterButton(button, filter.equals(button.getClientProperty("filterLabel")));
-            }
-        }
-
-        String keyword = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
-        listContainer.removeAll();
-
-        for (CustomerCardData data : mockData) {
-            boolean matchesFilter = filter.equals("Tat ca") || data.status.equalsIgnoreCase(filter) || data.tier.equalsIgnoreCase(filter);
-            boolean matchesKeyword = keyword.isEmpty()
-                || data.code.toLowerCase().contains(keyword)
-                || data.name.toLowerCase().contains(keyword)
-                || data.phone.toLowerCase().contains(keyword);
-            if (matchesFilter && matchesKeyword) {
-                listContainer.add(createCustomerCard(data), "growx");
-            }
-        }
-
-        if (listContainer.getComponentCount() == 0) {
-            listContainer.add(createEmptyState("Khong tim thay khach hang phu hop"), "growx");
-        }
-
-        listContainer.revalidate();
-        listContainer.repaint();
-    }
-
-    private RoundedPanel createCustomerCard(CustomerCardData data) {
-        RoundedPanel card = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
-        card.setLayout(new MigLayout("insets 18", "[][grow,fill][]", "[]"));
-
-        JPanel avatar = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(data.accent.getRed(), data.accent.getGreen(), data.accent.getBlue(), 32));
-                g2.fillOval(0, 0, getWidth(), getHeight());
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        avatar.setOpaque(false);
-        avatar.setLayout(new BorderLayout());
-        JLabel initials = new JLabel(buildInitials(data.name), SwingConstants.CENTER);
-        initials.setForeground(data.accent);
-        initials.setFont(initials.getFont().deriveFont(Font.BOLD, 16f));
-        avatar.add(initials);
-
-        JPanel info = new JPanel(new MigLayout("insets 0,wrap 1,gap 4", "[grow,fill]", "[]"));
-        info.setOpaque(false);
-
-        JPanel top = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
-        top.setOpaque(false);
-        JLabel name = new JLabel(data.name);
-        name.setForeground(new Color(24, 40, 66));
-        name.setFont(name.getFont().deriveFont(Font.BOLD, 16f));
-        top.add(name);
-        top.add(makeBadge(data.tier, new Color(data.accent.getRed(), data.accent.getGreen(), data.accent.getBlue(), 25), data.accent));
-
-        JLabel code = new JLabel(data.code + "  |  " + data.city + "  |  " + data.points + " diem");
-        code.setForeground(new Color(130, 145, 170));
-
-        JPanel meta = new JPanel(new MigLayout("insets 0,gap 12", "[][][]", "[]"));
+        JPanel meta = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
         meta.setOpaque(false);
-        meta.add(makeMetaLabel(data.phone));
-        meta.add(makeMetaLabel(data.email));
-        meta.add(makeMetaLabel(data.status));
+        meta.add(createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong()));
+        meta.add(Box.createHorizontalStrut(8));
+        meta.add(createMutedLabel("Lần cuối: " + formatDate(customer.getNgayDatGanNhat())));
 
-        JLabel note = new JLabel(data.note);
-        note.setForeground(new Color(95, 110, 135));
+        text.add(name);
+        text.add(meta);
 
-        info.add(top);
-        info.add(code);
-        info.add(meta);
-        info.add(note);
+        left.add(avatar, BorderLayout.WEST);
+        left.add(text, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new MigLayout("insets 0,wrap 1,gap 8", "[120!]", "[]"));
+        JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
-        actions.add(makeBadge(data.status, new Color(data.accent.getRed(), data.accent.getGreen(), data.accent.getBlue(), 18), data.accent), "alignx right");
 
-        JButton detailButton = createGhostButton("Xem ho so");
-        PrimaryButton careButton = new PrimaryButton("Cham soc");
-        careButton.setBackground(ThemeColors.PRIMARY);
-        careButton.setForeground(Color.WHITE);
+        JButton editButton = createPrimaryButton("Sửa thông tin", "customers.png");
+        editButton.addActionListener(e -> showCustomerDialog(customer));
 
-        actions.add(detailButton, "growx,h 36!");
-        actions.add(careButton, "growx,h 36!");
+        JButton bookingButton = createOutlineButton("Đặt phòng mới");
+        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Vui lòng chuyển sang tab Đặt phòng."));
 
-        card.add(avatar, "w 54!,h 54!,aligny top");
-        card.add(info, "growx");
-        card.add(actions, "aligny center");
+        actions.add(editButton);
+        actions.add(bookingButton);
+
+        header.add(left, BorderLayout.WEST);
+        header.add(actions, BorderLayout.EAST);
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        return header;
+    }
+
+    private JPanel createStatsRow(Customer customer) {
+        JPanel row = new JPanel(new GridLayout(1, 3, 14, 0));
+        row.setOpaque(false);
+        row.add(createStatCard("Tổng đặt phòng", String.valueOf(customer.getTongDatPhong())));
+        row.add(createStatCard("Tổng chi tiêu", MONEY_FORMAT.format(customer.getTongChiTieu()) + "đ"));
+        row.add(createStatCard("Đặt phòng gần nhất", formatDate(customer.getNgayDatGanNhat())));
+        return row;
+    }
+
+    private JPanel createStatCard(String labelText, String value) {
+        JPanel card = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(16, 14, 16, 14));
+
+        JLabel label = new JLabel(labelText, SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(148, 163, 184));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        valueLabel.setForeground(new Color(15, 23, 42));
+        valueLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        card.add(label);
+        card.add(Box.createVerticalStrut(8));
+        card.add(valueLabel);
         return card;
     }
 
-    private JPanel createEmptyState(String text) {
-        RoundedPanel state = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
-        state.setLayout(new MigLayout("insets 20", "[grow,fill]", "[]"));
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setForeground(new Color(130, 145, 170));
-        state.add(label, "alignx center");
-        return state;
+    private JPanel createInfoGrid(Customer customer) {
+        JPanel grid = new JPanel(new GridLayout(3, 2, 14, 14));
+        grid.setOpaque(false);
+        grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "search.png"));
+        grid.add(createInfoCard("Địa chỉ email", safe(customer.getEmail()), "services.png"));
+        grid.add(createInfoCard("Địa chỉ cư trú", safe(customer.getDiaChi()), "room-management.png"));
+        grid.add(createInfoCard("Ngày sinh", formatDate(customer.getNgaySinh()), "calendar.png"));
+        grid.add(createInfoCard("CCCD / Hộ chiếu", safe(customer.getCCCD()), "pick.png"));
+        grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "star.png"));
+        return grid;
     }
 
-    private JTextField createSearchField() {
-        JTextField field = new JTextField();
-        field.setBorder(null);
-        field.setOpaque(false);
-        field.setForeground(new Color(130, 145, 170));
-        field.setToolTipText("Tim theo ma, ten hoac so dien thoai");
-        field.addCaretListener(e -> applyFilter(getActiveFilter()));
+    private JPanel createInfoCard(String title, String value, String iconFile) {
+        JPanel card = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        card.setLayout(new BorderLayout(10, 0));
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
+
+        JLabel icon = new JLabel();
+        ImageIcon imageIcon = loadIcon(iconFile, 16, 16);
+        if (imageIcon != null) {
+            icon.setIcon(imageIcon);
+        } else {
+            icon.setText("•");
+        }
+
+        JPanel text = new JPanel(new GridLayout(2, 1, 0, 2));
+        text.setOpaque(false);
+
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(new Color(148, 163, 184));
+
+        JLabel content = new JLabel(value.isBlank() ? "-" : value);
+        content.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        content.setForeground(new Color(15, 23, 42));
+
+        text.add(label);
+        text.add(content);
+
+        card.add(icon, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createHistorySection(Customer customer) {
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("Lịch sử đặt phòng");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(new Color(15, 23, 42));
+        section.add(title);
+        section.add(Box.createVerticalStrut(14));
+
+        List<KhachHangBookingHistory> histories = bus.getBookingHistory(customer.getMaKH());
+        if (histories.isEmpty()) {
+            section.add(createMutedLabel("Khách hàng này chưa có lịch sử đặt phòng."));
+            return section;
+        }
+
+        for (KhachHangBookingHistory history : histories) {
+            section.add(createHistoryRow(history));
+            section.add(Box.createVerticalStrut(10));
+        }
+        return section;
+    }
+
+    private JPanel createHistoryRow(KhachHangBookingHistory history) {
+        JPanel row = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
+        row.setLayout(new BorderLayout());
+        row.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel left = new JPanel(new GridLayout(2, 1, 0, 2));
+        left.setOpaque(false);
+
+        JLabel booking = new JLabel("Đặt phòng " + safe(history.getMaDatPhong()) + " · Hóa đơn " + safe(history.getMaHoaDon()));
+        booking.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        booking.setForeground(new Color(15, 23, 42));
+
+        JLabel date = new JLabel(formatDate(history.getNgayLap()));
+        date.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        date.setForeground(new Color(148, 163, 184));
+
+        left.add(booking);
+        left.add(date);
+
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+
+        JLabel amount = new JLabel(MONEY_FORMAT.format(history.getTongTien()) + "đ");
+        amount.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        amount.setForeground(new Color(15, 23, 42));
+        amount.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        JLabel status = createStatusBadge(mapInvoiceStatus(history.getTrangThai()), "DaThanhToan".equalsIgnoreCase(history.getTrangThai()));
+        status.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        right.add(amount);
+        right.add(Box.createVerticalStrut(6));
+        right.add(status);
+
+        row.add(left, BorderLayout.WEST);
+        row.add(right, BorderLayout.EAST);
+        return row;
+    }
+
+    private void showCustomerDialog(Customer existing) {
+        boolean editing = existing != null;
+        JDialog dialog = new JDialog();
+        dialog.setModal(true);
+        dialog.setTitle(editing ? "Sửa khách hàng" : "Thêm khách hàng mới");
+        dialog.setSize(420, 600);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel fieldContainer = new JPanel();
+        fieldContainer.setLayout(new BoxLayout(fieldContainer, BoxLayout.Y_AXIS));
+        fieldContainer.setBorder(new EmptyBorder(18, 18, 18, 18));
+        fieldContainer.setBackground(Color.WHITE);
+
+        JTextField nameField = createDialogField(editing ? existing.getHoTenKH() : "");
+        JTextField phoneField = createDialogField(editing ? existing.getSdt() : "");
+        JTextField cccdField = createDialogField(editing ? existing.getCCCD() : "");
+        JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
+        JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
+        JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Việt Nam");
+        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinh()) : "01/01/1990");
+        JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nữ"});
+        genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
+        JComboBox<String> rankBox = new JComboBox<>(new String[]{"Đồng", "Bạc", "Vàng", "Kim cương"});
+        rankBox.setSelectedItem(mapRank(existing != null ? existing.getHangKH() : "Dong"));
+
+        fieldContainer.add(createDialogFieldGroup("Họ và tên", nameField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Số điện thoại", phoneField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("CCCD", cccdField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Email", emailField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Địa chỉ", addressField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Quốc tịch", nationalityField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Ngày sinh (dd/MM/yyyy)", birthField));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Giới tính", genderBox));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
+
+        JPanel actions = new JPanel(new BorderLayout(10, 0));
+        actions.setOpaque(false);
+        JButton cancelButton = createOutlineButton("Hủy");
+        cancelButton.addActionListener(e -> dialog.dispose());
+        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách hàng", "customers.png");
+        saveButton.addActionListener(e -> {
+            Customer payload = editing ? existing : new Customer();
+            payload.setHoTenKH(nameField.getText().trim());
+            payload.setSdt(phoneField.getText().trim());
+            payload.setCCCD(cccdField.getText().trim());
+            payload.setEmail(emailField.getText().trim());
+            payload.setDiaChi(addressField.getText().trim());
+            payload.setQuocTich(nationalityField.getText().trim());
+            payload.setGioiTinh(String.valueOf(genderBox.getSelectedItem()));
+            payload.setHangKH(mapRankToCode(String.valueOf(rankBox.getSelectedItem())));
+            payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+
+            try {
+                payload.setNgaySinh(DATE_FORMAT.parse(birthField.getText().trim()));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Ngày sinh phải đúng định dạng dd/MM/yyyy.");
+                return;
+            }
+
+            if (payload.getHoTenKH().isBlank() || payload.getSdt().isBlank() || payload.getCCCD().isBlank()) {
+                JOptionPane.showMessageDialog(dialog, "Họ tên, số điện thoại và CCCD là bắt buộc.");
+                return;
+            }
+
+            boolean success = editing ? bus.update(payload) : bus.insert(payload);
+            if (success) {
+                dialog.dispose();
+                loadCustomers();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu khách hàng. Vui lòng kiểm tra dữ liệu.");
+            }
+        });
+
+        actions.add(cancelButton, BorderLayout.WEST);
+        actions.add(saveButton, BorderLayout.EAST);
+        actions.setBorder(new EmptyBorder(12, 18, 18, 18));
+        actions.setBackground(Color.WHITE);
+
+        JScrollPane scrollPane = new JScrollPane(fieldContainer);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(actions, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    private JPanel createDialogFieldGroup(String labelText, Component field) {
+        JPanel group = new JPanel();
+        group.setOpaque(false);
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(51, 65, 85));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        if (field instanceof JComponent) {
+            ((JComponent) field).setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+
+        group.add(label);
+        group.add(Box.createVerticalStrut(6));
+        group.add(field);
+        return group;
+    }
+
+    private JTextField createDialogField(String value) {
+        JTextField field = new JTextField(value);
+        field.setMaximumSize(new Dimension(320, 36));
+        field.setPreferredSize(new Dimension(320, 36));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240)),
+            new EmptyBorder(8, 10, 8, 10)
+        ));
         return field;
     }
 
-    private String getActiveFilter() {
-        for (int i = 0; i < filterRow.getComponentCount(); i++) {
-            if (filterRow.getComponent(i) instanceof JButton) {
-                JButton button = (JButton) filterRow.getComponent(i);
-                if (ACTIVE_FILTER.equals(button.getBackground())) {
-                    return (String) button.getClientProperty("filterLabel");
-                }
-            }
-        }
-        return "Tat ca";
-    }
-
-    private JLabel makeMetaLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setForeground(new Color(130, 145, 170));
-        label.setFont(label.getFont().deriveFont(12f));
-        return label;
-    }
-
-    private JButton createGhostButton(String text) {
+    private JButton createPrimaryButton(String text, String iconFile) {
         JButton button = new JButton(text);
-        button.setBackground(Color.WHITE);
-        button.setForeground(new Color(85, 105, 135));
+        ImageIcon icon = loadIcon(iconFile, 14, 14);
+        if (icon != null) {
+            button.setIcon(icon);
+            button.setIconTextGap(8);
+        }
+        button.setBackground(new Color(15, 23, 42));
+        button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(8, 14, 8, 14)
-        ));
+        button.setBorder(new EmptyBorder(12, 18, 12, 18));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         return button;
     }
 
-    private JPanel makeBadge(String text, Color bg, Color fg) {
-        JPanel badge = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
-                g2.dispose();
-                super.paintComponent(g);
+    private JButton createOutlineButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(Color.WHITE);
+        button.setForeground(new Color(37, 99, 235));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(191, 219, 254)),
+            new EmptyBorder(12, 18, 12, 18)
+        ));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        return button;
+    }
+
+    private JLabel createAvatar(String fullName, Color bgColor) {
+        String initials = "KH";
+        if (fullName != null && !fullName.isBlank()) {
+            String[] parts = fullName.trim().split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < Math.min(parts.length, 2); i++) {
+                sb.append(Character.toUpperCase(parts[i].charAt(0)));
             }
-        };
-        badge.setOpaque(false);
-        badge.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            initials = sb.toString();
+        }
+
+        JLabel label = new JLabel(initials, SwingConstants.CENTER);
+        label.setForeground(Color.WHITE);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        label.setOpaque(true);
+        label.setBackground(bgColor);
+        label.setPreferredSize(new Dimension(42, 42));
+        label.setMinimumSize(new Dimension(42, 42));
+        label.setMaximumSize(new Dimension(42, 42));
+        return label;
+    }
+
+    private JLabel createStatusBadge(String text, boolean active) {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setForeground(fg);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 11f));
-        badge.add(label);
-        return badge;
+        label.setOpaque(true);
+        label.setBorder(new EmptyBorder(4, 10, 4, 10));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
+        label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
+        return label;
     }
 
-    private JPanel createDot(Color color) {
-        JPanel dot = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(color);
-                g2.fillOval(0, 0, getWidth(), getHeight());
-                g2.dispose();
+    private JLabel createMutedLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(148, 163, 184));
+        return label;
+    }
+
+    private void showEmptyDetail() {
+        detailPanel.removeAll();
+        JLabel label = new JLabel("Không có dữ liệu khách hàng", SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        label.setForeground(new Color(148, 163, 184));
+        detailPanel.add(label, BorderLayout.CENTER);
+    }
+
+    private ImageIcon loadIcon(String filename, int width, int height) {
+        try {
+            URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
+            if (resource == null) {
+                java.io.File file = new java.io.File("src/kqlhotel/resources/icons/" + filename);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                }
             }
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                return new ImageIcon(icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH));
+            }
+        } catch (Exception e) {
+            // Ignore icon loading failures.
+        }
+        return null;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String formatDate(Date date) {
+        return date == null ? "-" : DATE_FORMAT.format(date);
+    }
+
+    private String mapInvoiceStatus(String status) {
+        if ("DaThanhToan".equalsIgnoreCase(status)) {
+            return "Đã thanh toán";
+        }
+        if ("ChuaThanhToan".equalsIgnoreCase(status)) {
+            return "Chưa thanh toán";
+        }
+        return safe(status);
+    }
+
+    private String mapRank(String rank) {
+        if ("Bac".equalsIgnoreCase(rank)) {
+            return "Bạc";
+        }
+        if ("Vang".equalsIgnoreCase(rank)) {
+            return "Vàng";
+        }
+        if ("KimCuong".equalsIgnoreCase(rank)) {
+            return "Kim cương";
+        }
+        return "Đồng";
+    }
+
+    private String mapRankToCode(String rank) {
+        if ("Bạc".equalsIgnoreCase(rank) || "Silver".equalsIgnoreCase(rank)) {
+            return "Bac";
+        }
+        if ("Vàng".equalsIgnoreCase(rank) || "Gold".equalsIgnoreCase(rank)) {
+            return "Vang";
+        }
+        if ("Kim cương".equalsIgnoreCase(rank) || "Diamond".equalsIgnoreCase(rank)) {
+            return "KimCuong";
+        }
+        return "Dong";
+    }
+
+    private Color pickAvatarColor(String seed) {
+        Color[] colors = {
+            new Color(59, 130, 246),
+            new Color(139, 92, 246),
+            new Color(236, 72, 153),
+            new Color(245, 158, 11),
+            new Color(6, 182, 212)
         };
-        dot.setOpaque(false);
-        return dot;
+        int index = Math.abs(safe(seed).hashCode()) % colors.length;
+        return colors[index];
     }
 
-    private String buildInitials(String name) {
-        String[] parts = name.split(" ");
-        if (parts.length == 0) {
-            return "KH";
-        }
-        if (parts.length == 1) {
-            return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
-        }
-        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-    }
+    private static class RoundedPanel extends JPanel {
+        private final int arc;
+        private final Color fill;
+        private final Color border;
+        private final float borderWidth;
+        private final Color shadow;
+        private final int shadowSize;
 
-    private static final class CustomerCardData {
-        private final String code;
-        private final String name;
-        private final String tier;
-        private final String phone;
-        private final String email;
-        private final String note;
-        private final String status;
-        private final String city;
-        private final int points;
-        private final Color accent;
+        RoundedPanel(int arc, Color fill, Color border, float borderWidth, Color shadow, int shadowSize) {
+            this.arc = arc;
+            this.fill = fill;
+            this.border = border;
+            this.borderWidth = borderWidth;
+            this.shadow = shadow;
+            this.shadowSize = shadowSize;
+            setOpaque(false);
+        }
 
-        private CustomerCardData(
-            String code,
-            String name,
-            String tier,
-            String phone,
-            String email,
-            String note,
-            String status,
-            String city,
-            int points,
-            Color accent
-        ) {
-            this.code = code;
-            this.name = name;
-            this.tier = tier;
-            this.phone = phone;
-            this.email = email;
-            this.note = note;
-            this.status = status;
-            this.city = city;
-            this.points = points;
-            this.accent = accent;
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int h = getHeight() - Math.max(shadowSize, 1);
+            if (shadowSize > 0) {
+                g2.setColor(shadow);
+                g2.fillRoundRect(0, shadowSize, getWidth() - 1, h, arc, arc);
+            }
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth() - 1, h, arc, arc);
+            if (border != null && borderWidth > 0f) {
+                g2.setColor(border);
+                g2.setStroke(new BasicStroke(borderWidth));
+                g2.drawRoundRect(0, 0, getWidth() - 1, h, arc, arc);
+            }
+            g2.dispose();
+            super.paintComponent(g);
         }
     }
 }

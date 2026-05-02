@@ -1,47 +1,35 @@
 package kqlhotel.entity;
 
 public class Room {
-    private String maPhong;
-    private String loaiPhong;
-    private int tang;
-    private String trangThaiPhong;
+    private String roomId;
+    private Double deposit;
+    private RoomType roomType;
+    private Integer floor;
+    private String status;
 
     public Room() {
     }
 
-    public Room(String maPhong) {
-        this.maPhong = maPhong;
+    public Room(String roomId, Double deposit, RoomType roomType, Integer floor, String status) {
+        this.roomId = roomId;
+        this.deposit = deposit;
+        this.roomType = roomType;
+        this.floor = floor;
+        this.status = status;
     }
 
-    public String getMaPhong() {
-        return maPhong;
-    }
+    public String getRoomId() { return roomId; }
+    public void setRoomId(String roomId) { this.roomId = roomId; }
 
-    public void setMaPhong(String maPhong) {
-        this.maPhong = maPhong;
-    }
+    public Double getDeposit() { return deposit; }
+    public void setDeposit(Double deposit) { this.deposit = deposit; }
 
-    public String getLoaiPhong() {
-        return loaiPhong;
-    }
+    public RoomType getRoomType() { return roomType; }
+    public void setRoomType(RoomType roomType) { this.roomType = roomType; }
 
-    public void setLoaiPhong(String loaiPhong) {
-        this.loaiPhong = loaiPhong;
-    }
+    public Integer getFloor() { return floor; }
+    public void setFloor(Integer floor) { this.floor = floor; }
 
-    public int getTang() {
-        return tang;
-    }
-
-    public void setTang(int tang) {
-        this.tang = tang;
-    }
-
-    public String getTrangThaiPhong() {
-        return trangThaiPhong;
-    }
-
-    public void setTrangThaiPhong(String trangThaiPhong) {
-        this.trangThaiPhong = trangThaiPhong;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

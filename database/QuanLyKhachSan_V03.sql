@@ -119,6 +119,7 @@ CREATE TABLE DichVu (
     maDV         CHAR(5)        PRIMARY KEY,
     tenDV        NVARCHAR(100)  NOT NULL,
     donGia       DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
+    loaiDV       NVARCHAR(50)   NULL,
     moTaDV       NVARCHAR(255)  NULL,
     trangThaiDV  VARCHAR(20)    NOT NULL DEFAULT 'DangHoatDong'
                  CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
@@ -344,12 +345,12 @@ INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES
 GO
 
 -- ----- DichVu (5) + KhuyenMai (3) -----
-INSERT INTO DichVu (maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES
-('DV001', N'Ăn sáng buffet',      120000.00, N'Buffet sáng theo người',         'DangHoatDong'),
-('DV002', N'Giặt ủi',              60000.00, N'Giặt ủi theo kg',                'DangHoatDong'),
-('DV003', N'Dọn phòng thêm',       80000.00, N'Dọn phòng ngoài giờ',            'DangHoatDong'),
-('DV004', N'Nước minibar',         30000.00, N'Tính theo số chai tiêu thụ',     'DangHoatDong'),
-('DV005', N'Đưa đón sân bay',     250000.00, N'Xe riêng đưa đón sân bay',       'DangHoatDong');
+INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES
+('DV001', N'Ăn sáng buffet',      120000.00, N'Food & Drink', N'Buffet sáng theo người',         'DangHoatDong'),
+('DV002', N'Giặt ủi',              60000.00, N'Housekeeping', N'Giặt ủi theo kg',                'DangHoatDong'),
+('DV003', N'Dọn phòng thêm',       80000.00, N'Housekeeping', N'Dọn phòng ngoài giờ',            'DangHoatDong'),
+('DV004', N'Nước minibar',         30000.00, N'Food & Drink', N'Tính theo số chai tiêu thụ',     'DangHoatDong'),
+('DV005', N'Đưa đón sân bay',     250000.00, N'Transport',    N'Xe riêng đưa đón sân bay',       'DangHoatDong');
 GO
 
 INSERT INTO KhuyenMai (maKM, tenKM, dieuKienApDung, loaiKM, giaTriToiDa, tienKhuyenMai, ngayBatDau, ngayKetThuc, trangThaiKM) VALUES

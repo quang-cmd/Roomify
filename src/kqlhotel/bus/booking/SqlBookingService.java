@@ -1,4 +1,4 @@
-package kqlhotel.bus.booking;
+﻿package kqlhotel.bus.booking;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -103,7 +103,7 @@ public class SqlBookingService implements BookingService {
             return fail("Ngay nhan/tra phong khong hop le.");
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         if (con == null) {
             return fail("Khong the ket noi den CSDL.");
         }

@@ -1,4 +1,4 @@
-package kqlhotel.dao;
+﻿package kqlhotel.dao;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

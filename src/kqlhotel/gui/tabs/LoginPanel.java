@@ -1,4 +1,4 @@
-package kqlhotel.gui.tabs;
+﻿package kqlhotel.gui.tabs;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -133,7 +133,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         }
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
 
             String sql =
                     "SELECT tenDangNhap, matKhau, vaiTro, trangThaiTK " +
@@ -224,7 +224,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         }
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
 
             String sql =
                     "SELECT nv.maNV, nv.hoTenNV, nv.sdt, nv.tenDangNhap " +
