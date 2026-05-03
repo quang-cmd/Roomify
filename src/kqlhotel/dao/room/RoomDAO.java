@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.room;
+package kqlhotel.dao.room;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.RoomType;

@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.promotion;
+package kqlhotel.dao.promotion;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.DAO_Interface;

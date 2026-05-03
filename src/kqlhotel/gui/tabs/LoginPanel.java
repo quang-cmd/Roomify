@@ -1,4 +1,4 @@
-﻿package kqlhotel.gui.tabs;
+package kqlhotel.gui.tabs;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
