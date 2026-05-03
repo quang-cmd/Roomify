@@ -11,11 +11,8 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Window;
 import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,7 +37,7 @@ import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.entity.statistics.RoomTypeShare;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
-import kqlhotel.gui.components.SimpleDatePicker;
+import kqlhotel.gui.components.DatePicker;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
@@ -58,8 +55,8 @@ public class StatisticsPanel extends JPanel {
     private final JPanel analyticsContent = new JPanel(analyticsCards);
 
     // Date range pickers
-    private SimpleDatePicker fromDatePicker;
-    private SimpleDatePicker toDatePicker;
+    private DatePicker fromDatePicker;
+    private DatePicker toDatePicker;
 
     private String activeView  = "Doanh thu";
 
@@ -106,15 +103,13 @@ public class StatisticsPanel extends JPanel {
         leftHint.setFont(leftHint.getFont().deriveFont(Font.BOLD, 13f));
 
         // From date picker
-        Calendar fromCal = Calendar.getInstance();
-        fromCal.add(Calendar.DAY_OF_MONTH, -30);
-        fromDatePicker = new SimpleDatePicker();
-        fromDatePicker.setDate(fromCal.getTime());
+        fromDatePicker = new DatePicker();
+        fromDatePicker.setSelectedDate(LocalDate.now().minusDays(30));
         fromDatePicker.addDateChangeListener(() -> loadData());
 
         // To date picker
-        toDatePicker = new SimpleDatePicker();
-        toDatePicker.setDate(Calendar.getInstance().getTime());
+        toDatePicker = new DatePicker();
+        toDatePicker.setSelectedDate(LocalDate.now());
         toDatePicker.addDateChangeListener(() -> loadData());
 
         JLabel fromLabel = new JLabel("Từ:");
@@ -126,10 +121,10 @@ public class StatisticsPanel extends JPanel {
         exportBtn.setBackground(ThemeColors.PREMIUM_ACCENT);
         exportBtn.setForeground(Color.WHITE);
         exportBtn.addActionListener(e -> {
-            SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+            DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             JOptionPane.showMessageDialog(
                 this,
-                "Đã tạo báo cáo từ " + df.format(fromDatePicker.getDate()) + " đến " + df.format(toDatePicker.getDate()),
+                "Đã tạo báo cáo từ " + fromDatePicker.getSelectedDate().format(df) + " đến " + toDatePicker.getSelectedDate().format(df),
                 "Xuất báo cáo",
                 JOptionPane.INFORMATION_MESSAGE
             );
@@ -392,13 +387,11 @@ public class StatisticsPanel extends JPanel {
     // ============================== DATA LOADING ==============================
     private void loadData() {
         try {
-            LocalDate startDate = fromDatePicker.getDate().toInstant()
-                .atZone(ZoneId.systemDefault()).toLocalDate();
-            LocalDate endDate = toDatePicker.getDate().toInstant()
-                .atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate startDate = fromDatePicker.getSelectedDate();
+            LocalDate endDate = toDatePicker.getSelectedDate();
 
-            SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-            String rangeLabel = df.format(fromDatePicker.getDate()) + " - " + df.format(toDatePicker.getDate());
+            DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String rangeLabel = startDate.format(df) + " - " + endDate.format(df);
 
             KpiSummary kpi = bus.loadKpis(startDate, endDate);
 
