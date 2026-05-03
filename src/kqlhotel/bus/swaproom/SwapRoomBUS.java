@@ -1,7 +1,7 @@
-package kqlhotel.bus.booking;
+package kqlhotel.bus.swaproom;
 
 import java.util.List;
-import kqlhotel.dao.booking.SwapRoomDAO;
+import kqlhotel.dao.swaproom.SwapRoomDAO;
 import kqlhotel.entity.SwapRoomOption;
 import kqlhotel.entity.SwapRoomSearchResult;
 

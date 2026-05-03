@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.booking;
+package kqlhotel.dao.swaproom;
 
 import kqlhotel.dao.ConnectDB;
 import java.sql.Connection;

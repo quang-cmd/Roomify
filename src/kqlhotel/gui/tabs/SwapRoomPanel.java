@@ -34,7 +34,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.booking.SwapRoomBUS;
+import kqlhotel.bus.swaproom.SwapRoomBUS;
 import kqlhotel.entity.SwapRoomOption;
 import kqlhotel.entity.SwapRoomSearchResult;
 
