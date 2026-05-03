@@ -533,7 +533,7 @@ public class CheckoutPanel extends JPanel {
         detailDiscountLabel.setFont(detailDiscountLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailDiscountLabel, "gapy 4 0");
 
-        JLabel penalty = new JLabel("Tiền phạt trả sớm");
+        JLabel penalty = new JLabel("Tiền phạt trả trễ");
         penalty.setForeground(new Color(110, 125, 145));
         costBox.add(penalty, "gapy 4 0");
 
