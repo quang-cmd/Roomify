@@ -356,25 +356,5 @@ public class AppFrame extends JFrame {
             }
         }
 
-        Map<String, String> vnTitles = new java.util.HashMap<>();
-        vnTitles.put("booking", "Đặt phòng");
-        vnTitles.put("check-in", "Nhận phòng");
-        vnTitles.put("checkout", "Trả phòng");
-        vnTitles.put("swap-room", "Đổi phòng");
-        vnTitles.put("cancel-room", "Hủy phòng");
-        vnTitles.put("room-management", "Quản lý phòng");
-        vnTitles.put("staff", "Nhân sự");
-        vnTitles.put("customers", "Khách hàng");
-        vnTitles.put("services", "Dịch vụ");
-        vnTitles.put("promotions", "Khuyến mãi");
-        vnTitles.put("invoices", "Hóa đơn");
-        vnTitles.put("statistics", "Thống kê");
-        pageTitleLabel.setText(vnTitles.getOrDefault(route, "KQL HOTEL"));
-        
-        for (Map.Entry<String, JPanel> entry : menuItems.entrySet()) {
-            if (entry.getValue() instanceof SidebarMenuItem) {
-                ((SidebarMenuItem) entry.getValue()).setActive(entry.getKey().equals(route));
-            }
-        }
     }
 }
