@@ -34,12 +34,9 @@ public class StaffPanel extends JPanel {
         
         JPanel titleGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         titleGroup.setOpaque(false);
-        JLabel title = new JLabel("Nhân sự");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
-        title.setForeground(new Color(24, 40, 66));
         subtitle = new JLabel("0 nhân viên - 0 đang làm việc");
         subtitle.setForeground(new Color(100, 116, 139));
-        titleGroup.add(title);
+        // titleGroup.add(title); // Removed to avoid duplication with topbar
         titleGroup.add(subtitle);
         
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm nhân viên");
