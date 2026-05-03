@@ -434,7 +434,7 @@ public class RoomManagementPanel extends JPanel {
                     java.awt.Container c = RoomManagementPanel.this;
                     while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
                     if (c instanceof kqlhotel.gui.AppFrame) {
-                        ((kqlhotel.gui.AppFrame) c).navigateTo("checkout");
+                        ((kqlhotel.gui.AppFrame) c).navigateToCheckoutWithRoom(p.getMaPhong());
                     }
                 };
                 kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(
