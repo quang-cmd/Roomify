@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.booking;
+package kqlhotel.dao.booking;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

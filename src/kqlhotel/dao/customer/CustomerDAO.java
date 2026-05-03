@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.customer;
+package kqlhotel.dao.customer;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.DAO_Interface;

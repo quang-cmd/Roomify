@@ -1,4 +1,4 @@
-﻿package kqlhotel.bus.booking;
+package kqlhotel.bus.booking;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

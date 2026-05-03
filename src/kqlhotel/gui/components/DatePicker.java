@@ -32,11 +32,14 @@ public class DatePicker extends JPanel {
         textDateField.setFont(textDateField.getFont().deriveFont(14f));
         textDateField.setText(selectedDate.format(dtf));
 
-        ImageIcon icon = new ImageIcon(getClass().getResource("/kqlhotel/resources/icons/calendar.png"));
-        Image img = icon.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+        ImageIcon icon = kqlhotel.gui.utils.IconLoader.loadIcon("calendar.png", 18, 18);
 
         btnCalendar = new PrimaryButton("");
-        btnCalendar.setIcon(new ImageIcon(img));
+        if (icon != null) {
+            btnCalendar.setIcon(icon);
+        } else {
+            btnCalendar.setText("...");
+        }
         btnCalendar.setPreferredSize(new Dimension(36, 36));
         btnCalendar.setArc(8);
         btnCalendar.setBackground(Color.WHITE);

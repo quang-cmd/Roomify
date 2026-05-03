@@ -338,7 +338,7 @@ public class AppFrame extends JFrame {
             case "cancel-room": return "cancel-room.png";
             case "room-management": return "room-management.png";
             case "staff": return "staff.png";
-            case "customers": return "customers.png";
+            case "customers": return "khachHang.png";
             case "services": return "services.png";
             case "promotions": return "promotions.png";
             case "invoices": return "invoices.png";

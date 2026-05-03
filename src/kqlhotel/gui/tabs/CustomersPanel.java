@@ -7,6 +7,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
@@ -49,6 +50,7 @@ public class CustomersPanel extends JPanel {
     private final JPanel customerListPanel = new JPanel();
     private final JPanel detailPanel = new JPanel(new BorderLayout());
     private final JLabel countLabel = new JLabel();
+    private final JComboBox<String> rankFilter = new JComboBox<>(new String[]{"Tất cả hạng", "Đồng", "Bạc", "Vàng", "Kim cương"});
     private List<Customer> customers = new ArrayList<>();
     private Customer selectedCustomer;
 
@@ -72,7 +74,7 @@ public class CustomersPanel extends JPanel {
         titleWrap.setOpaque(false);
         titleWrap.setLayout(new BoxLayout(titleWrap, BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Customers");
+        JLabel title = new JLabel("Quản lý khách hàng");
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
         title.setForeground(new Color(15, 23, 42));
 
@@ -81,7 +83,7 @@ public class CustomersPanel extends JPanel {
 
         titleWrap.add(countLabel);
 
-        JButton addButton = createPrimaryButton("Thêm khách hàng", "customers.png");
+        JButton addButton = createPrimaryButton("Thêm khách hàng", "khachHang.png");
         addButton.addActionListener(e -> showCustomerDialog(null));
 
         header.add(titleWrap, BorderLayout.WEST);
@@ -98,7 +100,15 @@ public class CustomersPanel extends JPanel {
         leftPane.setPreferredSize(new Dimension(360, 0));
         leftPane.setBorder(new EmptyBorder(18, 18, 18, 18));
 
-        leftPane.add(createSearchBox(), BorderLayout.NORTH);
+        JPanel searchPanel = new JPanel(new BorderLayout(0, 10));
+        searchPanel.setOpaque(false);
+        searchPanel.add(createSearchBox(), BorderLayout.CENTER);
+        
+        rankFilter.setPreferredSize(new Dimension(100, 36));
+        rankFilter.addActionListener(e -> renderCustomerList(filterCustomers(searchField.getText().trim())));
+        searchPanel.add(rankFilter, BorderLayout.SOUTH);
+
+        leftPane.add(searchPanel, BorderLayout.NORTH);
 
         customerListPanel.setOpaque(false);
         customerListPanel.setLayout(new BoxLayout(customerListPanel, BoxLayout.Y_AXIS));
@@ -164,15 +174,21 @@ public class CustomersPanel extends JPanel {
     }
 
     private List<Customer> filterCustomers(String keyword) {
-        if (keyword.isBlank()) {
-            return customers;
-        }
-        String lowered = keyword.toLowerCase();
+        String selectedRank = (String) rankFilter.getSelectedItem();
         List<Customer> filtered = new ArrayList<>();
+        String loweredKeyword = keyword.toLowerCase().trim();
+
         for (Customer customer : customers) {
-            if (safe(customer.getHoTenKH()).toLowerCase().contains(lowered)
-                || safe(customer.getSdt()).contains(lowered)
-                || safe(customer.getMaKH()).toLowerCase().contains(lowered)) {
+            // Check rank
+            boolean matchesRank = "Tất cả hạng".equals(selectedRank) || mapRank(customer.getHangKH()).equals(selectedRank);
+            
+            // Check keyword
+            boolean matchesKeyword = loweredKeyword.isEmpty() 
+                || safe(customer.getHoTenKH()).toLowerCase().contains(loweredKeyword)
+                || safe(customer.getSdt()).contains(loweredKeyword)
+                || safe(customer.getMaKH()).toLowerCase().contains(loweredKeyword);
+            
+            if (matchesRank && matchesKeyword) {
                 filtered.add(customer);
             }
         }
@@ -212,7 +228,12 @@ public class CustomersPanel extends JPanel {
         phone.setForeground(new Color(148, 163, 184));
 
         textWrap.add(name);
-        textWrap.add(phone);
+        JPanel subText = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        subText.setOpaque(false);
+        subText.add(phone);
+        subText.add(new JLabel("•"));
+        subText.add(createRankBadge(customer.getHangKH()));
+        textWrap.add(subText);
         row.add(textWrap, BorderLayout.CENTER);
 
         JPanel statusWrap = new JPanel();
@@ -300,6 +321,8 @@ public class CustomersPanel extends JPanel {
 
         JPanel meta = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
         meta.setOpaque(false);
+        meta.add(createRankBadge(customer.getHangKH()));
+        meta.add(Box.createHorizontalStrut(8));
         meta.add(createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong()));
         meta.add(Box.createHorizontalStrut(8));
         meta.add(createMutedLabel("Lần cuối: " + formatDate(customer.getNgayDatGanNhat())));
@@ -313,7 +336,7 @@ public class CustomersPanel extends JPanel {
         JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
 
-        JButton editButton = createPrimaryButton("Sửa thông tin", "customers.png");
+        JButton editButton = createPrimaryButton("Sửa thông tin", "edit.png");
         editButton.addActionListener(e -> showCustomerDialog(customer));
 
         JButton bookingButton = createOutlineButton("Đặt phòng mới");
@@ -368,12 +391,12 @@ public class CustomersPanel extends JPanel {
     private JPanel createInfoGrid(Customer customer) {
         JPanel grid = new JPanel(new GridLayout(3, 2, 14, 14));
         grid.setOpaque(false);
-        grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "search.png"));
-        grid.add(createInfoCard("Địa chỉ email", safe(customer.getEmail()), "services.png"));
-        grid.add(createInfoCard("Địa chỉ cư trú", safe(customer.getDiaChi()), "room-management.png"));
+        grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "telephone.png"));
+        grid.add(createInfoCard("Địa chỉ email", safe(customer.getEmail()), "email.png"));
+        grid.add(createInfoCard("Địa chỉ cư trú", safe(customer.getDiaChi()), "location.png"));
         grid.add(createInfoCard("Ngày sinh", formatDate(customer.getNgaySinh()), "calendar.png"));
-        grid.add(createInfoCard("CCCD / Hộ chiếu", safe(customer.getCCCD()), "pick.png"));
-        grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "star.png"));
+        grid.add(createInfoCard("CCCD / Hộ chiếu", safe(customer.getCCCD()), "client.png"));
+        grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "location.png"));
         return grid;
     }
 
@@ -520,7 +543,7 @@ public class CustomersPanel extends JPanel {
         actions.setOpaque(false);
         JButton cancelButton = createOutlineButton("Hủy");
         cancelButton.addActionListener(e -> dialog.dispose());
-        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách hàng", "customers.png");
+        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu khách hàng", "check.png");
         saveButton.addActionListener(e -> {
             Customer payload = editing ? existing : new Customer();
             payload.setHoTenKH(nameField.getText().trim());
@@ -659,6 +682,42 @@ public class CustomersPanel extends JPanel {
         label.setFont(new Font("Segoe UI", Font.BOLD, 11));
         label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
         label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
+        return label;
+    }
+
+    private JLabel createRankBadge(String rankCode) {
+        String text = mapRank(rankCode);
+        Color bg;
+        Color fg;
+        
+        switch (safe(rankCode).toLowerCase()) {
+            case "bac":
+            case "silver":
+                bg = new Color(241, 245, 249);
+                fg = new Color(71, 85, 105);
+                break;
+            case "vang":
+            case "gold":
+                bg = new Color(254, 249, 195);
+                fg = new Color(161, 98, 7);
+                break;
+            case "kimcuong":
+            case "diamond":
+                bg = new Color(219, 234, 254);
+                fg = new Color(29, 78, 216);
+                break;
+            default: // Dong / Bronze
+                bg = new Color(255, 237, 213);
+                fg = new Color(154, 52, 18);
+                break;
+        }
+
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setOpaque(true);
+        label.setBorder(new EmptyBorder(3, 8, 3, 8));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        label.setBackground(bg);
+        label.setForeground(fg);
         return label;
     }
 

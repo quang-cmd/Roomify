@@ -1,4 +1,4 @@
-﻿package kqlhotel.bus.checkin;
+package kqlhotel.bus.checkin;
 
 import java.math.BigDecimal;
 import java.sql.Connection;

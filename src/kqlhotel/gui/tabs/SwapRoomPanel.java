@@ -52,8 +52,8 @@ public class SwapRoomPanel extends JPanel {
     private final SwapRoomBUS bus = new SwapRoomBUS();
 
     private final InputField inpMaDatPhong = new InputField("search.png", "VD: BK001");
-    private final InputField inpTenKhach = new InputField("customers.png", "VD: Nguyễn Văn A");
-    private final InputField inpSoDienThoai = new InputField("search.png", "VD: 0987654321");
+    private final InputField inpTenKhach = new InputField("client.png", "VD: Nguyễn Văn A");
+    private final InputField inpSoDienThoai = new InputField("telephone.png", "VD: 0987654321");
     private final InputField inpSoPhong = new InputField("room.png", "VD: 101");
 
     private final JPanel resultListPanel = new JPanel();
@@ -397,9 +397,9 @@ public class SwapRoomPanel extends JPanel {
         guestLabel.setForeground(TEXT_PRIMARY);
 
         top.add(guestLabel, BorderLayout.WEST);
-        top.add(createTag(active ? "Selected" : result.getBookingId(), active ? new Color(219, 234, 254) : new Color(241, 245, 249), active ? ACTION : TEXT_MUTED), BorderLayout.EAST);
+        top.add(createTag(active ? "Đã chọn" : result.getBookingId(), active ? new Color(219, 234, 254) : new Color(241, 245, 249), active ? ACTION : TEXT_MUTED), BorderLayout.EAST);
 
-        JLabel info = new JLabel(result.getCurrentRoomId() + "  •  " + result.getCurrentRoomTypeName() + "  •  " + result.getOccupantCount() + " guest(s)");
+        JLabel info = new JLabel(result.getCurrentRoomId() + "  •  " + result.getCurrentRoomTypeName() + "  •  " + result.getOccupantCount() + " khách");
         info.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         info.setForeground(TEXT_MUTED);
 
@@ -491,53 +491,19 @@ public class SwapRoomPanel extends JPanel {
     }
 
     private JPanel createBookingSummary(SwapRoomSearchResult result) {
-        JPanel wrap = new JPanel(new BorderLayout(16, 0));
-        wrap.setOpaque(false);
+        RoundedBlockPanel wrap = new RoundedBlockPanel(18, SURFACE_SOFT, BORDER, 1f, new Color(15, 23, 42, 0), 0);
+        wrap.setLayout(new GridLayout(0, 2, 12, 12));
+        wrap.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        RoundedBlockPanel left = new RoundedBlockPanel(18, SURFACE_SOFT, BORDER, 1f, new Color(15, 23, 42, 0), 0);
-        left.setLayout(new GridLayout(0, 2, 12, 12));
-        left.setBorder(new EmptyBorder(16, 16, 16, 16));
+        wrap.add(createInfoItem("Mã đặt phòng", result.getBookingId()));
+        wrap.add(createInfoItem("Tên khách", result.getCustomerName()));
+        wrap.add(createInfoItem("Số điện thoại", result.getPhoneNumber()));
+        wrap.add(createInfoItem("CCCD", result.getIdCard()));
+        wrap.add(createInfoItem("Phòng hiện tại", result.getCurrentRoomId()));
+        wrap.add(createInfoItem("Loại phòng", result.getCurrentRoomTypeName()));
+        wrap.add(createInfoItem("Ngày nhận", formatDateTime(result.getCheckInDate())));
+        wrap.add(createInfoItem("Ngày trả", formatDateTime(result.getCheckOutDate())));
 
-        left.add(createInfoItem("Mã đặt phòng", result.getBookingId()));
-        left.add(createInfoItem("Tên khách", result.getCustomerName()));
-        left.add(createInfoItem("Số điện thoại", result.getPhoneNumber()));
-        left.add(createInfoItem("CCCD", result.getIdCard()));
-        left.add(createInfoItem("Phòng hiện tại", result.getCurrentRoomId()));
-        left.add(createInfoItem("Loại phòng", result.getCurrentRoomTypeName()));
-        left.add(createInfoItem("Ngày nhận", formatDateTime(result.getCheckInDate())));
-        left.add(createInfoItem("Ngày trả", formatDateTime(result.getCheckOutDate())));
-
-        RoundedBlockPanel right = new RoundedBlockPanel(18, new Color(239, 246, 255), new Color(191, 219, 254), 1f, new Color(15, 23, 42, 0), 0);
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-        right.setBorder(new EmptyBorder(16, 16, 16, 16));
-        right.setPreferredSize(new Dimension(220, 0));
-
-        JLabel matchTitle = new JLabel("Tiêu chí đổi phòng");
-        matchTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        matchTitle.setForeground(TEXT_PRIMARY);
-
-        JLabel roomTypeRule = new JLabel("Ưu tiên cùng loại: " + safeText(result.getCurrentRoomTypeName()));
-        roomTypeRule.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        roomTypeRule.setForeground(TEXT_MUTED);
-
-        JLabel capacityRule = new JLabel("Sức chứa tối thiểu: " + Math.max(result.getOccupantCount(), 1) + " khách");
-        capacityRule.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        capacityRule.setForeground(TEXT_MUTED);
-
-        JLabel peopleLabel = new JLabel(result.getOccupantCount() + " khách");
-        peopleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        peopleLabel.setForeground(ACTION);
-
-        right.add(matchTitle);
-        right.add(Box.createVerticalStrut(10));
-        right.add(roomTypeRule);
-        right.add(Box.createVerticalStrut(6));
-        right.add(capacityRule);
-        right.add(Box.createVerticalGlue());
-        right.add(peopleLabel);
-
-        wrap.add(left, BorderLayout.CENTER);
-        wrap.add(right, BorderLayout.EAST);
         return wrap;
     }
 

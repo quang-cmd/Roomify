@@ -158,7 +158,7 @@ public class ServicesPanel extends JPanel {
         editButton.setContentAreaFilled(false);
         editButton.setFocusPainted(false);
         editButton.setForeground(new Color(148, 163, 184));
-        editButton.setToolTipText("Edit service");
+        editButton.setToolTipText("Sửa dịch vụ");
         editButton.addActionListener(e -> showServiceDialog(service));
         actions.add(editButton);
         top.add(actions, BorderLayout.EAST);
@@ -226,7 +226,7 @@ public class ServicesPanel extends JPanel {
         if (bus.updateStatus(service.getMaDV(), nextStatus)) {
             loadServices();
         } else {
-            JOptionPane.showMessageDialog(this, "Could not update status.");
+            JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái.");
         }
     }
 
@@ -249,7 +249,7 @@ public class ServicesPanel extends JPanel {
         categoryBox.setPreferredSize(new Dimension(340, 38));
         categoryBox.setMaximumSize(new Dimension(340, 38));
 
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Active", "Inactive"});
+        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Đang hoạt động", "Ngưng hoạt động"});
         statusBox.setSelectedItem(mapStatusLabel(editing ? existing.getTrangThai() : "DangHoatDong"));
         statusBox.setPreferredSize(new Dimension(340, 38));
         statusBox.setMaximumSize(new Dimension(340, 38));
@@ -406,24 +406,24 @@ public class ServicesPanel extends JPanel {
         String file;
         switch (normalizeCategory(category)) {
             case "Housekeeping":
-                bg = new Color(243, 232, 255);
-                file = "services.png";
+                bg = new Color(243, 232, 255); // Purple
+                file = "hygiene.png";
                 break;
             case "Food & Drink":
-                bg = new Color(255, 247, 237);
-                file = "bell.png";
+                bg = new Color(255, 247, 237); // Orange
+                file = "cuisine.png";
                 break;
             case "Relaxation":
-                bg = new Color(236, 253, 245);
+                bg = new Color(236, 253, 245); // Green
                 file = "star.png";
                 break;
             case "Transport":
-                bg = new Color(239, 246, 255);
-                file = "checkout.png";
+                bg = new Color(239, 246, 255); // Blue
+                file = "transport.png";
                 break;
             default:
-                bg = new Color(238, 242, 255);
-                file = "pick.png";
+                bg = new Color(238, 242, 255); // Indigo
+                file = "wifi.png";
                 break;
         }
 
@@ -506,15 +506,15 @@ public class ServicesPanel extends JPanel {
     private String getUnitLabel(String category) {
         switch (normalizeCategory(category)) {
             case "Food & Drink":
-                return "/person";
+                return "/người";
             case "Housekeeping":
-                return "/time";
+                return "/lần";
             case "Relaxation":
-                return "/package";
+                return "/gói";
             case "Transport":
-                return "/trip";
+                return "/chuyến";
             default:
-                return "/service";
+                return "/dịch vụ";
         }
     }
 
@@ -546,11 +546,11 @@ public class ServicesPanel extends JPanel {
     }
 
     private String mapStatusLabel(String status) {
-        return "DangHoatDong".equalsIgnoreCase(status) ? "Active" : "Inactive";
+        return "DangHoatDong".equalsIgnoreCase(status) ? "Đang hoạt động" : "Ngưng hoạt động";
     }
 
     private String mapStatusCode(String status) {
-        return "Active".equalsIgnoreCase(status) ? "DangHoatDong" : "NgungHoatDong";
+        return "Đang hoạt động".equalsIgnoreCase(status) ? "DangHoatDong" : "NgungHoatDong";
     }
 
     private ImageIcon loadIcon(String filename, int width, int height) {
