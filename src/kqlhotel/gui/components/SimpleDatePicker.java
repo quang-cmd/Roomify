@@ -89,7 +89,7 @@ public class SimpleDatePicker extends JPanel {
         private final Calendar calendar = Calendar.getInstance();
         private final JLabel monthLabel;
         private final JPanel daysPanel;
-        private java.util.function.Consumer<Date> onDateSelected;
+        // private java.util.function.Consumer<Date> onDateSelected;
         
         public CalendarPanel() {
             setLayout(new BorderLayout(8, 8));
