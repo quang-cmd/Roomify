@@ -1,4 +1,4 @@
-﻿package kqlhotel.dao.staff;
+package kqlhotel.dao.staff;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.Staff;

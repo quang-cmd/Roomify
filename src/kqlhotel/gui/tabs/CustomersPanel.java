@@ -43,6 +43,7 @@ public class CustomersPanel extends JPanel {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
 
+    private kqlhotel.gui.AppFrame appFrame;
     private final CustomerBUS bus = new CustomerBUS();
     private final JTextField searchField = new JTextField();
     private final JPanel customerListPanel = new JPanel();
@@ -51,7 +52,8 @@ public class CustomersPanel extends JPanel {
     private List<Customer> customers = new ArrayList<>();
     private Customer selectedCustomer;
 
-    public CustomersPanel() {
+    public CustomersPanel(kqlhotel.gui.AppFrame appFrame) {
+        this.appFrame = appFrame;
         setOpaque(false);
         setLayout(new BorderLayout(0, 18));
         setBorder(new EmptyBorder(22, 26, 22, 26));
@@ -315,7 +317,14 @@ public class CustomersPanel extends JPanel {
         editButton.addActionListener(e -> showCustomerDialog(customer));
 
         JButton bookingButton = createOutlineButton("Đặt phòng mới");
-        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Vui lòng chuyển sang tab Đặt phòng."));
+        bookingButton.addActionListener(e -> {
+            if (selectedCustomer != null) {
+                appFrame.getBookingPanel().preFillCustomer(selectedCustomer);
+                appFrame.navigateTo("booking");
+            } else {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng trước.");
+            }
+        });
 
         actions.add(editButton);
         actions.add(bookingButton);
