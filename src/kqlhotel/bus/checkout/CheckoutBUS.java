@@ -81,11 +81,6 @@ public class CheckoutBUS {
             hd = getActiveByRoomFromBooking(maPhong);
         }
 
-        if (hd == null) {
-            return null;
-        }
-
-        recalculateInvoiceTotals(hd, null);
         return hd;
     }
 
@@ -175,6 +170,7 @@ public class CheckoutBUS {
                     now,
                     charge.nights,
                     charge.surcharge,
+                    charge.earlyCheckoutPenalty,
                     charge.total
             );
 
