@@ -375,18 +375,26 @@ public class StatisticsDAO {
 
     /**
      * TrevPAR (Total Revenue Per Available Room) snapshot cho range.
-     * TrevPAR = Tổng doanh thu (phòng + dịch vụ) / (Tổng số phòng * số ngày)
+     * TrevPAR = Tổng doanh thu (phòng + dịch vụ + phí phạt hủy) / (Tổng số phòng * số ngày)
      */
     public double getTrevpar(LocalDate start, LocalDate end) {
         int days = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
         int totalRooms = countTotalRooms();
         if (totalRooms == 0 || days == 0) return 0.0;
 
+        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy
         String sql =
-            "SELECT SUM(hd.tongTienThanhToan) AS totalRevenue " +
+            "SELECT SUM( " +
+            "    CASE " +
+            "        WHEN hd.trangThai = 'DaThanhToan' THEN hd.tongTienThanhToan " +
+            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhatHuy, 0) " +
+            "        ELSE 0 " +
+            "    END " +
+            ") AS totalRevenue " +
             "FROM HoaDon hd " +
+            "LEFT JOIN ChiTietHoaDon cthd ON cthd.maHD = hd.maHD " +
             "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
-            "  AND hd.trangThai = 'DaThanhToan'";
+            "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
