@@ -208,7 +208,12 @@ public class InvoicePreviewDialog extends JDialog {
         panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(hd.getTienDichVu())));
         panel.add(line("Thuế VAT", CurrencyUtils.formatVND(hd.getTienThue())));
         panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(hd.getTienKhuyenMai())));
-        panel.add(line("Tổng thanh toán", CurrencyUtils.formatVND(hd.getTongTienThanhToan())));
+        panel.add(line("Tổng thanh toán (Phạt)", CurrencyUtils.formatVND(hd.getTongTienThanhToan())));
+        
+        double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
+        if (refund > 0) {
+            panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
+        }
 
         panel.add(Box.createVerticalStrut(12));
         panel.add(centerLabel("Cảm ơn quý khách đã sử dụng dịch vụ!", 13, false));

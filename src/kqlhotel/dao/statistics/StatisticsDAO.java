@@ -54,7 +54,7 @@ public class StatisticsDAO {
     }
 
     public int countBookings(LocalDateTime start, LocalDateTime end) {
-        String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDat BETWEEN ? AND ?";
+        String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDatPhong BETWEEN ? AND ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -207,9 +207,9 @@ public class StatisticsDAO {
     private List<RecentBooking> queryRecentBookings(int limit) {
         List<RecentBooking> list = new ArrayList<>();
         String sql =
-            "SELECT TOP (?) maPhong, hoTenKH, tenLoaiPhong, trangThai, ngayDat " +
+            "SELECT TOP (?) maPhong, hoTenKH, tenLoaiPhong, trangThai, ngayDatPhong " +
             "FROM ( " +
-            "    SELECT dp.maDatPhong, dp.ngayDat, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
+            "    SELECT dp.maDatPhong, dp.ngayDatPhong, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
             "           kh.hoTenKH, p.maPhong, lp.tenLoaiPhong, " +
             "           CASE WHEN ctdp.ngayNhanDuKien > GETDATE() THEN N'Sắp đến' " +
             "                WHEN ctdp.ngayTraDuKien  < GETDATE() THEN N'Đã xong' " +
@@ -222,13 +222,13 @@ public class StatisticsDAO {
             "    JOIN LoaiPhong        lp   ON p.maLoaiPhong  = lp.maLoaiPhong " +
             ") ranked " +
             "WHERE rn = 1 " +
-            "ORDER BY ngayDat DESC";
+            "ORDER BY ngayDatPhong DESC";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Timestamp ts = rs.getTimestamp("ngayDat");
+                    Timestamp ts = rs.getTimestamp("ngayDatPhong");
                     list.add(new RecentBooking(
                         rs.getString("maPhong"),
                         rs.getString("hoTenKH"),
