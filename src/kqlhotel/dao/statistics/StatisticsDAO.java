@@ -1,4 +1,4 @@
-git package kqlhotel.dao.statistics;
+package kqlhotel.dao.statistics;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
