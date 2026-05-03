@@ -1002,6 +1002,12 @@ public class BookingPanel extends JPanel {
             successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
         }
         JOptionPane.showMessageDialog(this, successMessage, "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Refresh RoomManagementPanel data
+        java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (win instanceof kqlhotel.gui.AppFrame) {
+            ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+        }
     }
 
     private void submitBookingWithPayment(String paymentPlanLabel, double paymentRatio) {
@@ -1119,6 +1125,12 @@ public class BookingPanel extends JPanel {
         }
 
         JOptionPane.showMessageDialog(this, successMessage.toString(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Refresh RoomManagementPanel data
+        java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (win instanceof kqlhotel.gui.AppFrame) {
+            ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+        }
 
         // Reset form and refresh room list
         selectedRooms.clear();
