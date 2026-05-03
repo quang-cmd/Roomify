@@ -178,7 +178,7 @@ CREATE TABLE HoaDon (
     ngayLapHD           DATETIME2      NOT NULL,
     ngayThanhToan       DATETIME2      NULL,
     ghiChu              NVARCHAR(255)  NULL,
-    soLuongNguoiO       INT            NOT NULL CHECK (soLuongNguoiO > 0),
+    soLuongNguoiO       INT            NOT NULL CHECK (soLuongNguoiO >= 0),
     tienPhong           DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienPhong >= 0),
     tienDichVu          DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienDichVu >= 0),
     tienKhuyenMai       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKhuyenMai >= 0),

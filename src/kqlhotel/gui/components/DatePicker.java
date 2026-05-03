@@ -16,6 +16,7 @@ public class DatePicker extends JPanel {
     private LocalDate selectedDate;
     private YearMonth currentMonth;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final java.util.List<Runnable> dateChangeListeners = new java.util.ArrayList<>();
     
     private final JLabel lblMonthYear;
     private final JPanel daysPanel;
@@ -149,6 +150,7 @@ public class DatePicker extends JPanel {
                     selectedDate = thisDate;
                     textDateField.setText(selectedDate.format(dtf));
                     popupMenu.setVisible(false);
+                    notifyDateChanged();
                 }
                 
                 @Override
@@ -193,6 +195,34 @@ public class DatePicker extends JPanel {
             this.selectedDate = date;
             textDateField.setText(date.format(dtf));
             currentMonth = YearMonth.from(date);
+        }
+    }
+    
+    /**
+     * Thêm listener để lắng nghe thay đổi ngày.
+     */
+    public void addDateChangeListener(Runnable listener) {
+        dateChangeListeners.add(listener);
+        textDateField.addActionListener(e -> listener.run());
+        textDateField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                // Validate và cập nhật selectedDate từ text field
+                try {
+                    LocalDate parsed = LocalDate.parse(textDateField.getText(), dtf);
+                    selectedDate = parsed;
+                    listener.run();
+                } catch (Exception ex) {
+                    // Nếu parse lỗi, giữ nguyên giá trị cũ và reset text
+                    textDateField.setText(selectedDate.format(dtf));
+                }
+            }
+        });
+    }
+    
+    private void notifyDateChanged() {
+        for (Runnable listener : dateChangeListeners) {
+            listener.run();
         }
     }
 }
