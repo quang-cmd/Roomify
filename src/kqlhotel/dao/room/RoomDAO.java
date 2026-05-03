@@ -147,19 +147,19 @@ public class RoomDAO {
         RoomType rt = new RoomType();
         rt.setRoomTypeId(rs.getString("maLoaiPhong"));
         rt.setRoomTypeName(rs.getString("tenLoaiPhong"));
+        rt.setDescription(rs.getString("moTa"));
+        rt.setAmenities(rs.getString("tienNghi"));
         rt.setRoomCount(rs.getInt("soLuongPhong"));
         rt.setPrice(rs.getDouble("giaPhong"));
         rt.setMaxCapacity(rs.getInt("sucChuaToiDa"));
         rt.setArea(rs.getDouble("dienTich"));
-        rt.setDescription(rs.getString("moTa"));
-        rt.setAmenities(rs.getString("tienNghi"));
 
         Room r = new Room();
         r.setRoomId(rs.getString("maPhong"));
         r.setFloor(rs.getInt("tang"));
         r.setStatus(rs.getString("trangThaiPhong"));
         r.setRoomType(rt);
-        r.setDeposit(0.0); // Default or fetch from DB if column exists
+        r.setDeposit(0.0);
         return r;
     }
 }

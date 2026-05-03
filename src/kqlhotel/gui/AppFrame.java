@@ -271,12 +271,23 @@ public class AppFrame extends JFrame {
 
     public void navigateTo(String route) { activateRoute(route); }
 
+<<<<<<< HEAD
     public void refreshRoomManagementData() { if (roomManagementPanel != null) roomManagementPanel.reloadData(); }
 
     public void navigateToCheckoutWithRoom(String roomID) {
         if (checkoutPanel != null) {
             checkoutPanel.prefillAndSearchRoom(roomID);
             activateRoute("checkout");
+=======
+    public void navigateToCheckoutWithRoom(String roomId) {
+        activateRoute("checkout");
+        // We might need to tell CheckoutPanel to load this room
+    }
+
+    public void refreshRoomManagementData() {
+        if (roomManagementPanel != null) {
+            roomManagementPanel.reloadData();
+>>>>>>> 67e24f5 (Standardize GUI logic to English keys and keep Vietnamese UI labels (RoomManagement & RoomDetail))
         }
     }
 

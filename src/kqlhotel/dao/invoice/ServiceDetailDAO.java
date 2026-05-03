@@ -27,7 +27,7 @@ public class ServiceDetailDAO {
                 ct.setMaDV(rs.getString("maDV"));
                 ct.setMaHD(rs.getString("maHD"));
                 // Lưu tenDV vào ghiChu nếu chưa có ghi chú
-                if (ct.getGhiChu() == null || ct.getGhiChu().isEmpty()) {
+                if (ct.getGhiChu() == null || ct.getGhiChu().trim().isEmpty()) {
                     ct.setGhiChu(rs.getString("tenDV"));
                 }
                 list.add(ct);

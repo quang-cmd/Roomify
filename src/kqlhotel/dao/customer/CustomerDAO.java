@@ -174,14 +174,14 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         Customer kh = new Customer();
         kh.setMaKH(rs.getString("maKH"));
         kh.setHoTenKH(rs.getString("hoTenKH"));
+        kh.setQuocTich(rs.getString("quocTich"));
+        kh.setDiaChi(rs.getString("diaChi"));
+        kh.setHangKH(rs.getString("hangKH"));
         kh.setGioiTinh(rs.getBoolean("gioiTinh") ? "Nam" : "Nu");
         kh.setNgaySinh(rs.getTimestamp("ngaySinh"));
         kh.setEmail(rs.getString("email"));
         kh.setSdt(rs.getString("sdt"));
         kh.setCCCD(rs.getString("CCCD"));
-        kh.setQuocTich(rs.getString("quocTich"));
-        kh.setDiaChi(rs.getString("diaChi"));
-        kh.setHangKH(rs.getString("hangKH"));
         kh.setDiemTichLuy(rs.getInt("diemTichLuy"));
         return kh;
     }

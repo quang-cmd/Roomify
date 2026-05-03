@@ -33,7 +33,6 @@ public class RoomManagementPanel extends JPanel {
     private final JPanel gridContainer = new JPanel(new java.awt.GridLayout(0, 5, 16, 16));
     private final JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
 
-    // Status colors
     private static final Color COLOR_VACANT = new Color(30, 180, 120);
     private static final Color COLOR_MAINTENANCE = new Color(230, 154, 30);
     private static final Color COLOR_OCCUPIED = new Color(239, 68, 68);
@@ -42,9 +41,6 @@ public class RoomManagementPanel extends JPanel {
     private List<Room> roomList;
     private JLabel subtitle;
     private JPanel statsRow;
-
-    public List<Room> getRoomList() { return roomList; }
-    public RoomBUS getRoomBUS() { return roomBUS; }
 
     public RoomManagementPanel() {
         setOpaque(false);
@@ -60,7 +56,7 @@ public class RoomManagementPanel extends JPanel {
         JLabel title = new JLabel("Quản lý phòng");
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
         title.setForeground(new Color(15, 23, 42));
-        subtitle = new JLabel("Đang tải dữ liệu...");
+        subtitle = new JLabel("Đang tải...");
         subtitle.setForeground(new Color(100, 116, 139));
         titlePanel.add(title);
         titlePanel.add(subtitle);
@@ -72,6 +68,11 @@ public class RoomManagementPanel extends JPanel {
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm phòng");
         btnAdd.setBackground(new Color(17, 24, 39));
         btnAdd.setForeground(Color.WHITE);
+        btnAdd.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            kqlhotel.gui.components.AddRoomDialog dialog = new kqlhotel.gui.components.AddRoomDialog(owner, roomBUS, this::reloadData);
+            dialog.setVisible(true);
+        });
 
         PrimaryButton btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
         btnAddRoomType.setBackground(new Color(30, 41, 59));
@@ -152,12 +153,20 @@ public class RoomManagementPanel extends JPanel {
         JButton btn = new JButton();
         btn.putClientProperty("filterLabel", label);
         btn.putClientProperty("filterKey", filterKey);
+        btn.putClientProperty("filterBadge", badgeText);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         String text = "<html>" + label + " <span style='font-size:10px;'>&nbsp;" + badgeText + "&nbsp;</span></html>";
         btn.setText(text);
+        updateFilterBtnStyle(btn, active);
+        
+        btn.addActionListener(e -> applyFilter(filterKey));
+        return btn;
+    }
+
+    private void updateFilterBtnStyle(JButton btn, boolean active) {
         if (active) {
             btn.setBackground(new Color(15, 23, 42));
             btn.setForeground(Color.WHITE);
@@ -173,18 +182,15 @@ public class RoomManagementPanel extends JPanel {
                 BorderFactory.createEmptyBorder(6, 16, 6, 16)
             ));
         }
-        
-        btn.addActionListener(e -> applyFilter(filterKey));
-        return btn;
     }
 
     public void reloadData() {
         roomList = roomBUS.getAllRooms();
         
         long total = roomList.size();
-        long tr = roomBUS.countByStatus(roomList, "Trong");
-        long dsd = roomBUS.countByStatus(roomList, "DangSuDung");
-        long bt = roomBUS.countByStatus(roomList, "BaoTri");
+        long tr = roomBUS.countByStatus(roomList, "Vacant");
+        long dsd = roomBUS.countByStatus(roomList, "Occupied");
+        long bt = roomBUS.countByStatus(roomList, "Maintenance");
 
         subtitle.setText(total + " phòng tổng cộng - " + tr + " phòng trống");
 
@@ -209,37 +215,29 @@ public class RoomManagementPanel extends JPanel {
         return Math.round((double)count/total * 100) + "%";
     }
 
-    private void applyFilter(String filter) {
+    private void applyFilter(String filterKey) {
         gridContainer.removeAll();
         for (Room p : roomList) {
-            String guiStatus = roomBUS.mapDbStatusToGuiStatus(p.getStatus());
-            if (filter.equals("All") || guiStatus.equals(filter)) {
+            String guiStatus = p.getStatus();
+            if (filterKey.equals("All") || guiStatus.equals(filterKey)) {
                 gridContainer.add(createRoomCard(p));
             }
         }
         gridContainer.revalidate();
         gridContainer.repaint();
         
-        // Update active button state
         for (java.awt.Component c : filterRow.getComponents()) {
             if (c instanceof JButton) {
                 JButton b = (JButton) c;
                 String key = (String) b.getClientProperty("filterKey");
-                boolean active = key.equals(filter);
-                if (active) {
-                    b.setBackground(new Color(15, 23, 42));
-                    b.setForeground(Color.WHITE);
-                } else {
-                    b.setBackground(Color.WHITE);
-                    b.setForeground(new Color(71, 85, 105));
-                }
+                updateFilterBtnStyle(b, key.equals(filterKey));
             }
         }
     }
 
     public JPanel createRoomCard(Room p) {
         RoomType lp = p.getRoomType();
-        String guiStatus = roomBUS.mapDbStatusToGuiStatus(p.getStatus());
+        String guiStatus = p.getStatus();
         Color statusColor = COLOR_VACANT;
         String statusLabel = "Trống";
         
@@ -251,7 +249,6 @@ public class RoomManagementPanel extends JPanel {
             statusLabel = "Đang sử dụng";
         }
 
-        // Fetch active data if occupied
         Invoice activeInv = null;
         Customer activeCust = null;
         if (guiStatus.equals("Occupied")) {
@@ -293,7 +290,16 @@ public class RoomManagementPanel extends JPanel {
 
         JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 10", "[][]", "[]"));
         infoRow.setOpaque(false);
-        JLabel lblArea = new JLabel(lp.getDienTich() + "m²");
+        
+        String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChua() + " khách");
+        JLabel lblGuest = new JLabel(" " + occupantStr);
+        lblGuest.setIcon(loadIcon("khachHang.png", 14, 14));
+        lblGuest.setForeground(new Color(130, 145, 170));
+        lblGuest.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        infoRow.add(lblGuest);
+
+        JLabel lblArea = new JLabel(" " + lp.getDienTich() + "m²");
+        lblArea.setIcon(loadIcon("location.png", 14, 14));
         lblArea.setForeground(new Color(130, 145, 170));
         lblArea.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         infoRow.add(lblArea);
@@ -343,6 +349,14 @@ public class RoomManagementPanel extends JPanel {
         }
 
         return card;
+    }
+
+    private ImageIcon loadIcon(String filename, int w, int h) {
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/" + filename);
+            if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
+        } catch (Exception e) {}
+        return null;
     }
 
     private JPanel createDot(Color color) {
