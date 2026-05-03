@@ -632,6 +632,11 @@ public class AppFrame extends JFrame {
     private void activateRoute(String route) {
         currentRoute = route;
         screenCards.show(screenPanel, route);
+        
+        // Auto-refresh room management data when entering the tab
+        if (route.equals("room-management")) {
+            refreshRoomManagementData();
+        }
 
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
