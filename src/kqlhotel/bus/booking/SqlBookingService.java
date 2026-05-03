@@ -168,7 +168,7 @@ public class SqlBookingService implements BookingService {
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
             String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
-            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDatPhong, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?)";
+            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
                 ps.setString(1, maDatPhong);
                 ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
