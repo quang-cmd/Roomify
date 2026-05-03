@@ -40,9 +40,6 @@ import kqlhotel.gui.tabs.StaffPanel;
 import kqlhotel.gui.tabs.CheckoutPanel;
 import kqlhotel.gui.tabs.PromotionsPanel;
 import kqlhotel.gui.tabs.InvoicesPanel;
-import kqlhotel.gui.tabs.CustomersPanel;
-import kqlhotel.gui.tabs.SwapRoomPanel;
-import kqlhotel.gui.tabs.ServicesPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -64,10 +61,7 @@ public class AppFrame extends JFrame {
     private RoomManagementPanel roomManagementPanel;
     private BookingPanel bookingPanel;
     private CheckoutPanel checkoutPanel;
-    private CustomersPanel customersPanel;
-    private SwapRoomPanel swapRoomPanel;
-    private ServicesPanel servicesPanel;
-
+    
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -124,15 +118,6 @@ public class AppFrame extends JFrame {
         screenPanel.add(roomManagementPanel, "room-management");
 
         screenPanel.add(new StaffPanel(), "staff");
-
-        customersPanel = new CustomersPanel();
-        screenPanel.add(customersPanel, "customers");
-
-        swapRoomPanel = new SwapRoomPanel();
-        screenPanel.add(swapRoomPanel, "swap-room");
-
-        servicesPanel = new ServicesPanel();
-        screenPanel.add(servicesPanel, "services");
 
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
