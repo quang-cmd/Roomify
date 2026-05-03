@@ -1,4 +1,4 @@
-package kqlhotel.bus.booking.model;
+package kqlhotel.bus.booking;
 
 public class BookingSelectionSummary {
     private final int selectedRooms;
