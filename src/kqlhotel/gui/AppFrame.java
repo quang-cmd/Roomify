@@ -310,6 +310,11 @@ public class AppFrame extends JFrame {
     private void activateRoute(String route) {
         currentRoute = route;
         screenCards.show(screenPanel, route);
+
+        if (route.equals("room-management")) {
+            refreshRoomManagementData();
+        }
+
         Map<String, String> vnTitles = new java.util.HashMap<>();
         vnTitles.put("booking", "Đặt phòng");
         vnTitles.put("check-in", "Nhận phòng");

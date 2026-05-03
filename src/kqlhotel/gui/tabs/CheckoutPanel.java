@@ -691,6 +691,12 @@ public class CheckoutPanel extends JPanel {
                 }
 
                 JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                
+                // Refresh RoomManagementPanel data
+                java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
+                if (win instanceof kqlhotel.gui.AppFrame) {
+                    ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+                }
 
                 roomCodeField.setText("");
                 customerIdField.setText("");

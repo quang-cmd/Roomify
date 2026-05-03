@@ -239,6 +239,13 @@ public class CheckInPanel extends BackgroundPanel {
         JOptionPane.showMessageDialog(this,
             result.getMessage() + "\nMã hóa đơn: " + result.getMaHD(),
             "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Refresh RoomManagementPanel data
+        java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (win instanceof kqlhotel.gui.AppFrame) {
+            ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+        }
+        
         reload();
     }
 
