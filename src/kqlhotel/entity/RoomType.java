@@ -42,6 +42,12 @@ public class RoomType {
     public Double getArea() { return area; }
     public void setArea(Double area) { this.area = area; }
 
+    // Aliases for compatibility
+    public double getGiaPhong() { return price; }
+    public double getDienTich() { return area != null ? area : 0.0; }
+    public int getSucChuaToiDa() { return maxCapacity; }
+    public int getSucChua() { return maxCapacity; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 

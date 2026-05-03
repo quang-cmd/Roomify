@@ -6,6 +6,7 @@ import java.util.List;
 import javax.swing.*;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.entity.Service;
 import kqlhotel.entity.ServiceDetail;
 import kqlhotel.entity.Room;
@@ -186,7 +187,7 @@ public class RoomDetailDialog extends JDialog {
         JPanel pnl = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
         pnl.setOpaque(false);
         JLabel lblTitle = new JLabel(label);
-        ImageIcon icon = loadIcon(iconName, 14, 14);
+        ImageIcon icon = IconLoader.loadIcon(iconName, 14, 14);
         if (icon != null) {
             lblTitle.setIcon(icon);
             lblTitle.setIconTextGap(6);
@@ -263,7 +264,7 @@ public class RoomDetailDialog extends JDialog {
 
         mainPnl.add(createSeparator());
         long totalRoom = (invoice != null) ? (long)invoice.getTienPhong() : 0;
-        mainPnl.add(createInvoiceItem("bed.png", "🛏", "Tiền phòng " + roomType, "Tính đến hiện tại", formatMoney(totalRoom), null, null));
+        mainPnl.add(createInvoiceItem("bed.png", "🛏", "Tiền phòng " + roomType, "Tính đến hiện tại", formatMoney(totalRoom)));
         mainPnl.add(createSeparator());
 
         serviceListPanel = new JPanel(new MigLayout("insets 0, wrap 1, gap 0", "[grow,fill]", "[]"));
@@ -339,7 +340,7 @@ public class RoomDetailDialog extends JDialog {
             for (ServiceDetail sd : list) {
                 String tenDV = (sd.getGhiChu() != null && !sd.getGhiChu().isEmpty()) ? sd.getGhiChu() : sd.getMaDV();
                 String sub = sd.getSoLuong() + " × " + formatMoney((long)sd.getDonGia());
-                serviceListPanel.add(createInvoiceItem("star.png", "🔧", tenDV, sub, formatMoney((long)sd.getThanhTien()), sd.getMaCTDV(), serviceListPanel));
+                serviceListPanel.add(createInvoiceItem("star.png", "🔧", tenDV, sub, formatMoney((long)sd.getThanhTien())));
                 serviceListPanel.add(createSeparator());
             }
             double svcTotal = list.stream().mapToDouble(ServiceDetail::getThanhTien).sum();
@@ -524,11 +525,11 @@ public class RoomDetailDialog extends JDialog {
         return p;
     }
 
-    private JPanel createInvoiceItem(String iconName, String fallback, String title, String sub, String val, String maCTDV, JPanel parent) {
+    private JPanel createInvoiceItem(String iconName, String fallback, String title, String sub, String val) {
         JPanel pnl = new JPanel(new MigLayout("insets 12 20 12 20", "[][grow][right]", "[]"));
         pnl.setOpaque(false);
         JLabel ico = new JLabel();
-        ImageIcon img = loadIcon(iconName, 18, 18);
+        ImageIcon img = IconLoader.loadIcon(iconName, 18, 18);
         if (img != null) ico.setIcon(img); else ico.setText(fallback);
         
         JPanel textPnl = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
@@ -555,14 +556,6 @@ public class RoomDetailDialog extends JDialog {
 
     private String formatMoney(long val) {
         return String.format("%,dđ", val);
-    }
-
-    private ImageIcon loadIcon(String filename, int w, int h) {
-        try {
-            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/" + filename);
-            if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
-        } catch (Exception e) {}
-        return null;
     }
 
     private JPanel createFooter() {

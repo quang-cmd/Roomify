@@ -12,6 +12,7 @@ import java.awt.RenderingHints;
 import java.awt.Window;
 import java.util.List;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -26,6 +27,7 @@ import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.Customer;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 
 public class RoomManagementPanel extends JPanel {
@@ -254,7 +256,7 @@ public class RoomManagementPanel extends JPanel {
         if (guiStatus.equals("Occupied")) {
             activeInv = roomBUS.getActiveInvoiceForRoom(p.getRoomId());
             if (activeInv != null) {
-                activeCust = roomBUS.getCustomerForInvoice(activeInv.getMaHD());
+                activeCust = roomBUS.getCustomerByMaKH(activeInv.getMaKhachHang());
             }
         }
 
@@ -293,13 +295,13 @@ public class RoomManagementPanel extends JPanel {
         
         String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChua() + " khách");
         JLabel lblGuest = new JLabel(" " + occupantStr);
-        lblGuest.setIcon(loadIcon("khachHang.png", 14, 14));
+        lblGuest.setIcon(IconLoader.loadIcon("khachHang.png", 14, 14));
         lblGuest.setForeground(new Color(130, 145, 170));
         lblGuest.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         infoRow.add(lblGuest);
 
         JLabel lblArea = new JLabel(" " + lp.getDienTich() + "m²");
-        lblArea.setIcon(loadIcon("location.png", 14, 14));
+        lblArea.setIcon(IconLoader.loadIcon("location.png", 14, 14));
         lblArea.setForeground(new Color(130, 145, 170));
         lblArea.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         infoRow.add(lblArea);
@@ -351,14 +353,6 @@ public class RoomManagementPanel extends JPanel {
         return card;
     }
 
-    private ImageIcon loadIcon(String filename, int w, int h) {
-        try {
-            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/" + filename);
-            if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
-        } catch (Exception e) {}
-        return null;
-    }
-
     private JPanel createDot(Color color) {
         JPanel dot = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -372,4 +366,7 @@ public class RoomManagementPanel extends JPanel {
         dot.setOpaque(false);
         return dot;
     }
+
+    public RoomBUS getRoomBUS() { return roomBUS; }
+    public List<Room> getRoomList() { return roomList; }
 }

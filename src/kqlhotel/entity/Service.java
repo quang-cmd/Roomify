@@ -29,6 +29,7 @@ public class Service {
 
     public double getGia() { return gia; }
     public void setGia(double gia) { this.gia = gia; }
+    public double getDonGia() { return gia; } // Alias for compatibility
 
     public String getLoaiDV() { return loaiDV; }
     public void setLoaiDV(String loaiDV) { this.loaiDV = loaiDV; }

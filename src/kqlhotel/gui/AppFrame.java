@@ -177,31 +177,38 @@ public class AppFrame extends JFrame {
         registerPage("invoices", "Hóa đơn", "Theo dõi hóa đơn");
         registerPage("statistics", "Thống kê", "Tổng quan doanh thu");
 
-        sidebar.add(sidebarItem("▢", new Color(49, 130, 206), "Đặt phòng", "booking"));
-        sidebar.add(sidebarItem("⤓", new Color(217, 119, 6),  "Nhận phòng", "check-in"));
-        sidebar.add(sidebarItem("↩", new Color(56, 161, 105), "Trả phòng", "checkout"));
-        sidebar.add(sidebarItem("↔", new Color(100, 100, 220), "Đổi phòng", "swap-room"));
-        sidebar.add(sidebarItem("✕", new Color(200, 80, 80), "Hủy phòng", "cancel-room"));
-        sidebar.add(sidebarItem("≡", new Color(80, 160, 200), "Quản lý phòng", "room-management"));
-        sidebar.add(sidebarItem("●", new Color(143, 97, 255), "Nhân sự", "staff"));
-        sidebar.add(sidebarItem("◎", new Color(56, 180, 140), "Khách hàng", "customers"));
-        sidebar.add(sidebarItem("★", new Color(200, 130, 40), "Dịch vụ", "services"));
-        sidebar.add(sidebarItem("◆", new Color(190, 70, 180), "Khuyến mãi", "promotions"));
-        sidebar.add(sidebarItem("☰", new Color(60, 130, 60), "Hóa đơn", "invoices"));
-        sidebar.add(sidebarItem("▲", new Color(180, 100, 40), "Thống kê", "statistics"));
+        sidebar.add(sidebarItem("booking.png", "▢", new Color(49, 130, 206), "Đặt phòng", "booking"));
+        sidebar.add(sidebarItem("check-in.png", "⤓", new Color(217, 119, 6),  "Nhận phòng", "check-in"));
+        sidebar.add(sidebarItem("checkout.png", "↩", new Color(56, 161, 105), "Trả phòng", "checkout"));
+        sidebar.add(sidebarItem("swap-room.png", "↔", new Color(100, 100, 220), "Đổi phòng", "swap-room"));
+        sidebar.add(sidebarItem("cancel-room.png", "✕", new Color(200, 80, 80), "Hủy phòng", "cancel-room"));
+        sidebar.add(sidebarItem("room-management.png", "≡", new Color(80, 160, 200), "Quản lý phòng", "room-management"));
+        sidebar.add(sidebarItem("staff.png", "●", new Color(143, 97, 255), "Nhân sự", "staff"));
+        sidebar.add(sidebarItem("customers.png", "◎", new Color(56, 180, 140), "Khách hàng", "customers"));
+        sidebar.add(sidebarItem("services.png", "★", new Color(200, 130, 40), "Dịch vụ", "services"));
+        sidebar.add(sidebarItem("promotions.png", "◆", new Color(190, 70, 180), "Khuyến mãi", "promotions"));
+        sidebar.add(sidebarItem("invoices.png", "☰", new Color(60, 130, 60), "Hóa đơn", "invoices"));
+        sidebar.add(sidebarItem("statistics.png", "▲", new Color(180, 100, 40), "Thống kê", "statistics"));
 
         return sidebar;
     }
 
-    private JPanel sidebarItem(String iconChar, Color iconColor, String text, String route) {
+    private JPanel sidebarItem(String iconFile, String fallbackChar, Color iconColor, String text, String route) {
         SidebarMenuItem item = new SidebarMenuItem();
         item.setLayout(new BorderLayout(10, 0));
         item.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 12));
         item.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
-        JLabel iconLbl = new JLabel(iconChar, SwingConstants.CENTER);
-        iconLbl.setForeground(iconColor);
-        iconLbl.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        JLabel iconLbl = new JLabel();
+        ImageIcon img = IconLoader.loadIcon(iconFile, 20, 20);
+        if (img != null) {
+            iconLbl.setIcon(img);
+        } else {
+            iconLbl.setText(fallbackChar);
+            iconLbl.setForeground(iconColor);
+            iconLbl.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+            iconLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        }
 
         JLabel textLbl = new JLabel(text);
         textLbl.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT);
@@ -279,6 +286,8 @@ public class AppFrame extends JFrame {
             activateRoute("checkout");
         }
     }
+
+    public BookingPanel getBookingPanel() { return bookingPanel; }
 
     private void logout() { rootCards.show(rootPanel, "auth"); }
 

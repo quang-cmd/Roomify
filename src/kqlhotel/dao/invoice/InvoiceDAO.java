@@ -323,7 +323,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
                         "WHERE hd.maHD = ?";
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             java.sql.PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setString(1, maHD);
@@ -352,7 +352,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         }
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT SUM(soTienTT) FROM ThanhToan WHERE maHD = ? AND trangThaiTT = 'DaHuy'";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maHD);

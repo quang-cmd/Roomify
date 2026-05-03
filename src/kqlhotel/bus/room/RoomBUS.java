@@ -1,7 +1,11 @@
 package kqlhotel.bus.room;
 
 import kqlhotel.dao.room.RoomDAO;
+import kqlhotel.dao.invoice.InvoiceDAO;
+import kqlhotel.dao.customer.CustomerDAO;
 import kqlhotel.entity.Room;
+import kqlhotel.entity.Invoice;
+import kqlhotel.entity.Customer;
 
 import java.util.List;
 
@@ -55,5 +59,13 @@ public class RoomBUS {
     public boolean updateRoom(Room p) {
         if (p.getRoomId() == null || p.getRoomId().trim().isEmpty()) return false;
         return roomDAO.update(p);
+    }
+
+    public Invoice getActiveInvoiceForRoom(String roomId) {
+        return new InvoiceDAO().getActiveByRoom(roomId);
+    }
+
+    public Customer getCustomerByMaKH(String maKH) {
+        return new CustomerDAO().getById(maKH);
     }
 }

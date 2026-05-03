@@ -54,7 +54,7 @@ public class StatisticsDAO {
     }
 
     public int countBookings(LocalDateTime start, LocalDateTime end) {
-        String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDatPhong BETWEEN ? AND ?";
+        String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDat BETWEEN ? AND ?";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -222,7 +222,7 @@ public class StatisticsDAO {
             "    JOIN LoaiPhong        lp   ON p.maLoaiPhong  = lp.maLoaiPhong " +
             ") ranked " +
             "WHERE rn = 1 " +
-            "ORDER BY ngayDatPhong DESC";
+            "ORDER BY ngayDat DESC";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, limit);
@@ -322,7 +322,7 @@ public class StatisticsDAO {
             "LEFT JOIN DailyStats ds2 ON ds.dt = ds2.dt " +
             "ORDER BY ds.dt";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(start));
             ps.setDate(2, java.sql.Date.valueOf(end));
@@ -357,7 +357,7 @@ public class StatisticsDAO {
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND hd.trangThai != 'DaHuy'";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
@@ -396,7 +396,7 @@ public class StatisticsDAO {
             "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
             "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
@@ -423,7 +423,7 @@ public class StatisticsDAO {
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND hd.trangThai != 'DaHuy'";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
