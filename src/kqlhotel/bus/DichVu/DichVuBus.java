@@ -1,4 +1,4 @@
-package kqlhotel.bus;
+package kqlhotel.bus.dichvu;
 
 import java.util.List;
 import kqlhotel.dao.DichVuDao;

@@ -1,4 +1,4 @@
-package kqlhotel.bus;
+package kqlhotel.bus.khachhang;
 
 import java.util.List;
 import kqlhotel.dao.KhachHangDao;

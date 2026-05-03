@@ -34,7 +34,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.KhachHangBus;
+import kqlhotel.bus.khachhang.KhachHangBus;
 import kqlhotel.entity.KhachHangBookingHistory;
 import kqlhotel.entity.KhachHangEntity;
 
@@ -50,8 +50,10 @@ public class KhachHangPanel extends JPanel {
     private final JLabel countLabel = new JLabel();
     private List<KhachHangEntity> customers = new ArrayList<>();
     private KhachHangEntity selectedCustomer;
+    private final kqlhotel.gui.AppFrame appFrame;
 
-    public KhachHangPanel() {
+    public KhachHangPanel(kqlhotel.gui.AppFrame appFrame) {
+        this.appFrame = appFrame;
         setOpaque(false);
         setLayout(new BorderLayout(0, 18));
         setBorder(new EmptyBorder(22, 26, 22, 26));
@@ -315,7 +317,14 @@ public class KhachHangPanel extends JPanel {
         editButton.addActionListener(e -> showCustomerDialog(customer));
 
         JButton bookingButton = createOutlineButton("Đặt phòng mới");
-        bookingButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Mở tab Đặt phòng để tạo booking mới cho khách hàng này."));
+        bookingButton.addActionListener(e -> {
+            if (selectedCustomer != null) {
+                appFrame.getBookingPanel().preFillCustomer(selectedCustomer);
+                appFrame.navigateTo("booking");
+            } else {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn một khách hàng trước.");
+            }
+        });
 
         actions.add(editButton);
         actions.add(bookingButton);

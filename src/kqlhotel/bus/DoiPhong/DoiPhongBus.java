@@ -1,4 +1,4 @@
-package kqlhotel.bus;
+package kqlhotel.bus.doiphong;
 
 import java.util.List;
 import kqlhotel.dao.DoiPhongDao;

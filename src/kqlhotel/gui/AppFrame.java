@@ -61,6 +61,8 @@ public class AppFrame extends JFrame {
     private String currentRoute = "booking";
     private String pendingCardName;
     private RoomManagementPanel roomManagementPanel;
+    private BookingPanel bookingPanel;
+    private KhachHangPanel khachHangPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -97,7 +99,8 @@ public class AppFrame extends JFrame {
         contentWrap.add(createTopbar(), BorderLayout.NORTH);
 
         screenPanel.setOpaque(false);
-        screenPanel.add(new BookingPanel(), "booking");
+        bookingPanel = new BookingPanel();
+        screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
         StatisticsPanel statisticsPanel = new StatisticsPanel();
         JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
@@ -113,7 +116,8 @@ public class AppFrame extends JFrame {
         roomManagementPanel = new RoomManagementPanel();
         screenPanel.add(roomManagementPanel, "room-management");
         screenPanel.add(new StaffPanel(), "staff");
-        screenPanel.add(new KhachHangPanel(), "customers");
+        khachHangPanel = new KhachHangPanel(this);
+        screenPanel.add(khachHangPanel, "customers");
         screenPanel.add(new DichVuPanel(), "services");
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
@@ -519,6 +523,10 @@ public class AppFrame extends JFrame {
         if (roomManagementPanel != null) {
             roomManagementPanel.reloadData();
         }
+    }
+
+    public BookingPanel getBookingPanel() {
+        return bookingPanel;
     }
 
     private void showMainApp() {
