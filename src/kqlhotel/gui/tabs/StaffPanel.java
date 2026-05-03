@@ -40,7 +40,7 @@ public class StaffPanel extends JPanel {
         subtitle = new JLabel("0 nhân viên - 0 đang làm việc");
         subtitle.setForeground(new Color(100, 116, 139));
         titleGroup.add(title);
-//        titleGroup.add(subtitle);
+        titleGroup.add(subtitle);
         
         PrimaryButton btnAdd = new PrimaryButton("+ Thêm nhân viên");
         btnAdd.setBackground(new Color(17, 24, 39));
