@@ -33,15 +33,16 @@ import kqlhotel.gui.tabs.CheckInPanel;
 import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
-import kqlhotel.gui.tabs.DoiPhongPanel;
+import kqlhotel.gui.tabs.UnderDevelopmentPanel;
 import kqlhotel.gui.tabs.CancelRoomPanel;
 import kqlhotel.gui.tabs.RoomManagementPanel;
 import kqlhotel.gui.tabs.StaffPanel;
-import kqlhotel.gui.tabs.KhachHangPanel;
-import kqlhotel.gui.tabs.DichVuPanel;
 import kqlhotel.gui.tabs.CheckoutPanel;
 import kqlhotel.gui.tabs.PromotionsPanel;
 import kqlhotel.gui.tabs.InvoicesPanel;
+import kqlhotel.gui.tabs.CustomersPanel;
+import kqlhotel.gui.tabs.SwapRoomPanel;
+import kqlhotel.gui.tabs.ServicesPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -61,6 +62,11 @@ public class AppFrame extends JFrame {
     private String currentRoute = "booking";
     private String pendingCardName;
     private RoomManagementPanel roomManagementPanel;
+    private BookingPanel bookingPanel;
+    private CheckoutPanel checkoutPanel;
+    private CustomersPanel customersPanel;
+    private SwapRoomPanel swapRoomPanel;
+    private ServicesPanel servicesPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -97,7 +103,8 @@ public class AppFrame extends JFrame {
         contentWrap.add(createTopbar(), BorderLayout.NORTH);
 
         screenPanel.setOpaque(false);
-        screenPanel.add(new BookingPanel(), "booking");
+        bookingPanel = new BookingPanel();
+        screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
         StatisticsPanel statisticsPanel = new StatisticsPanel();
         JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
@@ -107,14 +114,26 @@ public class AppFrame extends JFrame {
         statisticsScroll.getViewport().setOpaque(false);
         statisticsScroll.setOpaque(false);
         screenPanel.add(statisticsScroll, "statistics");
-        screenPanel.add(new CheckoutPanel(), "checkout");
-        screenPanel.add(new DoiPhongPanel(), "swap-room");
+
+        checkoutPanel = new CheckoutPanel();
+        screenPanel.add(checkoutPanel, "checkout");
+
         screenPanel.add(new CancelRoomPanel(), "cancel-room");
+
         roomManagementPanel = new RoomManagementPanel();
         screenPanel.add(roomManagementPanel, "room-management");
+
         screenPanel.add(new StaffPanel(), "staff");
-        screenPanel.add(new KhachHangPanel(), "customers");
-        screenPanel.add(new DichVuPanel(), "services");
+
+        customersPanel = new CustomersPanel();
+        screenPanel.add(customersPanel, "customers");
+
+        swapRoomPanel = new SwapRoomPanel();
+        screenPanel.add(swapRoomPanel, "swap-room");
+
+        servicesPanel = new ServicesPanel();
+        screenPanel.add(servicesPanel, "services");
+
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
         activateRoute(currentRoute);
@@ -519,6 +538,17 @@ public class AppFrame extends JFrame {
         if (roomManagementPanel != null) {
             roomManagementPanel.reloadData();
         }
+    }
+
+    public void navigateToCheckoutWithRoom(String roomID) {
+        if (checkoutPanel != null) {
+            checkoutPanel.prefillAndSearchRoom(roomID);
+            activateRoute("checkout");
+        }
+    }
+
+    public BookingPanel getBookingPanel() {
+        return bookingPanel;
     }
 
     private void showMainApp() {

@@ -2,7 +2,7 @@ package kqlhotel.gui.model;
 
 import java.awt.Color;
 import java.util.List;
-import kqlhotel.bus.booking.model.RoomOptionDto;
+import kqlhotel.bus.booking.RoomOptionDto;
 
 public class RoomCardData {
     public final RoomOptionDto optionDto;

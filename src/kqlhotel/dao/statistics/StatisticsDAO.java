@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.entity.statistics.HotelKpiPoint;
 import kqlhotel.entity.statistics.OccupancyPoint;
 import kqlhotel.entity.statistics.RecentBooking;
 import kqlhotel.entity.statistics.RevenuePoint;
@@ -289,5 +290,153 @@ public class StatisticsDAO {
             System.err.println("StatisticsDAO.getOccupancyTrend: " + e.getMessage());
         }
         return list;
+    }
+
+    /**
+     * ADR (Average Daily Rate) theo ngày trong khoảng [start, end].
+     * ADR = Doanh thu phòng / Số phòng đã bán
+     */
+    public List<HotelKpiPoint> getAdrTrend(LocalDate start, LocalDate end) {
+        List<HotelKpiPoint> list = new ArrayList<>();
+        String sql =
+            "WITH DateSeries AS (" +
+            "    SELECT CAST(? AS DATE) AS dt " +
+            "    UNION ALL" +
+            "    SELECT DATEADD(DAY, 1, dt) FROM DateSeries WHERE dt < ?" +
+            ")," +
+            "DailyStats AS (" +
+            "    SELECT CAST(cthd.ngayNhanPhong AS DATE) AS dt, " +
+            "           SUM(cthd.thanhTien) AS roomRevenue, " +
+            "           SUM(cthd.soDem) AS totalNights, " +
+            "           COUNT(DISTINCT cthd.maPhong) AS roomsSold " +
+            "    FROM ChiTietHoaDon cthd " +
+            "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "    WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
+            "      AND hd.trangThai = 'DaThanhToan'" +
+            "    GROUP BY CAST(cthd.ngayNhanPhong AS DATE)" +
+            ")" +
+            "SELECT ds.dt AS date, " +
+            "       COALESCE(ds2.roomRevenue / NULLIF(ds2.totalNights, 0), 0) AS adr, " +
+            "       0 AS revpar, 0 AS trevpar " +
+            "FROM DateSeries ds " +
+            "LEFT JOIN DailyStats ds2 ON ds.dt = ds2.dt " +
+            "ORDER BY ds.dt";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(start));
+            ps.setDate(2, java.sql.Date.valueOf(end));
+            ps.setTimestamp(3, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(4, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate date = rs.getDate("date").toLocalDate();
+                    double adr = rs.getDouble("adr");
+                    list.add(new HotelKpiPoint(date, adr, 0, 0));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getAdrTrend: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * RevPAR (Revenue Per Available Room) snapshot cho range.
+     * RevPAR = Tổng doanh thu phòng / (Tổng số phòng * số ngày)
+     */
+    public double getRevpar(LocalDate start, LocalDate end) {
+        int days = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+        int totalRooms = countTotalRooms();
+        if (totalRooms == 0 || days == 0) return 0.0;
+
+        String sql =
+            "SELECT SUM(cthd.thanhTien) AS roomRevenue " +
+            "FROM ChiTietHoaDon cthd " +
+            "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
+            "  AND hd.trangThai != 'DaHuy'";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double revenue = rs.getDouble("roomRevenue");
+                    return revenue / (totalRooms * days);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getRevpar: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /**
+     * TrevPAR (Total Revenue Per Available Room) snapshot cho range.
+     * TrevPAR = Tổng doanh thu (phòng + dịch vụ + phí phạt hủy) / (Tổng số phòng * số ngày)
+     */
+    public double getTrevpar(LocalDate start, LocalDate end) {
+        int days = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+        int totalRooms = countTotalRooms();
+        if (totalRooms == 0 || days == 0) return 0.0;
+
+        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy
+        String sql =
+            "SELECT SUM( " +
+            "    CASE " +
+            "        WHEN hd.trangThai = 'DaThanhToan' THEN hd.tongTienThanhToan " +
+            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhatHuy, 0) " +
+            "        ELSE 0 " +
+            "    END " +
+            ") AS totalRevenue " +
+            "FROM HoaDon hd " +
+            "LEFT JOIN ChiTietHoaDon cthd ON cthd.maHD = hd.maHD " +
+            "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
+            "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double revenue = rs.getDouble("totalRevenue");
+                    return revenue / (totalRooms * days);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getTrevpar: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /**
+     * ADR snapshot cho range.
+     */
+    public double getAdr(LocalDate start, LocalDate end) {
+        String sql =
+            "SELECT SUM(cthd.thanhTien) AS roomRevenue, SUM(cthd.soDem) AS totalNights " +
+            "FROM ChiTietHoaDon cthd " +
+            "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
+            "  AND hd.trangThai != 'DaHuy'";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double revenue = rs.getDouble("roomRevenue");
+                    int nights = rs.getInt("totalNights");
+                    return nights > 0 ? revenue / nights : 0.0;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getAdr: " + e.getMessage());
+        }
+        return 0.0;
     }
 }

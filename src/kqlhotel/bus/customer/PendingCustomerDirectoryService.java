@@ -1,7 +1,7 @@
 package kqlhotel.bus.customer;
 
 import java.util.Optional;
-import kqlhotel.bus.booking.model.GuestInfoDto;
+import kqlhotel.bus.booking.GuestInfoDto;
 
 public class PendingCustomerDirectoryService implements CustomerDirectoryService {
     @Override
