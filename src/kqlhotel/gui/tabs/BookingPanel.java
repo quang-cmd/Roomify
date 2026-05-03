@@ -32,12 +32,12 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import kqlhotel.bus.booking.BookingService;
 import kqlhotel.bus.booking.BookingServiceProvider;
-import kqlhotel.bus.booking.model.BookingConfirmationResult;
-import kqlhotel.bus.booking.model.BookingSearchRequest;
-import kqlhotel.bus.booking.model.BookingSelectionSummary;
-import kqlhotel.bus.booking.model.CreateBookingCommand;
-import kqlhotel.bus.booking.model.GuestInfoDto;
-import kqlhotel.bus.booking.model.RoomOptionDto;
+import kqlhotel.bus.booking.BookingConfirmationResult;
+import kqlhotel.bus.booking.BookingSearchRequest;
+import kqlhotel.bus.booking.BookingSelectionSummary;
+import kqlhotel.bus.booking.CreateBookingCommand;
+import kqlhotel.bus.booking.GuestInfoDto;
+import kqlhotel.bus.booking.RoomOptionDto;
 import kqlhotel.bus.customer.CustomerDirectoryServiceProvider;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
@@ -91,6 +91,7 @@ public class BookingPanel extends JPanel {
     private JButton guestPlusButton;
     private boolean filterLocked;
     private int currentSlideIndex;
+    private kqlhotel.entity.KhachHangEntity preFilledCustomer;
 
     public BookingPanel() {
         this.bookingService = BookingServiceProvider.get();
@@ -1126,6 +1127,7 @@ public class BookingPanel extends JPanel {
             row.nameField.setText("");
             row.phoneField.setText("");
         }
+        this.preFilledCustomer = null;
         setStep(1);
         bookingCards.show(bookingContent, "select-room");
         runSearch();
@@ -1192,6 +1194,16 @@ public class BookingPanel extends JPanel {
         }
         while (guestFormRows.size() > guestCount) {
             guestFormRows.remove(guestFormRows.size() - 1);
+        }
+
+        // Auto-fill first guest if there's a pre-filled customer
+        if (preFilledCustomer != null && !guestFormRows.isEmpty()) {
+            GuestFormRow firstRow = guestFormRows.get(0);
+            if (firstRow.idField.getText().trim().isEmpty()) {
+                firstRow.idField.setText(preFilledCustomer.getCCCD());
+                firstRow.nameField.setText(preFilledCustomer.getTenKH());
+                firstRow.phoneField.setText(preFilledCustomer.getSdt());
+            }
         }
 
         guestFormsPanel.removeAll();
@@ -1516,6 +1528,27 @@ public class BookingPanel extends JPanel {
         Color fieldColor = locked ? new Color(140, 150, 170) : new Color(60, 80, 110);
         checkInField.setForeground(fieldColor);
         checkOutField.setForeground(fieldColor);
+    }
+
+    public void preFillCustomer(kqlhotel.entity.KhachHangEntity customer) {
+        // Reset existing selection and state to start a fresh booking flow
+        this.selectedRooms.clear();
+        this.preFilledCustomer = customer;
+
+        // Clear existing guest forms to ensure the new customer data is applied
+        for (GuestFormRow row : guestFormRows) {
+            row.idField.setText("");
+            row.nameField.setText("");
+            row.phoneField.setText("");
+        }
+
+        // Return to Step 1 (Select Room)
+        setStep(1);
+        bookingCards.show(bookingContent, "select-room");
+
+        // Refresh UI state
+        updateSelectionSummary();
+        syncGuestForms();
     }
 
     

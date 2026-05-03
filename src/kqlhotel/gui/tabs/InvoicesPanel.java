@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
@@ -327,12 +327,10 @@ public class InvoicesPanel extends JPanel {
             tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
         }
 
-        double tienPhongDaTra = calculatePaidRoomAmount(roomDetails);
         double tongPhuThu = calculateTotalSurcharge(roomDetails);
-        double tienPhongGoc = calculateBaseRoomAmount(roomDetails);
-        double tongTruocGiam = tienPhongGoc + tongPhuThu + hd.getTienDichVu() + hd.getTienThue();
-        double tongSauKhuyenMai = Math.max(0, tongTruocGiam - hd.getTienKhuyenMai());
-        double conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc - tienPhongDaTra);
+        double tongTruocGiam = hd.getTienPhong() + tongPhuThu + hd.getTienDichVu() + hd.getTienThue();
+        double tongSauKhuyenMai = hd.getTongTienThanhToan();
+        double conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc);
 
         JPanel topRow = new JPanel(new MigLayout("insets 0,fillx", "[][grow,fill][][][]", "[]"));
         topRow.setOpaque(false);
@@ -504,11 +502,11 @@ public class InvoicesPanel extends JPanel {
         ));
         tFooter.setBackground(Color.WHITE);
 
-        //tFooter.add(makeTText("Tiền phòng", false), "alignx left");
-        //tFooter.add(makeTText(CurrencyUtils.formatVND(tienPhongGoc), true), "alignx right");
+        tFooter.add(makeTText("Tiền phòng", false), "alignx left");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienPhong()), true), "alignx right");
 
-        //tFooter.add(makeTText("Phụ thu", false), "alignx left");
-        //tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
+        tFooter.add(makeTText("Phụ thu", false), "alignx left");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
 
         tFooter.add(makeTText("Tiền dịch vụ", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienDichVu()), true), "alignx right");
@@ -527,9 +525,6 @@ public class InvoicesPanel extends JPanel {
 
         tFooter.add(makeTText("Tiền cọc đã cọc", false), "alignx left");
         tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienCoc), true), "alignx right");
-
-        tFooter.add(makeTText("Tiền phòng đã trả", false), "alignx left");
-        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienPhongDaTra), true), "alignx right");
 
         JPanel divider = new JPanel();
         divider.setBackground(new Color(230, 235, 245));
@@ -664,19 +659,15 @@ public class InvoicesPanel extends JPanel {
     }
     private double calculateTotalSurcharge(List<InvoiceDetail> roomDetails) {
         double total = 0;
+
+        if (roomDetails == null) {
+            return 0;
+        }
+
         for (InvoiceDetail ct : roomDetails) {
             total += Math.max(0, ct.getPhuThu());
         }
-        return total;
-    }
 
-    private double calculateBaseRoomAmount(List<InvoiceDetail> roomDetails) {
-        double total = 0;
-        for (InvoiceDetail ct : roomDetails) {
-            double surcharge = Math.max(0, ct.getPhuThu());
-            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
-            total += baseRoom;
-        }
         return total;
     }
 }

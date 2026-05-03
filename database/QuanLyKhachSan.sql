@@ -145,15 +145,12 @@ GO
 CREATE TABLE DatPhong (
     maDatPhong      CHAR(5)        PRIMARY KEY,
     ngayDat         DATETIME2      NOT NULL,
-    ngayNhanDuKien  DATETIME2      NOT NULL,
-    ngayTraDuKien   DATETIME2      NOT NULL,
     tienCoc         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienCoc >= 0),
     ghiChu          NVARCHAR(255)  NULL,
     maKH            CHAR(5)        NOT NULL,
     maNV            CHAR(5)        NOT NULL,
     CONSTRAINT FK_DatPhong_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
-    CONSTRAINT FK_DatPhong_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-    CONSTRAINT CK_DatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien AND ngayNhanDuKien >= ngayDat)
+    CONSTRAINT FK_DatPhong_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
 );
 GO
 
@@ -254,7 +251,7 @@ CREATE INDEX IX_PhanCongCa_maNV_ngay ON PhanCongCa(maNV, ngay);
 CREATE INDEX IX_Phong_maLoaiPhong    ON Phong(maLoaiPhong);
 CREATE INDEX IX_Phong_trangThai      ON Phong(trangThaiPhong);
 CREATE INDEX IX_DatPhong_maKH        ON DatPhong(maKH);
-CREATE INDEX IX_DatPhong_ngayNhan    ON DatPhong(ngayNhanDuKien);
+CREATE INDEX IX_DatPhong_ngayDat     ON DatPhong(ngayDat);
 CREATE INDEX IX_CTDP_maPhong         ON ChiTietDatPhong(maPhong);
 CREATE INDEX IX_CTDP_ngayNhan        ON ChiTietDatPhong(ngayNhanDuKien, ngayTraDuKien);
 CREATE INDEX IX_HoaDon_maKH          ON HoaDon(maKH);
@@ -368,23 +365,23 @@ GO
 --   DP010       : Stage 4 dac biet - Thanh toan 100% ngay khi dat
 -- =====================================================================
 
-INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES
+INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, ghiChu, maKH, maNV) VALUES
 -- Stage 4: hoan tat
-('DP001', '2026-04-10 09:00', '2026-04-15 14:00', '2026-04-18 12:00',  450000.00, N'Booking demo da hoan tat',    'KH001', 'NV002'),
-('DP002', '2026-04-12 10:00', '2026-04-17 14:00', '2026-04-20 12:00',  675000.00, N'Booking 2 phong da hoan tat', 'KH002', 'NV003'),
+('DP001', '2026-04-10 09:00',  450000.00, N'Booking demo da hoan tat',    'KH001', 'NV002'),
+('DP002', '2026-04-12 10:00',  675000.00, N'Booking 2 phong da hoan tat', 'KH002', 'NV003'),
 -- Stage 3: da tra phong, chua thanh toan du
-('DP003', '2026-04-18 09:00', '2026-04-22 14:00', '2026-04-24 12:00',  450000.00, N'Khach da tra, no phan con lai','KH004', 'NV004'),
+('DP003', '2026-04-18 09:00',  450000.00, N'Khach da tra, no phan con lai','KH004', 'NV004'),
 -- Stage 2: dang luu tru
-('DP004', '2026-04-20 11:00', '2026-04-23 14:00', '2026-04-27 12:00',  900000.00, N'Khach dang luu tru',          'KH005', 'NV002'),
-('DP005', '2026-04-21 14:00', '2026-04-24 14:00', '2026-04-28 12:00', 1350000.00, N'Khach gia dinh dang o',       'KH008', 'NV003'),
+('DP004', '2026-04-20 11:00',  900000.00, N'Khach dang luu tru',          'KH005', 'NV002'),
+('DP005', '2026-04-21 14:00', 1350000.00, N'Khach gia dinh dang o',       'KH008', 'NV003'),
 -- Stage 1: dat coc, chua check-in
-('DP006', '2026-04-23 16:00', '2026-04-27 14:00', '2026-04-30 12:00',  450000.00, N'Da dat coc - check-in tuong lai','KH003','NV004'),
-('DP007', '2026-04-24 09:00', '2026-04-28 14:00', '2026-05-02 12:00', 1500000.00, N'Dat phong VIP cho ky nghi',    'KH006', 'NV002'),
-('DP008', '2026-04-25 10:00', '2026-05-05 14:00', '2026-05-08 12:00',  675000.00, N'Booking xa - le 30/4',         'KH007', 'NV005'),
+('DP006', '2026-04-23 16:00',  450000.00, N'Da dat coc - check-in tuong lai','KH003','NV004'),
+('DP007', '2026-04-24 09:00', 1500000.00, N'Dat phong VIP cho ky nghi',    'KH006', 'NV002'),
+('DP008', '2026-04-25 10:00',  675000.00, N'Booking xa - le 30/4',         'KH007', 'NV005'),
 -- Stage 5: huy
-('DP009', '2026-04-15 11:00', '2026-04-22 14:00', '2026-04-25 12:00',  300000.00, N'Khach huy do thay doi lich',   'KH001', 'NV003'),
+('DP009', '2026-04-15 11:00',  300000.00, N'Khach huy do thay doi lich',   'KH001', 'NV003'),
 -- Stage 4 (full pay khong qua coc)
-('DP010', '2026-04-19 13:00', '2026-04-19 14:00', '2026-04-21 12:00',       0.00, N'Walk-in thanh toan 100% ngay', 'KH004', 'NV002');
+('DP010', '2026-04-19 13:00',       0.00, N'Walk-in thanh toan 100% ngay', 'KH004', 'NV002');
 GO
 
 INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES

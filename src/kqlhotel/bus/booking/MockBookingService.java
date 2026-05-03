@@ -6,12 +6,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import kqlhotel.bus.booking.model.BookingConfirmationResult;
-import kqlhotel.bus.booking.model.BookingSearchRequest;
-import kqlhotel.bus.booking.model.BookingSelectionSummary;
-import kqlhotel.bus.booking.model.CreateBookingCommand;
-import kqlhotel.bus.booking.model.GuestInfoDto;
-import kqlhotel.bus.booking.model.RoomOptionDto;
+import kqlhotel.bus.booking.BookingConfirmationResult;
+import kqlhotel.bus.booking.BookingSearchRequest;
+import kqlhotel.bus.booking.BookingSelectionSummary;
+import kqlhotel.bus.booking.CreateBookingCommand;
+import kqlhotel.bus.booking.GuestInfoDto;
+import kqlhotel.bus.booking.RoomOptionDto;
 
 public class MockBookingService implements BookingService {
     private final List<RoomOptionDto> mockRooms = Arrays.asList(

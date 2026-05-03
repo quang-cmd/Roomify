@@ -35,16 +35,19 @@ public class SqlCheckInService implements CheckInService {
         if (con == null) return Collections.emptyList();
 
         String sql =
-                "SELECT dp.maDatPhong, dp.ngayDat, dp.ngayNhanDuKien, dp.ngayTraDuKien, dp.tienCoc, " +
+                "SELECT dp.maDatPhong, dp.ngayDat, dp.tienCoc, " +
+                        "       MIN(ctdp.ngayNhanDuKien) AS ngayNhanDuKien, MAX(ctdp.ngayTraDuKien) AS ngayTraDuKien, " +
                         "       kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD, " +
                         "       (SELECT COUNT(*) FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD) AS soCTHD " +
                         "FROM DatPhong dp " +
                         "JOIN KhachHang kh ON dp.maKH = kh.maKH " +
+                        "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
                         "LEFT JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
-                        "WHERE dp.ngayNhanDuKien >= ? AND dp.ngayNhanDuKien < ? " +
+                        "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
                         (isBlank(keyword) ? "" :
                                 "AND (dp.maDatPhong LIKE ? OR hd.maHD LIKE ? OR kh.hoTenKH LIKE ? OR kh.sdt LIKE ? OR kh.CCCD LIKE ?) ") +
-                        "ORDER BY dp.ngayNhanDuKien ASC, dp.maDatPhong ASC";
+                        "GROUP BY dp.maDatPhong, dp.ngayDat, dp.tienCoc, kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD " +
+                        "ORDER BY MIN(ctdp.ngayNhanDuKien) ASC, dp.maDatPhong ASC";
 
         List<ArrivalDto> arrivals = new ArrayList<>();
 
