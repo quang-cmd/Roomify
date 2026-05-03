@@ -98,6 +98,24 @@ public class CheckoutPanel extends JPanel {
         renderRooms(checkoutBUS.getRoomsDueToday());
     }
 
+    public void prefillAndSearchRoom(String roomCode) {
+        setStep(1);
+        mainCards.show(contentPanel, "step1");
+        
+        roomCodeField.setText(roomCode);
+        customerIdField.setText("");
+        customerNameField.setText("");
+
+        List<CheckoutData> results = checkoutBUS.searchCheckoutData(roomCode, "", "");
+        selectedRooms.clear();
+        checkoutMultiBtn.setText("Thanh toán các phòng đã chọn (0)");
+        renderRooms(results);
+
+        if (results.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy lưu trú nào phù hợp!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
     private JPanel createHeader() {
         JPanel panel = new JPanel(new MigLayout("insets 20 24 0 24,gap 0", "[grow][]", "[]"));
         panel.setOpaque(false);

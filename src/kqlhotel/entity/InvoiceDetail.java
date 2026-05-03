@@ -8,6 +8,7 @@ public class InvoiceDetail {
     private LocalDateTime ngayTraThucTe;
     private int soDem;
     private double phuThu;
+    private double phiPhat;
     private double thanhTien;
     private String maPhong;
     private String maHD;
@@ -61,6 +62,14 @@ public class InvoiceDetail {
 
     public void setThanhTien(double thanhTien) {
         this.thanhTien = thanhTien;
+    }
+
+    public double getPhiPhat() {
+        return phiPhat;
+    }
+
+    public void setPhiPhat(double phiPhat) {
+        this.phiPhat = phiPhat;
     }
 
     public String getMaPhong() {
