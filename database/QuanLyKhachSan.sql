@@ -207,6 +207,7 @@ CREATE TABLE ChiTietHoaDon (
     ngayTraThucTe DATETIME2      NULL,        -- NULL = chua check-out
     soDem         INT            NOT NULL CHECK (soDem > 0),
     phuThu        DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phuThu >= 0),
+    phiPhat       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiPhat >= 0),
     thanhTien     DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
     CONSTRAINT PK_ChiTietHoaDon PRIMARY KEY (maHD, maPhong),
     CONSTRAINT FK_CTHoaDon_HoaDon FOREIGN KEY (maHD)    REFERENCES HoaDon(maHD),

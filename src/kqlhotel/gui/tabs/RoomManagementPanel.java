@@ -7,9 +7,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Window;
-import java.util.Arrays;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -23,8 +23,6 @@ import kqlhotel.entity.RoomType;
 import kqlhotel.entity.Room;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
-import kqlhotel.dao.invoice.InvoiceDAO;
-import kqlhotel.dao.customer.CustomerDAO;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.Customer;
 import kqlhotel.gui.theme.ThemeColors;
@@ -59,33 +57,23 @@ public class RoomManagementPanel extends JPanel {
 
         JPanel titlePanel = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         titlePanel.setOpaque(false);
-        JLabel title = new JLabel("Room Management");
+        JLabel title = new JLabel("Quản lý phòng");
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
         title.setForeground(new Color(15, 23, 42));
-        subtitle = new JLabel("Loading...");
+        subtitle = new JLabel("Đang tải dữ liệu...");
         subtitle.setForeground(new Color(100, 116, 139));
         titlePanel.add(title);
         titlePanel.add(subtitle);
 
-        PrimaryButton btnSearch = new PrimaryButton(" Search Room");
+        PrimaryButton btnSearch = new PrimaryButton(" Tìm kiếm phòng");
         btnSearch.setBackground(ThemeColors.PRIMARY);
         btnSearch.setForeground(Color.WHITE);
-        btnSearch.addActionListener(e -> {
-            Window owner = SwingUtilities.getWindowAncestor(this);
-            // This dialog might need updating too, but for now we keep the call
-            // kqlhotel.gui.components.RoomSearchDialog dialog = new kqlhotel.gui.components.RoomSearchDialog(owner, this);
-            // dialog.setVisible(true);
-        });
 
-        PrimaryButton btnAdd = new PrimaryButton("+ Add Room");
+        PrimaryButton btnAdd = new PrimaryButton("+ Thêm phòng");
         btnAdd.setBackground(new Color(17, 24, 39));
         btnAdd.setForeground(Color.WHITE);
-        btnAdd.addActionListener(e -> {
-            Window owner = SwingUtilities.getWindowAncestor(this);
-            // dialog needs update
-        });
 
-        PrimaryButton btnAddRoomType = new PrimaryButton("+ Add Room Type");
+        PrimaryButton btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
         btnAddRoomType.setBackground(new Color(30, 41, 59));
         btnAddRoomType.setForeground(Color.WHITE);
 
@@ -150,7 +138,7 @@ public class RoomManagementPanel extends JPanel {
         JLabel countLbl = new JLabel(count);
         countLbl.setFont(new Font("Segoe UI", Font.BOLD, 28));
         countLbl.setForeground(new Color(15, 23, 42));
-        JLabel pctLbl = new JLabel(percent + " of total");
+        JLabel pctLbl = new JLabel(percent + " tổng cộng");
         pctLbl.setForeground(new Color(148, 163, 184));
         botRow.add(countLbl, "aligny bottom");
         botRow.add(pctLbl, "aligny bottom, pad 0 0 6 0");
@@ -160,10 +148,10 @@ public class RoomManagementPanel extends JPanel {
         return card;
     }
 
-    private JButton createFilterBtn(String label, String badgeText, boolean active) {
+    private JButton createFilterBtn(String label, String filterKey, String badgeText, boolean active) {
         JButton btn = new JButton();
         btn.putClientProperty("filterLabel", label);
-        btn.putClientProperty("filterBadge", badgeText);
+        btn.putClientProperty("filterKey", filterKey);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -186,7 +174,7 @@ public class RoomManagementPanel extends JPanel {
             ));
         }
         
-        btn.addActionListener(e -> applyFilter(label));
+        btn.addActionListener(e -> applyFilter(filterKey));
         return btn;
     }
 
@@ -198,19 +186,19 @@ public class RoomManagementPanel extends JPanel {
         long dsd = roomBUS.countByStatus(roomList, "DangSuDung");
         long bt = roomBUS.countByStatus(roomList, "BaoTri");
 
-        subtitle.setText(total + " rooms total - " + tr + " vacant rooms");
+        subtitle.setText(total + " phòng tổng cộng - " + tr + " phòng trống");
 
         statsRow.removeAll();
-        statsRow.add(createStatCard("Vacant", String.valueOf(tr), getPct(tr, total), COLOR_VACANT));
-        statsRow.add(createStatCard("Occupied", String.valueOf(dsd), getPct(dsd, total), COLOR_OCCUPIED));
-        statsRow.add(createStatCard("Maintenance", String.valueOf(bt), getPct(bt, total), COLOR_MAINTENANCE));
+        statsRow.add(createStatCard("Trống", String.valueOf(tr), getPct(tr, total), COLOR_VACANT));
+        statsRow.add(createStatCard("Đang sử dụng", String.valueOf(dsd), getPct(dsd, total), COLOR_OCCUPIED));
+        statsRow.add(createStatCard("Bảo trì", String.valueOf(bt), getPct(bt, total), COLOR_MAINTENANCE));
         statsRow.revalidate(); statsRow.repaint();
 
         filterRow.removeAll();
-        filterRow.add(createFilterBtn("All", String.valueOf(total), true));
-        filterRow.add(createFilterBtn("Vacant", String.valueOf(tr), false));
-        filterRow.add(createFilterBtn("Occupied", String.valueOf(dsd), false));
-        filterRow.add(createFilterBtn("Maintenance", String.valueOf(bt), false));
+        filterRow.add(createFilterBtn("Tất cả", "All", String.valueOf(total), true));
+        filterRow.add(createFilterBtn("Trống", "Vacant", String.valueOf(tr), false));
+        filterRow.add(createFilterBtn("Đang sử dụng", "Occupied", String.valueOf(dsd), false));
+        filterRow.add(createFilterBtn("Bảo trì", "Maintenance", String.valueOf(bt), false));
         filterRow.revalidate(); filterRow.repaint();
 
         applyFilter("All");
@@ -231,32 +219,128 @@ public class RoomManagementPanel extends JPanel {
         }
         gridContainer.revalidate();
         gridContainer.repaint();
+        
+        // Update active button state
+        for (java.awt.Component c : filterRow.getComponents()) {
+            if (c instanceof JButton) {
+                JButton b = (JButton) c;
+                String key = (String) b.getClientProperty("filterKey");
+                boolean active = key.equals(filter);
+                if (active) {
+                    b.setBackground(new Color(15, 23, 42));
+                    b.setForeground(Color.WHITE);
+                } else {
+                    b.setBackground(Color.WHITE);
+                    b.setForeground(new Color(71, 85, 105));
+                }
+            }
+        }
     }
 
     public JPanel createRoomCard(Room p) {
         RoomType lp = p.getRoomType();
         String guiStatus = roomBUS.mapDbStatusToGuiStatus(p.getStatus());
         Color statusColor = COLOR_VACANT;
-        if (guiStatus.equals("Maintenance")) statusColor = COLOR_MAINTENANCE;
-        else if (guiStatus.equals("Occupied")) statusColor = COLOR_OCCUPIED;
+        String statusLabel = "Trống";
+        
+        if (guiStatus.equals("Maintenance")) {
+            statusColor = COLOR_MAINTENANCE;
+            statusLabel = "Bảo trì";
+        } else if (guiStatus.equals("Occupied")) {
+            statusColor = COLOR_OCCUPIED;
+            statusLabel = "Đang sử dụng";
+        }
+
+        // Fetch active data if occupied
+        Invoice activeInv = null;
+        Customer activeCust = null;
+        if (guiStatus.equals("Occupied")) {
+            activeInv = roomBUS.getActiveInvoiceForRoom(p.getRoomId());
+            if (activeInv != null) {
+                activeCust = roomBUS.getCustomerForInvoice(activeInv.getMaHD());
+            }
+        }
 
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(226, 232, 240), 1f);
         card.setLayout(new MigLayout("wrap 1,insets 16", "[grow,fill]", "[]"));
 
+        JPanel topRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
+        topRow.setOpaque(false);
         JLabel roomNo = new JLabel(p.getRoomId());
         roomNo.setFont(new Font("Segoe UI", Font.BOLD, 18));
         roomNo.setForeground(new Color(15, 23, 42));
+        topRow.add(roomNo);
         
-        JLabel floor = new JLabel("Floor " + p.getFloor());
+        JPanel badgeStatus = new RoundedPanel(16, statusColor, null, 0);
+        badgeStatus.setLayout(new BorderLayout());
+        badgeStatus.setBorder(BorderFactory.createEmptyBorder(2, 10, 2, 10));
+        JLabel lblStat = new JLabel(statusLabel);
+        lblStat.setForeground(Color.WHITE);
+        lblStat.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        badgeStatus.add(lblStat);
+        topRow.add(badgeStatus);
+
+        JPanel midRow = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
+        midRow.setOpaque(false);
+        JLabel floor = new JLabel("Tầng " + p.getFloor());
         floor.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         floor.setForeground(new Color(100, 116, 139));
+        JLabel type = new JLabel(lp.getRoomTypeName());
+        type.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        type.setForeground(ThemeColors.PRIMARY);
+        midRow.add(floor);
+        midRow.add(type);
 
-        card.add(roomNo);
-        card.add(floor);
-        card.add(new JLabel(lp.getRoomTypeName()) {{ setForeground(ThemeColors.PRIMARY); setFont(new Font("Segoe UI", Font.BOLD, 12)); }});
-        final Color finalStatusColor = statusColor;
-        card.add(new JLabel(guiStatus) {{ setForeground(finalStatusColor); setFont(new Font("Segoe UI", Font.BOLD, 12)); }});
-        card.add(new JLabel(String.format("%,.0f USD", lp.getPrice())) {{ setFont(new Font("Segoe UI", Font.BOLD, 14)); }});
+        JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 10", "[][]", "[]"));
+        infoRow.setOpaque(false);
+        JLabel lblArea = new JLabel(lp.getDienTich() + "m²");
+        lblArea.setForeground(new Color(130, 145, 170));
+        lblArea.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        infoRow.add(lblArea);
+
+        JPanel priceGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 0", "[]", "[]"));
+        priceGroup.setOpaque(false);
+        JLabel priceLbl = new JLabel(String.format("%,.0fđ", lp.getGiaPhong()));
+        priceLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        priceLbl.setForeground(new Color(30, 50, 80));
+        priceGroup.add(priceLbl);
+        priceGroup.add(new JLabel("/đêm") {{ setFont(new Font("Segoe UI", Font.PLAIN, 11)); setForeground(new Color(150, 165, 190)); }});
+
+        card.add(topRow, "growx");
+        card.add(midRow, "gapy 12 0,growx");
+        card.add(infoRow, "gapy 8 0");
+        card.add(priceGroup, "gapy 12 0");
+
+        if (guiStatus.equals("Occupied")) {
+            final Invoice finalInv = activeInv;
+            final Customer finalCust = activeCust;
+            JButton btnDetail = new JButton("Khách & Hóa đơn");
+            btnDetail.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            btnDetail.setBackground(new Color(41, 121, 255));
+            btnDetail.setForeground(Color.WHITE);
+            btnDetail.setFocusPainted(false);
+            btnDetail.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnDetail.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(41, 121, 255), 1, true),
+                BorderFactory.createEmptyBorder(8, 0, 8, 0)
+            ));
+            
+            btnDetail.addActionListener(e -> {
+                Window owner = SwingUtilities.getWindowAncestor(this);
+                Runnable onCheckout = () -> {
+                    java.awt.Container c = this;
+                    while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
+                    if (c instanceof kqlhotel.gui.AppFrame) {
+                        ((kqlhotel.gui.AppFrame) c).navigateToCheckoutWithRoom(p.getRoomId());
+                    }
+                };
+                kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(
+                    owner, p, finalInv, finalCust, onCheckout
+                );
+                dialog.setVisible(true);
+            });
+            card.add(btnDetail, "gapy 8 0, growx");
+        }
 
         return card;
     }

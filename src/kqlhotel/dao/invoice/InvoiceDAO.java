@@ -346,6 +346,27 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         return false;
     }
 
+    public double getRefundAmount(String maHD) {
+        if (maHD == null || maHD.isBlank()) {
+            return 0;
+        }
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT SUM(soTienTT) FROM ThanhToan WHERE maHD = ? AND trangThaiTT = 'DaHuy'";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, maHD);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     @Override
     public boolean delete(String id) {
         return false;
