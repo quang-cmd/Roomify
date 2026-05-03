@@ -65,7 +65,6 @@ public class AppFrame extends JFrame {
     private CustomersPanel customersPanel;
     private SwapRoomPanel swapRoomPanel;
     private ServicesPanel servicesPanel;
-
     public AppFrame() {
         setTitle("KQL Hotel - Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -320,8 +319,41 @@ public class AppFrame extends JFrame {
         currentRoute = route;
         screenCards.show(screenPanel, route);
         
+        // Auto-refresh room management data when entering the tab
         if (route.equals("room-management")) {
             refreshRoomManagementData();
+        }
+
+        // Update page title with Vietnamese text
+        Map<String, String> vnTitles = new java.util.HashMap<>();
+        vnTitles.put("booking", "Đặt phòng");
+        vnTitles.put("check-in", "Nhận phòng");
+        vnTitles.put("checkout", "Trả phòng");
+        vnTitles.put("swap-room", "Đổi phòng");
+        vnTitles.put("cancel-room", "Hủy phòng");
+        vnTitles.put("room-management", "Quản lý phòng");
+        vnTitles.put("staff", "Nhân sự");
+        vnTitles.put("customers", "Khách hàng");
+        vnTitles.put("services", "Dịch vụ");
+        vnTitles.put("promotions", "Khuyến mãi");
+        vnTitles.put("invoices", "Hóa đơn");
+        vnTitles.put("statistics", "Thống kê");
+        
+        pageTitleLabel.setText(vnTitles.getOrDefault(route, "KQL HOTEL"));
+        pageSubtitleLabel.setText(pageSubtitles.getOrDefault(route, ""));
+
+        for (Map.Entry<String, JPanel> entry : menuItems.entrySet()) {
+            boolean active = entry.getKey().equals(route);
+            JPanel panel = entry.getValue();
+            if (panel instanceof SidebarMenuItem) {
+                ((SidebarMenuItem) panel).setActive(active);
+                ((SidebarMenuItem) panel).setHovered(false);
+            }
+            JLabel lbl = menuTextLabels.get(entry.getKey());
+            if (lbl != null) {
+                lbl.setForeground(active ? ThemeColors.PREMIUM_SIDEBAR_ACTIVE_TEXT : ThemeColors.PREMIUM_SIDEBAR_TEXT);
+                lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, active ? 14f : 13.5f));
+            }
         }
 
         Map<String, String> vnTitles = new java.util.HashMap<>();
