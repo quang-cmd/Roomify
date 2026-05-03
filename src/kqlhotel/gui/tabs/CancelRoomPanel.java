@@ -414,41 +414,31 @@ public class CancelRoomPanel extends JPanel {
             return;
         }
 
-        LocalDateTime noonCheckInDay = checkInTime.toLocalDate().atTime(12, 0);
-        LocalDateTime deadline100Refund = noonCheckInDay.minusHours(24);
-        
-        Duration durationBeforeCheckin = Duration.between(cancelTime, checkInTime);
-        long hoursBeforeCheckin = durationBeforeCheckin.toHours();
+        long daysBefore = java.time.temporal.ChronoUnit.DAYS.between(cancelTime.toLocalDate(), checkInTime.toLocalDate());
         
         double penalty = 0;
         
-        if (cancelTime.isBefore(deadline100Refund) || cancelTime.isEqual(deadline100Refund)) {
-            penalty = 0;
-            polSub.setText("Hủy trước 24 giờ trưa ngày check-in: Hoàn 100% cọc.");
-            polEnd.setText("Khách gọi điện thông báo kịp thời, được hoàn lại toàn bộ tiền cọc.");
-        } else if (hoursBeforeCheckin >= 12) {
-            penalty = 0;
-            polSub.setText("Hủy trước 12 giờ so với giờ check-in: Hoàn 100% cọc.");
-            polEnd.setText("Không thuộc khoảng thời gian bị phạt (từ 12 tiếng trở xuống).");
-        } else if (hoursBeforeCheckin >= 6) {
-            penalty = deposit * 0.3;
-            polSub.setText("Hủy trong khoảng 6-12 giờ trước check-in: Trừ 30% cọc.");
-            polEnd.setText("Khách sẽ bị trừ 30% số tiền đã cọc theo chính sách.");
-        } else if (hoursBeforeCheckin >= 0) {
+        if (cancelTime.isAfter(checkInTime)) {
+            penalty = deposit;
+            polSub.setText("Hủy sau giờ nhận phòng: Phạt 100% cọc.");
+            polEnd.setText("Quá giờ nhận phòng quy định, khách bị phạt toàn bộ tiền cọc.");
+        } else if (daysBefore <= 5) {
+            // Bao gồm cả hủy trong ngày (daysBefore = 0) và 1-5 ngày trước
+            penalty = deposit;
+            polSub.setText("Hủy trong vòng 1-5 ngày trước check-in: Phạt 100% cọc.");
+            polEnd.setText("Thời điểm hủy quá sát ngày nhận phòng, phạt 100% số tiền cọc.");
+        } else if (daysBefore <= 10) {
             penalty = deposit * 0.5;
-            polSub.setText("Hủy dưới 6 giờ trước check-in: Trừ 50% cọc.");
-            polEnd.setText("Khách hủy sát giờ check-in nên bị trừ 50% số tiền đã cọc.");
+            polSub.setText("Hủy trong vòng 6-10 ngày trước check-in: Phạt 50% cọc.");
+            polEnd.setText("Thời điểm hủy nằm trong khoảng 6-10 ngày, phạt 50% số tiền cọc.");
+        } else if (daysBefore <= 15) {
+            penalty = 0;
+            polSub.setText("Hủy trong vòng 11-15 ngày trước check-in: Không mất phí.");
+            polEnd.setText("Thời điểm hủy nằm trong khoảng 11-15 ngày, khách được hoàn 100% cọc.");
         } else {
-            long hoursAfterCheckin = Duration.between(checkInTime, cancelTime).toHours();
-            if (hoursAfterCheckin >= 1) {
-                penalty = deposit;
-                polSub.setText("Khách không đến nhận phòng (No-show): Không hoàn cọc.");
-                polEnd.setText("Quá 1h sau check-in không có lý do chính đáng: Không được hoàn lại cọc.");
-            } else {
-                penalty = deposit * 0.5;
-                polSub.setText("Hủy trễ (sau khi đến giờ check-in): Trừ 50% cọc.");
-                polEnd.setText("Khách hủy phòng sau khi đã đến giờ check-in.");
-            }
+            penalty = 0;
+            polSub.setText("Hủy trước trên 15 ngày: Không mất phí.");
+            polEnd.setText("Khách thông báo hủy sớm trên 15 ngày, được hoàn lại toàn bộ tiền cọc.");
         }
         
         this.computedPenalty = penalty;
@@ -904,11 +894,22 @@ public class CancelRoomPanel extends JPanel {
                 pst1.executeUpdate();
             }
 
-            // 2. Xóa giá trị ChiTietHoaDon (nếu có)
-            String updateCTHD = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0 WHERE maHD = ?";
+            // 2. Cập nhật ChiTietHoaDon: xóa tiền phòng, lưu phí phạt vào cột mới
+            String updateCTHD = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0, phiPhat = ? WHERE maHD = ?";
             try (PreparedStatement pstCTHD = con.prepareStatement(updateCTHD)) {
-                pstCTHD.setString(1, maHD);
-                pstCTHD.executeUpdate();
+                // Chia đều phí phạt cho các phòng trong hóa đơn hoặc để ở 1 phòng? 
+                // Ở đây ta để tổng phí phạt vào các dòng chi tiết (tùy nghiệp vụ, thường là chia đều hoặc gán vào phòng đầu tiên)
+                // Để đơn giản và khớp với InvoicesPanel (sum), ta nên chia đều hoặc gán 1 lần.
+                // Ở đây gán vào tất cả các dòng thì sum(phiPhat) sẽ sai. 
+                // Tôi sẽ dùng lệnh update để chỉ gán vào 1 phòng duy nhất của hóa đơn đó.
+                String sqlUpdateOne = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0, phiPhat = 0 WHERE maHD = ?; " +
+                                     "UPDATE TOP (1) ChiTietHoaDon SET phiPhat = ? WHERE maHD = ?";
+                try (PreparedStatement psOne = con.prepareStatement(sqlUpdateOne)) {
+                    psOne.setString(1, maHD);
+                    psOne.setDouble(2, penalty);
+                    psOne.setString(3, maHD);
+                    psOne.executeUpdate();
+                }
             }
 
             // 3. Xóa dịch vụ

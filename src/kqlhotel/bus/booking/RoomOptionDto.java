@@ -1,4 +1,4 @@
-package kqlhotel.bus.booking.model;
+package kqlhotel.bus.booking;
 
 import java.util.List;
 

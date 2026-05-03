@@ -311,6 +311,36 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         return "";
     }
 
+    public double getTienCocByMaHD(String maHD) {
+        if (maHD == null || maHD.trim().isEmpty()) {
+            return 0;
+        }
+
+        String sql =
+                "SELECT dp.tienCoc " +
+                        "FROM HoaDon hd " +
+                        "JOIN DatPhong dp ON hd.maDatPhong = dp.maDatPhong " +
+                        "WHERE hd.maHD = ?";
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, maHD);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getDouble("tienCoc");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
     @Override
     public boolean create(Invoice t) {
         return false;

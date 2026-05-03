@@ -13,12 +13,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import kqlhotel.bus.booking.model.BookingConfirmationResult;
-import kqlhotel.bus.booking.model.BookingSearchRequest;
-import kqlhotel.bus.booking.model.BookingSelectionSummary;
-import kqlhotel.bus.booking.model.CreateBookingCommand;
-import kqlhotel.bus.booking.model.GuestInfoDto;
-import kqlhotel.bus.booking.model.RoomOptionDto;
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.booking.RoomDao;
 import kqlhotel.dao.booking.RoomDaoSqlServer;
@@ -174,16 +168,14 @@ public class SqlBookingService implements BookingService {
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
             String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
-            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, ngayNhanDuKien, ngayTraDuKien, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDatPhong, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
                 ps.setString(1, maDatPhong);
                 ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
-                ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
-                ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
-                ps.setBigDecimal(5, java.math.BigDecimal.valueOf(tienCocBooking));
-                ps.setString(6, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
-                ps.setString(7, leadCustomerId);
-                ps.setString(8, maNV);
+                ps.setBigDecimal(3, java.math.BigDecimal.valueOf(tienCocBooking));
+                ps.setString(4, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
+                ps.setString(5, leadCustomerId);
+                ps.setString(6, maNV);
                 ps.executeUpdate();
             }
 

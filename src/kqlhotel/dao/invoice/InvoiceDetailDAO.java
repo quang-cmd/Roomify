@@ -19,7 +19,7 @@ public class InvoiceDetailDAO {
 
         try {
             Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien " +
+            String sql = "SELECT maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, phiPhat, thanhTien " +
                     "FROM ChiTietHoaDon WHERE maHD = ? ORDER BY maPhong";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maHD);
@@ -48,6 +48,7 @@ public class InvoiceDetailDAO {
 
                 ct.setSoDem(rs.getInt("soDem"));
                 ct.setPhuThu(rs.getDouble("phuThu"));
+                ct.setPhiPhat(rs.getDouble("phiPhat"));
                 ct.setThanhTien(rs.getDouble("thanhTien"));
 
                 list.add(ct);
@@ -63,16 +64,17 @@ public class InvoiceDetailDAO {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
-                    "SET ngayTraThucTe = ?, soDem = ?, phuThu = ?, thanhTien = ? " +
+                    "SET ngayTraThucTe = ?, soDem = ?, phuThu = ?, phiPhat = ?, thanhTien = ? " +
                     "WHERE maHD = ? AND maPhong = ?";
 
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setTimestamp(1, Timestamp.valueOf(ngayTraThucTe));
             pstmt.setInt(2, soDem);
             pstmt.setDouble(3, phuThu);
-            pstmt.setDouble(4, thanhTien);
-            pstmt.setString(5, maHD);
-            pstmt.setString(6, maPhong);
+            pstmt.setDouble(4, 0); // Default phiPhat to 0 during normal checkout update
+            pstmt.setDouble(5, thanhTien);
+            pstmt.setString(6, maHD);
+            pstmt.setString(7, maPhong);
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -158,11 +160,11 @@ public class InvoiceDetailDAO {
 
             String sql =
                     "INSERT INTO ChiTietHoaDon " +
-                            "(maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, thanhTien) " +
+                            "(maHD, maPhong, ngayNhanPhong, ngayTraPhong, ngayTraThucTe, soDem, phuThu, phiPhat, thanhTien) " +
                             "SELECT ?, ctdp.maPhong, GETDATE(), ctdp.ngayTraDuKien, NULL, " +
                             "CASE WHEN DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) <= 0 " +
                             "THEN 1 ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) END, " +
-                            "0, " +
+                            "0, 0, " +
                             "ctdp.donGiaDat * " +
                             "CASE WHEN DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) <= 0 " +
                             "THEN 1 ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(ctdp.ngayTraDuKien AS DATE)) END " +
