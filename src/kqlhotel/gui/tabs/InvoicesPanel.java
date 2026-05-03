@@ -327,10 +327,23 @@ public class InvoicesPanel extends JPanel {
             tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
         }
 
+        double tongTienPhongThuan = calculateTotalBaseRoom(roomDetails);
         double tongPhuThu = calculateTotalSurcharge(roomDetails);
-        double tongTruocGiam = hd.getTienPhong() + tongPhuThu + hd.getTienDichVu() + hd.getTienThue();
-        double tongSauKhuyenMai = hd.getTongTienThanhToan();
-        double conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc);
+
+        double tongTruocGiam = tongTienPhongThuan
+                + tongPhuThu
+                + hd.getTienDichVu()
+                + hd.getTienThue();
+
+        double tongSauKhuyenMai = Math.max(0, tongTruocGiam - hd.getTienKhuyenMai());
+        String computedStatus = invoicesBUS.getComputedStatus(hd);
+
+        double conPhaiThanhToan;
+        if ("DaThanhToan".equals(computedStatus)) {
+            conPhaiThanhToan = 0;
+        } else {
+            conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc);
+        }
 
         JPanel topRow = new JPanel(new MigLayout("insets 0,fillx", "[][grow,fill][][][]", "[]"));
         topRow.setOpaque(false);
@@ -345,7 +358,6 @@ public class InvoicesPanel extends JPanel {
         lId.setFont(lId.getFont().deriveFont(Font.BOLD, 22f));
         lId.setForeground(new Color(24, 40, 66));
 
-        String computedStatus = invoicesBUS.getComputedStatus(hd);
         JLabel lStatus = new JLabel(" • " + getDisplayStatus(computedStatus));
         lStatus.setForeground(getDisplayStatusColor(computedStatus));
         lStatus.setFont(lStatus.getFont().deriveFont(Font.BOLD, 12f));
@@ -503,7 +515,7 @@ public class InvoicesPanel extends JPanel {
         tFooter.setBackground(Color.WHITE);
 
         tFooter.add(makeTText("Tiền phòng", false), "alignx left");
-        tFooter.add(makeTText(CurrencyUtils.formatVND(hd.getTienPhong()), true), "alignx right");
+        tFooter.add(makeTText(CurrencyUtils.formatVND(tongTienPhongThuan), true), "alignx right");
 
         tFooter.add(makeTText("Phụ thu", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
@@ -666,6 +678,22 @@ public class InvoicesPanel extends JPanel {
 
         for (InvoiceDetail ct : roomDetails) {
             total += Math.max(0, ct.getPhuThu());
+        }
+
+        return total;
+    }
+
+    private double calculateTotalBaseRoom(List<InvoiceDetail> roomDetails) {
+        double total = 0;
+
+        if (roomDetails == null) {
+            return 0;
+        }
+
+        for (InvoiceDetail ct : roomDetails) {
+            double surcharge = Math.max(0, ct.getPhuThu());
+            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
+            total += baseRoom;
         }
 
         return total;
