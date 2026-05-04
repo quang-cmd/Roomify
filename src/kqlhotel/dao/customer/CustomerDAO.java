@@ -21,7 +21,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             while (rs.next()) {
                 list.add(mapCustomerSimple(rs));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return list;
@@ -49,7 +49,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             while (rs.next()) {
                 list.add(mapCustomer(rs));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 
@@ -67,7 +67,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
                     return mapCustomerSimple(rs);
                 }
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
@@ -168,14 +168,14 @@ public class CustomerDAO implements DAO_Interface<Customer> {
                     list.add(item);
                 }
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 
         return list;
     }
 
-    private Customer mapCustomer(ResultSet rs) throws Exception {
+    private Customer mapCustomer(ResultSet rs) throws SQLException {
         Customer kh = mapCustomerSimple(rs);
         // Stats
         kh.setTongDatPhong(rs.getInt("tongDatPhong"));
@@ -185,7 +185,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         return kh;
     }
 
-    private Customer mapCustomerSimple(ResultSet rs) throws Exception {
+    private Customer mapCustomerSimple(ResultSet rs) throws SQLException {
         Customer kh = new Customer();
         kh.setMaKH(rs.getString("maKH"));
         kh.setHoTenKH(rs.getString("hoTenKH"));
