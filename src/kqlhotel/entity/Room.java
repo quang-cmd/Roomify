@@ -32,4 +32,9 @@ public class Room {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    // Aliases for compatibility
+    public String getMaPhong() { return roomId; }
+    public String getLoaiPhong() { return roomType != null ? roomType.getRoomTypeId() : null; }
+    public String getTrangThai() { return status; }
 }
