@@ -577,7 +577,7 @@ public class CancelRoomPanel extends JPanel {
     private List<BookingDTO> fetchBookingsFromDB() {
         List<BookingDTO> list = new ArrayList<>();
         String sql = "SELECT dp.maDatPhong, ctdp.maPhong, lp.tenLoaiPhong, p.tang, kh.hoTenKH, kh.sdt, ctdp.ngayNhanDuKien, dp.tienCoc, hd.maHD, 0 as isFullyPaid FROM DatPhong dp JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong JOIN Phong p ON ctdp.maPhong = p.maPhong JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong JOIN KhachHang kh ON dp.maKH = kh.maKH JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong WHERE hd.trangThai = 'ChuaThanhToan'";
-        try (Connection con = ConnectDB.getConnection(); PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
+        try (Connection con = ConnectDB.getInstance().getConnection(); PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 BookingDTO b = new BookingDTO();
                 b.maDatPhong = rs.getString("maDatPhong");
@@ -596,7 +596,7 @@ public class CancelRoomPanel extends JPanel {
     }
 
     private boolean cancelBookingInDB(String maDatPhong, String maHD, double refund, double deposit) {
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.getInstance().getConnection()) {
             con.setAutoCommit(false);
             String updHD = "UPDATE HoaDon SET trangThai = 'DaHuy' WHERE maHD = ?";
             try (PreparedStatement pst = con.prepareStatement(updHD)) { pst.setString(1, maHD); pst.executeUpdate(); }

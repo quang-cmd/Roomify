@@ -26,7 +26,7 @@ public class RoomDAO implements DAO_Interface<Room> {
     public List<Room> getAll() {
         List<Room> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT maPhong, maLoaiPhong, tang, trangThaiPhong FROM Phong";
             Statement stmt = con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -45,7 +45,7 @@ public class RoomDAO implements DAO_Interface<Room> {
     public Room getById(String id) {
         Room p = null;
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT maPhong, maLoaiPhong, tang, trangThaiPhong FROM Phong WHERE maPhong = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);
@@ -71,7 +71,7 @@ public class RoomDAO implements DAO_Interface<Room> {
 
     public boolean updateStatus(String maPhong, String status) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "UPDATE Phong SET trangThaiPhong = ? WHERE maPhong = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, status);
@@ -87,7 +87,7 @@ public class RoomDAO implements DAO_Interface<Room> {
 
     public boolean create(Room r) {
         String sql = "INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?)";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, r.getMaPhong());
             ps.setString(2, r.getLoaiPhong());
@@ -102,7 +102,7 @@ public class RoomDAO implements DAO_Interface<Room> {
 
     public boolean update(Room r) {
         String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, r.getLoaiPhong());
             ps.setInt(2, r.getTang());
@@ -118,7 +118,7 @@ public class RoomDAO implements DAO_Interface<Room> {
     @Override
     public boolean delete(String id) {
         String sql = "DELETE FROM Phong WHERE maPhong = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, id);
             return ps.executeUpdate() > 0;
@@ -147,7 +147,7 @@ public class RoomDAO implements DAO_Interface<Room> {
     public List<Room> getAllDetailed() {
         List<Room> list = new ArrayList<>();
         String sql = "SELECT p.*, lp.tenLoaiPhong, lp.giaPhong FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
@@ -162,7 +162,7 @@ public class RoomDAO implements DAO_Interface<Room> {
     public List<Room> search(String query) {
         List<Room> list = new ArrayList<>();
         String sql = "SELECT p.*, lp.tenLoaiPhong, lp.giaPhong FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong WHERE p.maPhong LIKE ? OR lp.tenLoaiPhong LIKE ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, "%" + query + "%");
             ps.setString(2, "%" + query + "%");
