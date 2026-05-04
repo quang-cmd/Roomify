@@ -56,15 +56,19 @@ public class AppFrame extends JFrame {
     private final Timer transitionTimer;
     private final Map<String, JPanel> menuItems = new LinkedHashMap<>();
     private final Map<String, JLabel> menuTextLabels = new LinkedHashMap<>();
+    private final Map<String, String> pageTitles = new LinkedHashMap<>();
     private final Map<String, String> pageSubtitles = new LinkedHashMap<>();
     private String currentRoute = "booking";
     private String pendingCardName;
+
+    // Controllers/Panels
     private RoomManagementPanel roomManagementPanel;
     private BookingPanel bookingPanel;
     private CheckoutPanel checkoutPanel;
     private CustomersPanel customersPanel;
     private SwapRoomPanel swapRoomPanel;
     private ServicesPanel servicesPanel;
+
     public AppFrame() {
         setTitle("KQL Hotel - Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -132,6 +136,8 @@ public class AppFrame extends JFrame {
         StatisticsPanel statisticsPanel = new StatisticsPanel();
         JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
         statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
+        statisticsScroll.getVerticalScrollBar().setUnitIncrement(16);
+        statisticsScroll.getHorizontalScrollBar().setUnitIncrement(16);
         statisticsScroll.getViewport().setOpaque(false);
         statisticsScroll.setOpaque(false);
         screenPanel.add(statisticsScroll, "statistics");
@@ -153,41 +159,59 @@ public class AppFrame extends JFrame {
         sidebar.setBackground(ThemeColors.PREMIUM_SIDEBAR_BG);
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, ThemeColors.PREMIUM_SIDEBAR_BORDER));
 
+        // Brand header with hotel icon (try image `logo.png`, fallback to initials)
+        ImageIcon logoIcon = IconLoader.loadIconKeepRatio("logo.png", 40);
+        JPanel hotelIcon;
+        if (logoIcon != null) {
+            JPanel logoPanel = new JPanel(new BorderLayout());
+            logoPanel.setOpaque(false);
+            logoPanel.add(new JLabel(logoIcon, SwingConstants.CENTER), BorderLayout.CENTER);
+            hotelIcon = logoPanel;
+        } else {
+            hotelIcon = createCircleAvatar(ThemeColors.PREMIUM_PRIMARY, "KH", 14f);
+        }
+
         JLabel brand = new JLabel("KQL HOTEL");
         brand.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
         brand.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        sidebar.add(brand, "gapy 4 14");
 
-        JLabel menuLabel = new JLabel("MENU CHÍNH");
+        JPanel brandWrapper = new JPanel(new MigLayout("insets 0,gap 12", "[]", "[]"));
+        brandWrapper.setOpaque(false);
+        brandWrapper.add(hotelIcon, "w 40!,h 40!");
+        brandWrapper.add(brand);
+
+        sidebar.add(brandWrapper, "gapy 4 14");
+
+        JLabel menuLabel = new JLabel("MENU CH\u00cdNH");
         menuLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
         menuLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
         sidebar.add(menuLabel, "gapy 4 2");
 
-        registerPage("booking", "Đặt phòng", "Tìm kiếm và đặt phòng");
-        registerPage("check-in", "Nhận phòng", "Xác nhận khách đến");
-        registerPage("checkout", "Trả phòng", "Xử lý quy trình trả phòng");
-        registerPage("swap-room", "Đổi phòng", "Xử lý quy trình đổi phòng");
-        registerPage("cancel-room", "Hủy phòng", "Xử lý yêu cầu hủy phòng");
-        registerPage("room-management", "Quản lý phòng", "Cập nhật trạng thái phòng");
-        registerPage("staff", "Nhân sự", "Quản lý hồ sơ nhân viên");
-        registerPage("customers", "Khách hàng", "Quản lý dữ liệu khách hàng");
-        registerPage("services", "Dịch vụ", "Quản lý dịch vụ bổ sung");
-        registerPage("promotions", "Khuyến mãi", "Quản lý ưu đãi");
-        registerPage("invoices", "Hóa đơn", "Theo dõi hóa đơn");
-        registerPage("statistics", "Thống kê", "Tổng quan doanh thu");
+        registerPage("booking", "\u0110\u1eb7t ph\u00f2ng", "T\u00ecm ki\u1ebfm v\u00e0 \u0111\u1eb7t ph\u00f2ng");
+        registerPage("check-in", "Nh\u1eadn ph\u00f2ng", "X\u00e1c nh\u1eadn kh\u00e1ch \u0111\u1ebfn");
+        registerPage("checkout", "Tr\u1ea3 ph\u00f2ng", "X\1eed l\u00fd quy tr\u00ecnh tr\u1ea3 ph\u00f2ng");
+        registerPage("swap-room", "\u0110\u1ed5i ph\u00f2ng", "X\1eed l\u00fd quy tr\u00ecnh \u0111\u1ed5i ph\u00f2ng");
+        registerPage("cancel-room", "H\u1ee7y ph\u00f2ng", "X\u1eed l\u00fd y\u00eau c\u1ea7u h\u1ee7y ph\u00f2ng");
+        registerPage("room-management", "Qu\u1ea3n l\u00fd ph\u00f2ng", "C\u1eadp nh\u1eadt tr\u1ea1ng th\u00e1i ph\u00f2ng");
+        registerPage("staff", "Nh\u00e2n s\u1ef1", "Qu\u1ea3n l\u00fd h\u1ed3 s\u01a1 nh\u00e2n vi\u00ean");
+        registerPage("customers", "Kh\u00e1ch h\u00e0ng", "Qu\u1ea3n l\u00fd d\u1eef li\u1ec7u kh\u00e1ch h\u00e0ng");
+        registerPage("services", "D\u1ecbch v\u1ee5", "Qu\u1ea3n l\u00fd d\u1ecbch v\u1ee5 b\u1ed5 sung");
+        registerPage("promotions", "Khuy\u1ebfn m\u00e3i", "Qu\u1ea3n l\u00fd \u01b0u \u0111\u00e3i");
+        registerPage("invoices", "H\u00f3a \u0111\u01a1n", "Theo d\u00f5i h\u00f3a \u0111\u01a1n");
+        registerPage("statistics", "Th\u1ed1ng k\u00ea", "T\u1ed5 overview doanh thu");
 
-        sidebar.add(sidebarItem("booking.png", "▢", new Color(49, 130, 206), "Đặt phòng", "booking"));
-        sidebar.add(sidebarItem("check-in.png", "⤓", new Color(217, 119, 6),  "Nhận phòng", "check-in"));
-        sidebar.add(sidebarItem("checkout.png", "↩", new Color(56, 161, 105), "Trả phòng", "checkout"));
-        sidebar.add(sidebarItem("swap-room.png", "↔", new Color(100, 100, 220), "Đổi phòng", "swap-room"));
-        sidebar.add(sidebarItem("cancel-room.png", "✕", new Color(200, 80, 80), "Hủy phòng", "cancel-room"));
-        sidebar.add(sidebarItem("room-management.png", "≡", new Color(80, 160, 200), "Quản lý phòng", "room-management"));
-        sidebar.add(sidebarItem("staff.png", "●", new Color(143, 97, 255), "Nhân sự", "staff"));
-        sidebar.add(sidebarItem("customers.png", "◎", new Color(56, 180, 140), "Khách hàng", "customers"));
-        sidebar.add(sidebarItem("services.png", "★", new Color(200, 130, 40), "Dịch vụ", "services"));
-        sidebar.add(sidebarItem("promotions.png", "◆", new Color(190, 70, 180), "Khuyến mãi", "promotions"));
-        sidebar.add(sidebarItem("invoices.png", "☰", new Color(60, 130, 60), "Hóa đơn", "invoices"));
-        sidebar.add(sidebarItem("statistics.png", "▲", new Color(180, 100, 40), "Thống kê", "statistics"));
+        sidebar.add(sidebarItem("booking.png", "\u25a2", new Color(49, 130, 206), "\u0110\u1eb7t ph\u00f2ng", "booking"));
+        sidebar.add(sidebarItem("check-in.png", "\u2913", new Color(217, 119, 6),  "Nh\u1eadn ph\u00f2ng", "check-in"));
+        sidebar.add(sidebarItem("checkout.png", "\u21a9", new Color(56, 161, 105), "Tr\u1ea3 ph\u00f2ng", "checkout"));
+        sidebar.add(sidebarItem("swap-room.png", "\u2194", new Color(100, 100, 220), "\u0110\u1ed5i ph\u00f2ng", "swap-room"));
+        sidebar.add(sidebarItem("cancel-room.png", "\u2715", new Color(200, 80, 80), "H\u1ee7y ph\u00f2ng", "cancel-room"));
+        sidebar.add(sidebarItem("room-management.png", "\u2261", new Color(80, 160, 200), "Qu\u1ea3n l\u00fd ph\u00f2ng", "room-management"));
+        sidebar.add(sidebarItem("staff.png", "\u25cf", new Color(143, 97, 255), "Nh\u00e2n s\u1ef1", "staff"));
+        sidebar.add(sidebarItem("customers.png", "\u25ce", new Color(56, 180, 140), "Kh\u00e1ch h\u00e0ng", "customers"));
+        sidebar.add(sidebarItem("services.png", "\u2605", new Color(200, 130, 40), "D\u1ecbch v\u1ee5", "services"));
+        sidebar.add(sidebarItem("promotions.png", "\u25c6", new Color(190, 70, 180), "Khuy\u1ebfn m\u00e3i", "promotions"));
+        sidebar.add(sidebarItem("invoices.png", "\u2630", new Color(60, 130, 60), "H\u00f3a \u0111\u01a1n", "invoices"));
+        sidebar.add(sidebarItem("statistics.png", "\u25b2", new Color(180, 100, 40), "Th\u1ed1ng k\u00ea", "statistics"));
 
         return sidebar;
     }
@@ -266,12 +290,58 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createTopbarRight() {
-        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 0,gap 18", "[][][grow,fill][]", "[]"));
         panel.setOpaque(false);
-        JButton logoutBtn = new JButton("Đăng xuất");
+
+        // Notification Bell
+        JPanel bellWrap = new JPanel(new BorderLayout());
+        bellWrap.setOpaque(false);
+        bellWrap.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        JLabel bell = new JLabel("\ud83d\udd14");
+        bell.setForeground(ThemeColors.TEXT_MUTED);
+        bellWrap.add(bell);
+
+        // Vertical Separator
+        JPanel sep = new JPanel();
+        sep.setBackground(ThemeColors.BORDER_SOFT);
+        sep.setPreferredSize(new Dimension(1, 30));
+
+        // User info
+        JPanel userArea = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill]", "[]"));
+        userArea.setOpaque(false);
+
+        JPanel avatar = createCircleAvatar(ThemeColors.ACCENT, "NL", 13f);
+
+        JPanel userText = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
+        userText.setOpaque(false);
+        JLabel userName = new JLabel("Nguy\u1ec5n Kh\u1ea3 Lu\u00e2n");
+        userName.setForeground(ThemeColors.TEXT_PRIMARY);
+        userName.setFont(userName.getFont().deriveFont(Font.BOLD, 13f));
+        JLabel userRole = new JLabel("Qu\u1ea3n l\u00fd");
+        userRole.setForeground(ThemeColors.TEXT_MUTED);
+        userRole.setFont(userRole.getFont().deriveFont(11f));
+        userText.add(userName);
+        userText.add(userRole);
+
+        userArea.add(avatar, "w 36!,h 36!,aligny center");
+        userArea.add(userText, "aligny center");
+
+        // Logout button
+        JButton logoutBtn = new JButton("\u0110\u0103ng xu\u1ea5t");
+        logoutBtn.setFont(logoutBtn.getFont().deriveFont(Font.BOLD, 12f));
+        logoutBtn.setForeground(ThemeColors.DANGER);
+        logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
+        logoutBtn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
+            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        logoutBtn.setFocusPainted(false);
+        logoutBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         logoutBtn.addActionListener(e -> logout());
-        panel.add(new JLabel("Admin"));
-        panel.add(logoutBtn);
+
+        panel.add(bellWrap, "w 36!,h 36!,aligny center");
+        panel.add(sep, "aligny center");
+        panel.add(userArea, "aligny center");
+        panel.add(logoutBtn, "aligny center,gapleft 8");
         return panel;
     }
 
@@ -290,9 +360,9 @@ public class AppFrame extends JFrame {
 
     private void logout() { rootCards.show(rootPanel, "auth"); }
 
-    private void showShiftTransition() { showTransition("shift", "Đăng nhập thành công", "Đang mở ca làm việc..."); }
+    private void showShiftTransition() { showTransition("shift", "\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng", "\u0110ang m\u1edf ca l\u00e0m vi\u1ec7c..."); }
 
-    private void showAppTransition() { showTransition("app", "Mở ca thành công", "Đang vào hệ thống..."); }
+    private void showAppTransition() { showTransition("app", "M\u1edf ca th\u00e0nh c\u00f4ng", "\u0110ang v\u00e0o h\u1ec7 th\u1ed1ng..."); }
 
     private void showTransition(String nextCard, String title, String message) {
         transitionTitle.setText(title);
@@ -305,13 +375,54 @@ public class AppFrame extends JFrame {
     private JPanel createTransitionPanel() {
         LoginBackgroundPanel panel = new LoginBackgroundPanel();
         panel.setLayout(new BorderLayout());
-        JLabel l = new JLabel("Đang tải...", SwingConstants.CENTER);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        panel.add(l);
+
+        JPanel wrapper = new JPanel(new MigLayout("insets 0", "[grow]", "[grow]"));
+        wrapper.setOpaque(false);
+
+        RoundedPanel card = new RoundedPanel(
+            16,
+            ThemeColors.SURFACE,
+            ThemeColors.BORDER_SOFT,
+            1f,
+            new Color(17, 24, 39, 20),
+            6
+        );
+        card.setLayout(new MigLayout("wrap 1,insets 24,gap 10", "[grow,fill]", "[]"));
+        card.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        ImageIcon logoIcon = IconLoader.loadIconKeepRatio("logo.png", 80);
+        JLabel logoLabel;
+        if (logoIcon != null) {
+            logoLabel = new JLabel(logoIcon, SwingConstants.CENTER);
+        } else {
+            logoLabel = new JLabel("KH", SwingConstants.CENTER);
+            logoLabel.setForeground(ThemeColors.ACCENT);
+            logoLabel.setFont(logoLabel.getFont().deriveFont(48f));
+        }
+
+        transitionTitle.setForeground(ThemeColors.TEXT_PRIMARY);
+        transitionTitle.setFont(transitionTitle.getFont().deriveFont(26f));
+        transitionTitle.setHorizontalAlignment(SwingConstants.CENTER);
+
+        transitionMessage.setForeground(ThemeColors.TEXT_MUTED);
+        transitionMessage.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel footer = new JLabel("Vui l\u00f2ng ch\u1edd gi\u00e2y l\u00e1t...");
+        footer.setForeground(ThemeColors.TEXT_MUTED);
+        footer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        card.add(logoLabel, "alignx center,gapy 8 8");
+        card.add(transitionTitle);
+        card.add(transitionMessage);
+        card.add(footer);
+
+        wrapper.add(card, "alignx center,aligny center,w 420!,h 260!");
+        panel.add(wrapper, BorderLayout.CENTER);
         return panel;
     }
 
     private void registerPage(String route, String title, String subtitle) {
+        pageTitles.put(route, title);
         pageSubtitles.put(route, subtitle);
     }
 
@@ -326,18 +437,18 @@ public class AppFrame extends JFrame {
 
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
-        vnTitles.put("booking", "Đặt phòng");
-        vnTitles.put("check-in", "Nhận phòng");
-        vnTitles.put("checkout", "Trả phòng");
-        vnTitles.put("swap-room", "Đổi phòng");
-        vnTitles.put("cancel-room", "Hủy phòng");
-        vnTitles.put("room-management", "Quản lý phòng");
-        vnTitles.put("staff", "Nhân sự");
-        vnTitles.put("customers", "Khách hàng");
-        vnTitles.put("services", "Dịch vụ");
-        vnTitles.put("promotions", "Khuyến mãi");
-        vnTitles.put("invoices", "Hóa đơn");
-        vnTitles.put("statistics", "Thống kê");
+        vnTitles.put("booking", "\u0110\u1eb7t ph\u00f2ng");
+        vnTitles.put("check-in", "Nh\u1eadn ph\u00f2ng");
+        vnTitles.put("checkout", "Tr\u1ea3 ph\u00f2ng");
+        vnTitles.put("swap-room", "\u0110\u1ed5i ph\u00f2ng");
+        vnTitles.put("cancel-room", "H\u1ee7y ph\u00f2ng");
+        vnTitles.put("room-management", "Qu\u1ea3n l\u00fd ph\u00f2ng");
+        vnTitles.put("staff", "Nh\u00e2n s\u1ef1");
+        vnTitles.put("customers", "Kh\u00e1ch h\u00e0ng");
+        vnTitles.put("services", "D\u1ecbch v\u1ee5");
+        vnTitles.put("promotions", "Khuy\u1ebfn m\u00e3i");
+        vnTitles.put("invoices", "H\u00f3a \u0111\u01a1n");
+        vnTitles.put("statistics", "Th\u1ed1ng k\u00ea");
         
         pageTitleLabel.setText(vnTitles.getOrDefault(route, "KQL HOTEL"));
         pageSubtitleLabel.setText(pageSubtitles.getOrDefault(route, ""));
@@ -356,5 +467,28 @@ public class AppFrame extends JFrame {
             }
         }
 
+        revalidate();
+        repaint();
+    }
+
+    private JPanel createCircleAvatar(Color bgColor, String initials, float fontSize) {
+        return new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bgColor);
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, (int) (getHeight() * 0.4)));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(initials)) / 2;
+                int y = ((getHeight() - fm.getHeight()) / 2) + fm.getAscent();
+                g2.drawString(initials, x, y);
+                g2.dispose();
+            }
+            @Override public void setPreferredSize(Dimension d) { super.setPreferredSize(d); }
+        };
     }
 }

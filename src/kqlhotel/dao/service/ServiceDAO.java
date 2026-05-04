@@ -40,20 +40,39 @@ public class ServiceDAO {
 
     public boolean insert(Service s) {
         String sql = "INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection con = ConnectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, s.getMaDV());
-            ps.setString(2, s.getTenDV());
-            ps.setDouble(3, s.getGia());
-            ps.setString(4, s.getLoaiDV());
-            ps.setString(5, s.getMoTa());
-            ps.setString(6, s.getTrangThai());
-            return ps.executeUpdate() > 0;
+        try (Connection con = ConnectDB.getConnection()) {
+            if (s.getMaDV() == null || s.getMaDV().isBlank()) {
+                s.setMaDV(generateNextId(con));
+            }
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, s.getMaDV());
+                ps.setString(2, s.getTenDV());
+                ps.setDouble(3, s.getGia());
+                ps.setString(4, s.getLoaiDV());
+                ps.setString(5, s.getMoTa());
+                ps.setString(6, s.getTrangThai());
+                return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
+
+    private String generateNextId(Connection con) {
+        String sql = "SELECT MAX(CAST(SUBSTRING(maDV, 3, LEN(maDV) - 2) AS INT)) FROM DichVu";
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                int nextId = rs.getInt(1) + 1;
+                return String.format("DV%03d", nextId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "DV001";
+    }
+
 
     public boolean update(Service s) {
         String sql = "UPDATE DichVu SET tenDV = ?, donGia = ?, loaiDV = ?, moTaDV = ?, trangThaiDV = ? WHERE maDV = ?";
