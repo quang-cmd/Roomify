@@ -11,7 +11,7 @@ public class ServiceDetailDAO {
     public List<ServiceDetail> getByInvoice(String maHD) {
         List<ServiceDetail> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT ctdv.*, dv.tenDV FROM ChiTietDichVu ctdv " +
                     "JOIN DichVu dv ON ctdv.maDV = dv.maDV WHERE ctdv.maHD = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -27,7 +27,7 @@ public class ServiceDetailDAO {
                 ct.setMaDV(rs.getString("maDV"));
                 ct.setMaHD(rs.getString("maHD"));
                 // Lưu tenDV vào ghiChu nếu chưa có ghi chú
-                if (ct.getGhiChu() == null || ct.getGhiChu().trim().isEmpty()) {
+                if (ct.getGhiChu() == null || ct.getGhiChu().isEmpty()) {
                     ct.setGhiChu(rs.getString("tenDV"));
                 }
                 list.add(ct);
@@ -62,7 +62,7 @@ public class ServiceDetailDAO {
      */
     public boolean insert(ServiceDetail sd) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             // 1. Generate maCTDV
             String maCTDV = generateMaCTDV(con);
             sd.setMaCTDV(maCTDV);
@@ -104,7 +104,7 @@ public class ServiceDetailDAO {
      */
     public boolean delete(String maCTDV) {
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
 
             // Lấy thông tin trước khi xóa
             String sqlGet = "SELECT maHD, thanhTien FROM ChiTietDichVu WHERE maCTDV = ?";

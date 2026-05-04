@@ -151,7 +151,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         }
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
 
             String sql =
                     "SELECT tenDangNhap, matKhau, vaiTro, trangThaiTK " +
@@ -242,7 +242,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         }
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
 
             String sql =
                     "SELECT nv.maNV, nv.hoTenNV, nv.sdt, nv.tenDangNhap " +
