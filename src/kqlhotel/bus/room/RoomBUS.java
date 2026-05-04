@@ -1,12 +1,7 @@
 package kqlhotel.bus.room;
 
 import kqlhotel.dao.room.RoomDAO;
-import kqlhotel.dao.invoice.InvoiceDAO;
-import kqlhotel.dao.customer.CustomerDAO;
 import kqlhotel.entity.Room;
-import kqlhotel.entity.Invoice;
-import kqlhotel.entity.Customer;
-
 import java.util.List;
 
 public class RoomBUS {
@@ -16,48 +11,65 @@ public class RoomBUS {
         roomDAO = new RoomDAO();
     }
 
+    public List<Room> getAll() {
+        return roomDAO.getAll();
+    }
+    
     public List<Room> getAllRooms() {
         return roomDAO.getAll();
     }
 
-    public List<Room> searchRooms(String roomId, String roomTypeName, String guiStatus) {
+    public List<Room> searchRooms(String roomId, String typeName, String guiStatus) {
         String dbStatus = mapGuiStatusToDbStatus(guiStatus);
-        return roomDAO.search(roomId, roomTypeName, dbStatus);
+        return roomDAO.search(roomId, typeName, dbStatus);
     }
-    
+
+    public boolean updateStatus(String roomId, String status) {
+        return roomDAO.updateStatus(roomId, status);
+    }
+
+    public boolean insertRoom(Room r) {
+        return roomDAO.create(r);
+    }
+
+    public boolean addRoom(Room r) {
+        return roomDAO.create(r);
+    }
+
+    public boolean updateRoom(Room r) {
+        return roomDAO.update(r);
+    }
+
+    public boolean deleteRoom(String id) {
+        return roomDAO.delete(id);
+    }
+
     public String mapGuiStatusToDbStatus(String guiStatus) {
-        if (guiStatus == null) return null;
+        if (guiStatus == null || guiStatus.equals("Tất cả trạng thái")) return null;
         switch (guiStatus) {
-            case "Vacant": return "Trong";
-            case "Occupied": return "DangSuDung";
-            case "Maintenance": return "BaoTri";
-            default: return guiStatus;
+            case "Trống": return "Trong";
+            case "Đang sử dụng": return "DangSuDung";
+            case "Đang sửa chữa": return "DangSuaChua";
+            case "Đã đặt": return "DaDat";
+            default: return null;
         }
     }
 
     public String mapDbStatusToGuiStatus(String dbStatus) {
-        if (dbStatus == null) return "Unknown";
+        if (dbStatus == null) return "Trống";
         switch (dbStatus) {
-            case "Trong":      return "Vacant";
-            case "DangSuDung": return "Occupied";
-            case "BaoTri":     return "Maintenance";
-            default: return dbStatus;
+            case "Trong": return "Trống";
+            case "DangSuDung": return "Đang sử dụng";
+            case "DangSuaChua": return "Đang sửa chữa";
+            case "DaDat": return "Đã đặt";
+            default: return "Trống";
         }
     }
 
-    public long countByStatus(List<Room> list, String dbStatus) {
-        if (list == null) return 0;
-        return list.stream().filter(p -> dbStatus.equals(p.getStatus())).count();
-    }
-
-    public boolean addRoom(Room p) {
-        if (p.getRoomId() == null || p.getRoomId().trim().isEmpty()) return false;
-        if (p.getStatus() == null) p.setStatus("Trong");
-        return roomDAO.create(p);
-    }
-
-    public boolean updateRoom(Room p) {
-        if (p.getRoomId() == null || p.getRoomId().trim().isEmpty()) return false;
-        return roomDAO.update(p);
+    public long countByStatus(List<Room> rooms, String status) {
+        if (rooms == null) return 0;
+        return rooms.stream()
+                .filter(r -> status.equalsIgnoreCase(r.getTrangThaiPhong()))
+                .count();
     }
 }
