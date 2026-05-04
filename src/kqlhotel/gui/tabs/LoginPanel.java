@@ -13,6 +13,7 @@ import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.utils.IconLoader;
+import kqlhotel.gui.Session;
 import javax.swing.ImageIcon;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
@@ -201,6 +202,32 @@ public class LoginPanel extends LoginBackgroundPanel {
 
             Arrays.fill(passwordValue, '\0');
 
+// Tạo Account từ tài khoản đăng nhập
+            kqlhotel.entity.Account acc = new kqlhotel.entity.Account(
+                    rs.getString("tenDangNhap"),
+                    rs.getString("matKhau"),
+                    rs.getString("vaiTro"),
+                    rs.getString("trangThaiTK")
+            );
+
+            // Tìm nhân viên theo tenDangNhap
+            kqlhotel.entity.Staff foundStaff = null;
+            kqlhotel.bus.staff.StaffBUS staffBUS = new kqlhotel.bus.staff.StaffBUS();
+
+            for (kqlhotel.entity.Staff s : staffBUS.getAll()) {
+                if (s.getAccount() != null
+                        && s.getAccount().getUsername() != null
+                        && s.getAccount().getUsername().equals(acc.getUsername())) {
+                    foundStaff = s;
+                    break;
+                }
+            }
+
+            // Lưu user đang đăng nhập
+            Session.currentAccount = acc;
+            Session.currentStaff = foundStaff;
+
+            // Chuyển màn hình
             if (onLoginSuccess != null) {
                 onLoginSuccess.run();
             }
