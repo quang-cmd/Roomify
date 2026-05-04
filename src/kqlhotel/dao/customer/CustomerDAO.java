@@ -14,6 +14,21 @@ public class CustomerDAO implements DAO_Interface<Customer> {
     @Override
     public List<Customer> getAll() {
         List<Customer> list = new ArrayList<>();
+        String sql = "SELECT * FROM KhachHang ORDER BY hoTenKH";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapCustomerSimple(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public List<Customer> getAllWithStats() {
+        List<Customer> list = new ArrayList<>();
         String sql =
             "SELECT kh.*, " +
             "ISNULL(stats.tongDatPhong, 0) AS tongDatPhong, " +

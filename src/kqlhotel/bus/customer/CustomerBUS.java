@@ -13,6 +13,10 @@ public class CustomerBUS {
         return dao.getAll();
     }
 
+    public List<Customer> getAllWithStats() {
+        return dao.getAllWithStats();
+    }
+
     public List<CustomerBookingHistory> getBookingHistory(String maKH) {
         return dao.getBookingHistory(maKH);
     }
