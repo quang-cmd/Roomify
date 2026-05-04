@@ -12,11 +12,11 @@ public class RoomBUS {
     }
 
     public List<Room> getAll() {
-        return roomDAO.getAll();
+        return roomDAO.getAllWithDetails();
     }
     
     public List<Room> getAllRooms() {
-        return roomDAO.getAll();
+        return roomDAO.getAllWithDetails();
     }
 
     public List<Room> searchRooms(String roomId, String typeName, String guiStatus) {

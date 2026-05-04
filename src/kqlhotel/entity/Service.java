@@ -3,12 +3,12 @@ package kqlhotel.entity;
 public class Service {
     private String maDV;
     private String tenDV;
-    private double gia;
+    private double donGia;
+    private String moTaDV;
+    private String trangThaiDV;
+    
+    // Premium UI Support
     private String loaiDV;
-    private String moTa;
-
-    private String trangThai;
-
 
     public Service() {}
 
@@ -16,32 +16,32 @@ public class Service {
                    String loaiDV, String moTa, String trangThai) {
         this.maDV = maDV;
         this.tenDV = tenDV;
-        this.gia = gia;
+        this.donGia = gia;
         this.loaiDV = loaiDV;
-        this.moTa = moTa;
-        this.trangThai = trangThai;
+        this.moTaDV = moTa;
+        this.trangThaiDV = trangThai;
     }
 
-    // Getters and Setters
+    // Group's original methods
     public String getMaDV() { return maDV; }
     public void setMaDV(String maDV) { this.maDV = maDV; }
-
     public String getTenDV() { return tenDV; }
     public void setTenDV(String tenDV) { this.tenDV = tenDV; }
+    public double getDonGia() { return donGia; }
+    public void setDonGia(double donGia) { this.donGia = donGia; }
+    public String getMoTaDV() { return moTaDV; }
+    public void setMoTaDV(String moTaDV) { this.moTaDV = moTaDV; }
+    public String getTrangThaiDV() { return trangThaiDV; }
+    public void setTrangThaiDV(String trangThaiDV) { this.trangThaiDV = trangThaiDV; }
 
-    public double getGia() { return gia; }
-    public void setGia(double gia) { this.gia = gia; }
-    public double getDonGia() { return gia; } // Alias for compatibility
-
+    // Premium UI Aliases (English-ish/Short names)
+    public double getGia() { return donGia; }
+    public void setGia(double gia) { this.donGia = gia; }
+    public String getMoTa() { return moTaDV; }
+    public void setMoTa(String moTa) { this.moTaDV = moTa; }
+    public String getTrangThai() { return trangThaiDV; }
+    public void setTrangThai(String trangThai) { this.trangThaiDV = trangThai; }
+    
     public String getLoaiDV() { return loaiDV; }
     public void setLoaiDV(String loaiDV) { this.loaiDV = loaiDV; }
-
-    public String getMoTa() { return moTa; }
-
-
-
-    public void setMoTa(String moTa) { this.moTa = moTa; }
-
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 }
