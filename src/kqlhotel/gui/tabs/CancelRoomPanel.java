@@ -503,6 +503,7 @@ public class CancelRoomPanel extends JPanel {
         JPanel botRow = new JPanel(new BorderLayout());
         botRow.setOpaque(false);
         
+
         if (isConfirming) {
             JLabel lblConfirming = new JLabel("Đã chọn", SwingConstants.CENTER);
             lblConfirming.setFont(new Font("Segoe UI", Font.BOLD, 12));

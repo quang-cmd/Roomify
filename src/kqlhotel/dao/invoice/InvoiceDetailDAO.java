@@ -60,7 +60,7 @@ public class InvoiceDetailDAO {
         return list;
     }
 
-    public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double phuThu, double thanhTien) {
+    public boolean updateCheckoutInfo(String maHD, String maPhong, LocalDateTime ngayTraThucTe, int soDem, double phuThu,double phiPhat, double thanhTien) {
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "UPDATE ChiTietHoaDon " +
@@ -71,7 +71,7 @@ public class InvoiceDetailDAO {
             pstmt.setTimestamp(1, Timestamp.valueOf(ngayTraThucTe));
             pstmt.setInt(2, soDem);
             pstmt.setDouble(3, phuThu);
-            pstmt.setDouble(4, 0); // Default phiPhat to 0 during normal checkout update
+            pstmt.setDouble(4, phiPhat); // Default phiPhat to 0 during normal checkout update
             pstmt.setDouble(5, thanhTien);
             pstmt.setString(6, maHD);
             pstmt.setString(7, maPhong);
