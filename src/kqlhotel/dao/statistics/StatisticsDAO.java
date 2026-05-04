@@ -387,7 +387,7 @@ public class StatisticsDAO {
             "SELECT SUM( " +
             "    CASE " +
             "        WHEN hd.trangThai = 'DaThanhToan' THEN hd.tongTienThanhToan " +
-            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhatHuy, 0) " +
+            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhat, 0) " +
             "        ELSE 0 " +
             "    END " +
             ") AS totalRevenue " +

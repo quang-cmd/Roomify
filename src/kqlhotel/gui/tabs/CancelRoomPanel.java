@@ -370,6 +370,13 @@ public class CancelRoomPanel extends JPanel {
                 boolean success = cancelBookingInDB(selectedBooking.maDatPhong, selectedBooking.maHD, refund, selectedBooking.tienCoc);
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Hủy phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Refresh RoomManagementPanel data
+                    java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
+                    if (win instanceof kqlhotel.gui.AppFrame) {
+                        ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+                    }
+
                     setState("SEARCH");
                     updateSearchResults();
                 } else {
@@ -576,7 +583,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         botRow.setOpaque(false);
-        JLabel stat = new JLabel("<html>Trạng thái<br><b>Chờ nhận phòng</b></html>");
+        JLabel stat = new JLabel("<html>Trạng thái<br><b>Đang sử dụng</b></html>");
         stat.setForeground(new Color(100, 115, 140));
         botRow.add(stat, "aligny center");
 
