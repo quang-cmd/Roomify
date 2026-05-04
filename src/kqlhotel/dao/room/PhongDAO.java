@@ -25,7 +25,7 @@ public class PhongDAO {
             return list;
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -79,7 +79,7 @@ public class PhongDAO {
             return list;
         }
 
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try (PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
              
             int index = 1;
@@ -125,7 +125,7 @@ public class PhongDAO {
         String sql = "INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?)";
         try {
             ConnectDB.getInstance().connect();
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, p.getMaPhong());
                 pstmt.setString(2, p.getLoaiPhong().getMaLoaiPhong());
@@ -143,7 +143,7 @@ public class PhongDAO {
         String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
         try {
             ConnectDB.getInstance().connect();
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, p.getLoaiPhong().getMaLoaiPhong());
                 pstmt.setInt(2, p.getTang());

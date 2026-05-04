@@ -32,7 +32,7 @@ public class StatisticsDAO {
             "FROM HoaDon " +
             "WHERE trangThai = 'DaThanhToan' " +
             "  AND ngayThanhToan BETWEEN ? AND ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
             ps.setTimestamp(2, Timestamp.valueOf(end));
@@ -55,7 +55,7 @@ public class StatisticsDAO {
 
     public int countBookings(LocalDateTime start, LocalDateTime end) {
         String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDat BETWEEN ? AND ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
             ps.setTimestamp(2, Timestamp.valueOf(end));
@@ -69,7 +69,7 @@ public class StatisticsDAO {
     }
 
     private int countQuery(String sql) {
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
             if (rs.next()) return rs.getInt(1);
@@ -101,7 +101,7 @@ public class StatisticsDAO {
             "WHERE trangThai = 'DaThanhToan' " +
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(startBound));
             ps.setTimestamp(2, Timestamp.valueOf(endBound));
@@ -143,7 +143,7 @@ public class StatisticsDAO {
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY CAST(ngayThanhToan AS DATE)";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
@@ -175,7 +175,7 @@ public class StatisticsDAO {
             "LEFT JOIN Phong p ON lp.maLoaiPhong = p.maLoaiPhong " +
             "GROUP BY lp.tenLoaiPhong " +
             "ORDER BY cnt DESC";
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
@@ -223,7 +223,7 @@ public class StatisticsDAO {
             ") ranked " +
             "WHERE rn = 1 " +
             "ORDER BY ngayDat DESC";
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, limit);
             try (ResultSet rs = ps.executeQuery()) {
@@ -273,7 +273,7 @@ public class StatisticsDAO {
             "GROUP BY ds.dt " +
             "ORDER BY ds.dt";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(start));
             ps.setDate(2, java.sql.Date.valueOf(end));
@@ -322,7 +322,7 @@ public class StatisticsDAO {
             "LEFT JOIN DailyStats ds2 ON ds.dt = ds2.dt " +
             "ORDER BY ds.dt";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(start));
             ps.setDate(2, java.sql.Date.valueOf(end));
@@ -357,7 +357,7 @@ public class StatisticsDAO {
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND hd.trangThai != 'DaHuy'";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
@@ -396,7 +396,7 @@ public class StatisticsDAO {
             "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
             "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
@@ -423,7 +423,7 @@ public class StatisticsDAO {
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND hd.trangThai != 'DaHuy'";
 
-        try (Connection con = ConnectDB.getInstance().getConnection();
+        try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));

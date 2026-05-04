@@ -370,7 +370,7 @@ public class CheckoutBUS {
         String sql = "SELECT donGiaDat FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
             java.sql.PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setString(1, maDatPhong);
@@ -395,7 +395,7 @@ public class CheckoutBUS {
         String sql = "SELECT ngayNhanDuKien FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
             java.sql.PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setString(1, maDatPhong);
@@ -507,7 +507,7 @@ public class CheckoutBUS {
         List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new ArrayList<>();
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
 
             StringBuilder sql = new StringBuilder(
                     "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, " +
@@ -568,7 +568,7 @@ public class CheckoutBUS {
         List<kqlhotel.gui.tabs.CheckoutPanel.CheckoutData> list = new ArrayList<>();
 
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
 
             String sql =
                     "SELECT hd.maHD, p.maPhong, lp.tenLoaiPhong, kh.hoTenKH, kh.maKH, kh.sdt, " +
@@ -628,7 +628,7 @@ public class CheckoutBUS {
 
     private Invoice getActiveByRoomFromBooking(String maPhong) {
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getConnection();
 
             String sql =
                     "SELECT TOP 1 hd.* " +

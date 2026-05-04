@@ -71,11 +71,11 @@ public class RoomDaoSqlServer implements RoomDao {
     }
 
     private Connection getOpenConnection() {
-        Connection connection = ConnectDB.getInstance().getConnection();
+        Connection connection = ConnectDB.getConnection();
         try {
             if (connection == null || connection.isClosed()) {
                 ConnectDB.getInstance().connect();
-                connection = ConnectDB.getInstance().getConnection();
+                connection = ConnectDB.getConnection();
             }
         } catch (Exception ex) {
             ex.printStackTrace();
