@@ -158,7 +158,7 @@ public class CustomersPanel extends JPanel {
     }
 
     private void loadCustomers() {
-        customers = bus.getAll();
+        customers = bus.getAllWithStats();
         updateCounts();
         renderCustomerList(customers);
         if (!customers.isEmpty()) {
