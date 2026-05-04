@@ -3,29 +3,132 @@ package kqlhotel.dao.customer;
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.DAO_Interface;
 import kqlhotel.entity.Customer;
-import kqlhotel.entity.CustomerBookingHistory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CustomerDAO implements DAO_Interface<Customer> {
-
+    
     @Override
     public List<Customer> getAll() {
         List<Customer> list = new ArrayList<>();
-        String sql = "SELECT * FROM KhachHang ORDER BY hoTenKH";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT * FROM KhachHang";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
             while (rs.next()) {
-                list.add(mapCustomerSimple(rs));
+                list.add(mapResultSetToCustomer(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return list;
     }
+
+    @Override
+    public Customer getById(String id) {
+        Customer customer = null;
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                customer = mapResultSetToCustomer(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return customer;
+    }
+
+    @Override
+    public boolean create(Customer customer) {
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "INSERT INTO KhachHang (maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, customer.getMaKH());
+            pstmt.setString(2, customer.getHoTenKH());
+            pstmt.setBoolean(3, customer.isGioiTinh());
+            pstmt.setTimestamp(4, Timestamp.valueOf(customer.getNgaySinh()));
+            pstmt.setString(5, customer.getEmail());
+            pstmt.setString(6, customer.getSdt());
+            pstmt.setString(7, customer.getCCCD());
+            pstmt.setString(8, customer.getQuocTich());
+            pstmt.setString(9, customer.getDiaChi());
+            pstmt.setString(10, customer.getHangKH());
+            pstmt.setInt(11, customer.getDiemTichLuy());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean update(Customer customer) {
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "UPDATE KhachHang SET hoTenKH = ?, gioiTinh = ?, ngaySinh = ?, email = ?, sdt = ?, " +
+                         "CCCD = ?, quocTich = ?, diaChi = ?, hangKH = ?, diemTichLuy = ? WHERE maKH = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, customer.getHoTenKH());
+            pstmt.setBoolean(2, customer.isGioiTinh());
+            pstmt.setTimestamp(3, Timestamp.valueOf(customer.getNgaySinh()));
+            pstmt.setString(4, customer.getEmail());
+            pstmt.setString(5, customer.getSdt());
+            pstmt.setString(6, customer.getCCCD());
+            pstmt.setString(7, customer.getQuocTich());
+            pstmt.setString(8, customer.getDiaChi());
+            pstmt.setString(9, customer.getHangKH());
+            pstmt.setInt(10, customer.getDiemTichLuy());
+            pstmt.setString(11, customer.getMaKH());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean delete(String id) {
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "DELETE FROM KhachHang WHERE maKH = ?";
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private Customer mapResultSetToCustomer(ResultSet rs) throws SQLException {
+        Customer customer = new Customer();
+        customer.setMaKH(rs.getString("maKH"));
+        customer.setHoTenKH(rs.getString("hoTenKH"));
+        customer.setGioiTinh(rs.getBoolean("gioiTinh"));
+        Timestamp ns = rs.getTimestamp("ngaySinh");
+        if (ns != null) {
+            customer.setNgaySinh(ns.toLocalDateTime());
+        }
+        customer.setEmail(rs.getString("email"));
+        customer.setSdt(rs.getString("sdt"));
+        customer.setCCCD(rs.getString("CCCD"));
+        customer.setQuocTich(rs.getString("quocTich"));
+        customer.setDiaChi(rs.getString("diaChi"));
+        customer.setHangKH(rs.getString("hangKH"));
+        customer.setDiemTichLuy(rs.getInt("diemTichLuy"));
+        return customer;
+    }
+
+    // --- Premium UI Support Methods ---
 
     public List<Customer> getAllWithStats() {
         List<Customer> list = new ArrayList<>();
@@ -47,7 +150,14 @@ public class CustomerDAO implements DAO_Interface<Customer> {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                list.add(mapCustomer(rs));
+                Customer kh = mapResultSetToCustomer(rs);
+                // Stats
+                kh.setTongDatPhong(rs.getInt("tongDatPhong"));
+                kh.setTongChiTieu(rs.getDouble("tongChiTieu"));
+                Timestamp ndgn = rs.getTimestamp("ngayDatGanNhat");
+                if (ndgn != null) kh.setNgayDatGanNhat(ndgn.toLocalDateTime());
+                kh.setDangHoatDong(rs.getInt("dangHoatDong") == 1);
+                list.add(kh);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -56,160 +166,41 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         return list;
     }
 
-    @Override
-    public Customer getById(String id) {
-        String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapCustomerSimple(rs);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @Override
-    public boolean create(Customer kh) {
-        String sql =
-            "INSERT INTO KhachHang(maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) " +
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?)";
-
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            String nextId = generateNextCustomerId(con);
-            kh.setMaKH(nextId);
-            ps.setString(1, nextId);
-            ps.setString(2, kh.getHoTenKH());
-            ps.setBoolean(3, "Nam".equalsIgnoreCase(kh.getGioiTinh()));
-            if (kh.getNgaySinh() != null) {
-                ps.setTimestamp(4, new Timestamp(kh.getNgaySinh().getTime()));
-            } else {
-                ps.setTimestamp(4, Timestamp.valueOf("1990-01-01 00:00:00"));
-            }
-            ps.setString(5, (kh.getEmail() == null || kh.getEmail().isBlank()) ? null : kh.getEmail());
-            ps.setString(6, kh.getSdt());
-            ps.setString(7, kh.getCCCD());
-            ps.setString(8, (kh.getQuocTich() == null || kh.getQuocTich().isBlank()) ? "Viet Nam" : kh.getQuocTich());
-            ps.setString(9, (kh.getDiaChi() == null || kh.getDiaChi().isBlank()) ? null : kh.getDiaChi());
-            ps.setString(10, (kh.getHangKH() == null || kh.getHangKH().isBlank()) ? "Dong" : kh.getHangKH());
-            ps.setInt(11, kh.getDiemTichLuy());
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    @Override
-    public boolean update(Customer kh) {
-        String sql =
-            "UPDATE KhachHang SET hoTenKH=?, gioiTinh=?, ngaySinh=?, email=?, sdt=?, CCCD=?, quocTich=?, diaChi=?, hangKH=?, diemTichLuy=? " +
-            "WHERE maKH=?";
-
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, kh.getHoTenKH());
-            ps.setBoolean(2, "Nam".equalsIgnoreCase(kh.getGioiTinh()));
-            if (kh.getNgaySinh() != null) {
-                ps.setTimestamp(3, new Timestamp(kh.getNgaySinh().getTime()));
-            } else {
-                ps.setTimestamp(3, Timestamp.valueOf("1990-01-01 00:00:00"));
-            }
-            ps.setString(4, (kh.getEmail() == null || kh.getEmail().isBlank()) ? null : kh.getEmail());
-            ps.setString(5, kh.getSdt());
-            ps.setString(6, kh.getCCCD());
-            ps.setString(7, (kh.getQuocTich() == null || kh.getQuocTich().isBlank()) ? "Viet Nam" : kh.getQuocTich());
-            ps.setString(8, (kh.getDiaChi() == null || kh.getDiaChi().isBlank()) ? null : kh.getDiaChi());
-            ps.setString(9, (kh.getHangKH() == null || kh.getHangKH().isBlank()) ? "Dong" : kh.getHangKH());
-            ps.setInt(10, kh.getDiemTichLuy());
-            ps.setString(11, kh.getMaKH());
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    @Override
-    public boolean delete(String id) {
-        String sql = "DELETE FROM KhachHang WHERE maKH = ?";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, id);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public List<CustomerBookingHistory> getBookingHistory(String maKH) {
-        List<CustomerBookingHistory> list = new ArrayList<>();
-        String sql =
-            "SELECT maHD, maDatPhong, ngayLapHD, tongTienThanhToan, trangThai " +
-            "FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
-
+    public List<kqlhotel.entity.CustomerBookingHistory> getBookingHistory(String maKH) {
+        List<kqlhotel.entity.CustomerBookingHistory> list = new ArrayList<>();
+        String sql = "SELECT maHD, ngayLapHD, tongTienThanhToan, tinhTrang FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maKH);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    CustomerBookingHistory item = new CustomerBookingHistory();
-                    item.setMaHoaDon(rs.getString("maHD"));
-                    item.setMaDatPhong(rs.getString("maDatPhong"));
-                    item.setNgayLap(rs.getTimestamp("ngayLapHD"));
+                    kqlhotel.entity.CustomerBookingHistory item = new kqlhotel.entity.CustomerBookingHistory();
+                    item.setMaHD(rs.getString("maHD"));
+                    Timestamp nlhd = rs.getTimestamp("ngayLapHD");
+                    if (nlhd != null) item.setNgayLapHD(nlhd.toLocalDateTime());
                     item.setTongTien(rs.getDouble("tongTienThanhToan"));
-                    item.setTrangThai(rs.getString("trangThai"));
+                    item.setTinhTrang(rs.getString("tinhTrang"));
                     list.add(item);
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return list;
     }
 
-    private Customer mapCustomer(ResultSet rs) throws SQLException {
-        Customer kh = mapCustomerSimple(rs);
-        // Stats
-        kh.setTongDatPhong(rs.getInt("tongDatPhong"));
-        kh.setTongChiTieu(rs.getDouble("tongChiTieu"));
-        kh.setNgayDatGanNhat(rs.getTimestamp("ngayDatGanNhat"));
-        kh.setDangHoatDong(rs.getBoolean("dangHoatDong"));
-        return kh;
-    }
-
-    private Customer mapCustomerSimple(ResultSet rs) throws SQLException {
-        Customer kh = new Customer();
-        kh.setMaKH(rs.getString("maKH"));
-        kh.setHoTenKH(rs.getString("hoTenKH"));
-        kh.setQuocTich(rs.getString("quocTich"));
-        kh.setDiaChi(rs.getString("diaChi"));
-        kh.setHangKH(rs.getString("hangKH"));
-        kh.setGioiTinh(rs.getBoolean("gioiTinh") ? "Nam" : "Nu");
-        kh.setNgaySinh(rs.getTimestamp("ngaySinh"));
-        kh.setEmail(rs.getString("email"));
-        kh.setSdt(rs.getString("sdt"));
-        kh.setCCCD(rs.getString("CCCD"));
-        kh.setDiemTichLuy(rs.getInt("diemTichLuy"));
-        return kh;
-    }
-
-    private String generateNextCustomerId(Connection con) throws Exception {
-        String sql = "SELECT MAX(CAST(SUBSTRING(maKH, 3, LEN(maKH) - 2) AS INT)) AS maxId FROM KhachHang";
+    public String generateNextCustomerId(Connection con) throws SQLException {
+        String sql = "SELECT MAX(maKH) FROM KhachHang";
         try (PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            int next = 1;
             if (rs.next()) {
-                next = rs.getInt("maxId") + 1;
+                String lastId = rs.getString(1);
+                if (lastId != null && lastId.startsWith("KH")) {
+                    int num = Integer.parseInt(lastId.substring(2)) + 1;
+                    return String.format("KH%03d", num);
+                }
             }
-            return String.format("KH%03d", next);
+            return "KH001";
         }
     }
 }
