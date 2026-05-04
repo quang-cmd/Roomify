@@ -10,7 +10,7 @@ public class ServiceDAO {
 
     public List<Service> getAll() {
         List<Service> list = new ArrayList<>();
-        String sql = "SELECT maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV FROM DichVu";
+        String sql = "SELECT maDV, tenDV, donGia, moTaDV, trangThaiDV FROM DichVu";
         try (Connection con = ConnectDB.getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
@@ -25,7 +25,8 @@ public class ServiceDAO {
 
     public List<Service> getAllActive() {
         List<Service> list = new ArrayList<>();
-        String sql = "SELECT maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV FROM DichVu WHERE trangThaiDV = 'DangHoatDong'";
+        String sql = "SELECT maDV, tenDV, donGia, moTaDV, trangThaiDV FROM DichVu WHERE trangThaiDV = 'DangHoatDong'";
+
         try (Connection con = ConnectDB.getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
@@ -39,7 +40,7 @@ public class ServiceDAO {
     }
 
     public boolean insert(Service s) {
-        String sql = "INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO DichVu (maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES (?, ?, ?, ?, ?)";
         try (Connection con = ConnectDB.getConnection()) {
             if (s.getMaDV() == null || s.getMaDV().isBlank()) {
                 s.setMaDV(generateNextId(con));
@@ -48,9 +49,8 @@ public class ServiceDAO {
                 ps.setString(1, s.getMaDV());
                 ps.setString(2, s.getTenDV());
                 ps.setDouble(3, s.getGia());
-                ps.setString(4, s.getLoaiDV());
-                ps.setString(5, s.getMoTa());
-                ps.setString(6, s.getTrangThai());
+                ps.setString(4, s.getMoTa());
+                ps.setString(5, s.getTrangThai());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -75,15 +75,14 @@ public class ServiceDAO {
 
 
     public boolean update(Service s) {
-        String sql = "UPDATE DichVu SET tenDV = ?, donGia = ?, loaiDV = ?, moTaDV = ?, trangThaiDV = ? WHERE maDV = ?";
+        String sql = "UPDATE DichVu SET tenDV = ?, donGia = ?, moTaDV = ?, trangThaiDV = ? WHERE maDV = ?";
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, s.getTenDV());
             ps.setDouble(2, s.getGia());
-            ps.setString(3, s.getLoaiDV());
-            ps.setString(4, s.getMoTa());
-            ps.setString(5, s.getTrangThai());
-            ps.setString(6, s.getMaDV());
+            ps.setString(3, s.getMoTa());
+            ps.setString(4, s.getTrangThai());
+            ps.setString(5, s.getMaDV());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -109,9 +108,9 @@ public class ServiceDAO {
             rs.getString("maDV"),
             rs.getString("tenDV"),
             rs.getDouble("donGia"),
-            rs.getString("loaiDV"),
             rs.getString("moTaDV"),
             rs.getString("trangThaiDV")
         );
     }
+
 }

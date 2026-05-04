@@ -4,18 +4,16 @@ public class Service {
     private String maDV;
     private String tenDV;
     private double gia;
-    private String loaiDV;
     private String moTa;
     private String trangThai;
 
     public Service() {}
 
     public Service(String maDV, String tenDV, double gia,
-                   String loaiDV, String moTa, String trangThai) {
+                   String moTa, String trangThai) {
         this.maDV = maDV;
         this.tenDV = tenDV;
         this.gia = gia;
-        this.loaiDV = loaiDV;
         this.moTa = moTa;
         this.trangThai = trangThai;
     }
@@ -31,10 +29,9 @@ public class Service {
     public void setGia(double gia) { this.gia = gia; }
     public double getDonGia() { return gia; } // Alias for compatibility
 
-    public String getLoaiDV() { return loaiDV; }
-    public void setLoaiDV(String loaiDV) { this.loaiDV = loaiDV; }
 
     public String getMoTa() { return moTa; }
+
     public void setMoTa(String moTa) { this.moTa = moTa; }
 
     public String getTrangThai() { return trangThai; }
