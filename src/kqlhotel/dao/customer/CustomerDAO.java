@@ -124,9 +124,10 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         customer.setQuocTich(rs.getString("quocTich"));
         customer.setDiaChi(rs.getString("diaChi"));
         customer.setHangKH(rs.getString("hangKH"));
-        customer.setDiemTichLuy(rs.getInt("diemTichLuy"));
         return customer;
     }
+
+    // --- Premium UI Support Methods ---
 
     // --- Premium UI Support Methods ---
 
@@ -155,7 +156,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
                 kh.setTongDatPhong(rs.getInt("tongDatPhong"));
                 kh.setTongChiTieu(rs.getDouble("tongChiTieu"));
                 Timestamp ndgn = rs.getTimestamp("ngayDatGanNhat");
-                if (ndgn != null) kh.setNgayDatGanNhat(ndgn.toLocalDateTime());
+                if (ndgn != null) kh.setNgayDatGanNhatDate(new java.util.Date(ndgn.getTime()));
                 kh.setDangHoatDong(rs.getInt("dangHoatDong") == 1);
                 list.add(kh);
             }
@@ -168,7 +169,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
 
     public List<kqlhotel.entity.CustomerBookingHistory> getBookingHistory(String maKH) {
         List<kqlhotel.entity.CustomerBookingHistory> list = new ArrayList<>();
-        String sql = "SELECT maHD, ngayLapHD, tongTienThanhToan, tinhTrang FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
+        String sql = "SELECT maHD, ngayLapHD, tongTienThanhToan, trangThai FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maKH);
@@ -179,7 +180,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
                     Timestamp nlhd = rs.getTimestamp("ngayLapHD");
                     if (nlhd != null) item.setNgayLapHD(nlhd.toLocalDateTime());
                     item.setTongTien(rs.getDouble("tongTienThanhToan"));
-                    item.setTinhTrang(rs.getString("tinhTrang"));
+                    item.setTinhTrang(rs.getString("trangThai"));
                     list.add(item);
                 }
             }

@@ -114,7 +114,7 @@ public class ServicesPanel extends JPanel {
 
 
     private void loadServices() {
-        services = bus.getAll();
+        services = bus.getAllDetailed();
         long active = services.stream().filter(s -> "DangHoatDong".equalsIgnoreCase(s.getTrangThai())).count();
         countLabel.setText(services.size() + " dịch vụ · " + active + " đang hoạt động");
         renderGrid();

@@ -17,7 +17,7 @@ public class Customer {
     private String hangKH;
     private int diemTichLuy;
     
-    // Statistics for Premium UI
+    // Premium Stats
     private int tongDatPhong;
     private double tongChiTieu;
     private LocalDateTime ngayDatGanNhat;
@@ -25,15 +25,24 @@ public class Customer {
 
     public Customer() {}
 
-    // Group's original methods
     public String getMaKH() { return maKH; }
     public void setMaKH(String maKH) { this.maKH = maKH; }
     public String getHoTenKH() { return hoTenKH; }
     public void setHoTenKH(String hoTenKH) { this.hoTenKH = hoTenKH; }
     public boolean isGioiTinh() { return gioiTinh; }
     public void setGioiTinh(boolean gioiTinh) { this.gioiTinh = gioiTinh; }
+    public String getGioiTinh() { return gioiTinh ? "Nam" : "Nữ"; }
+    public void setGioiTinh(String gt) { this.gioiTinh = "Nam".equalsIgnoreCase(gt); }
+    
     public LocalDateTime getNgaySinh() { return ngaySinh; }
     public void setNgaySinh(LocalDateTime ngaySinh) { this.ngaySinh = ngaySinh; }
+    public Date getNgaySinhDate() {
+        return ngaySinh == null ? null : Date.from(ngaySinh.atZone(ZoneId.systemDefault()).toInstant());
+    }
+    public void setNgaySinhDate(Date date) {
+        if (date != null) this.ngaySinh = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public String getSdt() { return sdt; }
@@ -49,28 +58,18 @@ public class Customer {
     public int getDiemTichLuy() { return diemTichLuy; }
     public void setDiemTichLuy(int diemTichLuy) { this.diemTichLuy = diemTichLuy; }
 
-    // Premium UI Aliases and Stats
-    public String getGioiTinh() { return gioiTinh ? "Nam" : "Nữ"; }
-    public void setGioiTinh(String gt) { this.gioiTinh = "Nam".equalsIgnoreCase(gt); }
-    
-    public Date getNgaySinhDate() { 
-        return ngaySinh == null ? null : Date.from(ngaySinh.atZone(ZoneId.systemDefault()).toInstant()); 
-    }
-    public void setNgaySinh(Date date) {
-        if (date != null) {
-            this.ngaySinh = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-        }
-    }
-    
     public int getTongDatPhong() { return tongDatPhong; }
     public void setTongDatPhong(int tongDatPhong) { this.tongDatPhong = tongDatPhong; }
     public double getTongChiTieu() { return tongChiTieu; }
     public void setTongChiTieu(double tongChiTieu) { this.tongChiTieu = tongChiTieu; }
     public LocalDateTime getNgayDatGanNhat() { return ngayDatGanNhat; }
+    public void setNgayDatGanNhat(LocalDateTime ngayDatGanNhat) { this.ngayDatGanNhat = ngayDatGanNhat; }
     public Date getNgayDatGanNhatDate() {
         return ngayDatGanNhat == null ? null : Date.from(ngayDatGanNhat.atZone(ZoneId.systemDefault()).toInstant());
     }
-    public void setNgayDatGanNhat(LocalDateTime ngayDatGanNhat) { this.ngayDatGanNhat = ngayDatGanNhat; }
+    public void setNgayDatGanNhatDate(Date date) {
+        if (date != null) this.ngayDatGanNhat = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
     public boolean isDangHoatDong() { return dangHoatDong; }
     public void setDangHoatDong(boolean dangHoatDong) { this.dangHoatDong = dangHoatDong; }
 }
