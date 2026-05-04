@@ -583,7 +583,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         botRow.setOpaque(false);
-        JLabel stat = new JLabel("<html>Trạng thái<br><b>Chờ nhận phòng</b></html>");
+        JLabel stat = new JLabel("<html>Trạng thái<br><b>Đang sử dụng</b></html>");
         stat.setForeground(new Color(100, 115, 140));
         botRow.add(stat, "aligny center");
 

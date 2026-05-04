@@ -1,5 +1,6 @@
 package kqlhotel.gui.tabs;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.util.Arrays;
 import javax.swing.JOptionPane;
@@ -7,8 +8,6 @@ import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPasswordField;
 import javax.swing.SwingConstants;
-
-import kqlhotel.gui.Session;
 import kqlhotel.gui.components.AppTextField;
 import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
@@ -19,6 +18,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.service.EmailService;
 import javax.swing.JCheckBox;
+import javax.swing.JPanel;
 
 public class LoginPanel extends LoginBackgroundPanel {
     private final Runnable onLoginSuccess;
@@ -201,30 +201,6 @@ public class LoginPanel extends LoginBackgroundPanel {
 
             Arrays.fill(passwordValue, '\0');
 
-            // Tạo Account
-            kqlhotel.entity.Account acc = new kqlhotel.entity.Account(
-                    rs.getString("tenDangNhap"),
-                    rs.getString("matKhau"),
-                    rs.getString("vaiTro"),
-                    rs.getString("trangThaiTK")
-            );
-
-            // Lấy Staff
-            kqlhotel.bus.staff.StaffBUS staffBUS = new kqlhotel.bus.staff.StaffBUS();
-
-            kqlhotel.entity.Staff foundStaff = null;
-            for (kqlhotel.entity.Staff s : staffBUS.getAll()) {
-                if (s.getAccount().getUsername().equals(acc.getUsername())) {
-                    foundStaff = s;
-                    break;
-                }
-            }
-
-            // Lưu session
-            Session.currentAccount = acc;
-            Session.currentStaff = foundStaff;
-
-            // chuyển màn hình
             if (onLoginSuccess != null) {
                 onLoginSuccess.run();
             }

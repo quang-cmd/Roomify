@@ -9,6 +9,7 @@ import kqlhotel.bus.staff.StaffBUS;
 import kqlhotel.entity.Account;
 import kqlhotel.entity.Staff;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.utils.IconLoader;
 
 public class EditStaffDialog extends JDialog {
 
@@ -131,9 +132,9 @@ public class EditStaffDialog extends JDialog {
             }
         };
         icon.setOpaque(false);
-        JLabel iconLbl = new JLabel("✏", SwingConstants.CENTER);
-        iconLbl.setForeground(Color.WHITE);
-        iconLbl.setFont(iconLbl.getFont().deriveFont(20f));
+        JLabel iconLbl = new JLabel("", SwingConstants.CENTER);
+        ImageIcon clientIcon = IconLoader.loadIcon("client.png", 24, 24);
+        iconLbl.setIcon(clientIcon);
         icon.add(iconLbl);
 
         JPanel textGroup = new JPanel(new MigLayout("insets 0, wrap 1, gap 2"));
@@ -254,7 +255,7 @@ public class EditStaffDialog extends JDialog {
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("✔ Xác nhận cập nhật");
+        PrimaryButton btnConfirm = new PrimaryButton("Xác nhận cập nhật");
         btnConfirm.setBackground(new Color(20, 80, 160));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());
