@@ -1,12 +1,13 @@
 package kqlhotel.gui.dialog;
 
-import kqlhotel.bus.Invoice.InvoicesBUS;
+import kqlhotel.bus.invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.DateUtils;
+import kqlhotel.gui.components.PrimaryButton;
 
 import javax.swing.*;
 import java.awt.*;
@@ -126,6 +127,7 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton selectAllBtn = new JButton("Chọn tất cả");
         selectAllBtn.setPreferredSize(new Dimension(130, 36));
+        selectAllBtn.setFocusPainted(false);
         selectAllBtn.addActionListener(e -> {
             for (JCheckBox cb : checkBoxes) {
                 if (cb.isEnabled()) {
@@ -136,12 +138,32 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton unselectAllBtn = new JButton("Bỏ chọn tất cả");
         unselectAllBtn.setPreferredSize(new Dimension(140, 36));
+        unselectAllBtn.setFocusPainted(false);
         unselectAllBtn.addActionListener(e -> checkBoxes.forEach(cb -> cb.setSelected(false)));
 
-        JButton printBtn = new JButton("In hóa đơn đã chọn");
+        PrimaryButton printBtn = new PrimaryButton("In hóa đơn đã chọn");
         printBtn.setPreferredSize(new Dimension(170, 36));
+        printBtn.setMinimumSize(new Dimension(170, 36));
+        printBtn.setMaximumSize(new Dimension(170, 36));
         printBtn.setBackground(new Color(40, 167, 69));
         printBtn.setForeground(Color.WHITE);
+        printBtn.setArc(14);
+        printBtn.setFocusPainted(false);
+        printBtn.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
+        printBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        printBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                printBtn.setBackground(new Color(25, 135, 84));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                printBtn.setBackground(new Color(40, 167, 69));
+            }
+        });
+
         printBtn.addActionListener(e -> printSelectedInvoices());
 
         left.add(selectAllBtn);
@@ -153,7 +175,9 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton closeBtn = new JButton("Đóng");
         closeBtn.setPreferredSize(new Dimension(120, 36));
+        closeBtn.setFocusPainted(false);
         closeBtn.addActionListener(e -> dispose());
+
         right.add(closeBtn);
 
         footer.add(left, BorderLayout.WEST);
