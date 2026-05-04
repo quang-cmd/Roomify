@@ -396,11 +396,11 @@ public class SqlCheckInService implements CheckInService {
     }
 
     private Connection openConnection() {
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         try {
             if (con == null || con.isClosed()) {
                 ConnectDB.getInstance().connect();
-                con = ConnectDB.getConnection();
+                con = ConnectDB.getInstance().getConnection();
             }
         } catch (Exception e) {
             e.printStackTrace();
