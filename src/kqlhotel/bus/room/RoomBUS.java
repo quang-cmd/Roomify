@@ -60,12 +60,4 @@ public class RoomBUS {
         if (p.getRoomId() == null || p.getRoomId().trim().isEmpty()) return false;
         return roomDAO.update(p);
     }
-
-    public Invoice getActiveInvoiceForRoom(String roomId) {
-        return new InvoiceDAO().getActiveByRoom(roomId);
-    }
-
-    public Customer getCustomerByMaKH(String maKH) {
-        return new CustomerDAO().getById(maKH);
-    }
 }

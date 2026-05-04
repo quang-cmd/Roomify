@@ -27,7 +27,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             ") stats ON stats.maKH = kh.maKH " +
             "ORDER BY kh.hoTenKH";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -44,7 +44,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
     @Override
     public Customer getById(String id) {
         String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -64,7 +64,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             "INSERT INTO KhachHang(maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) " +
             "VALUES(?,?,?,?,?,?,?,?,?,?,?)";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             String nextId = generateNextCustomerId(con);
             kh.setMaKH(nextId);
@@ -96,7 +96,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             "UPDATE KhachHang SET hoTenKH=?, gioiTinh=?, ngaySinh=?, email=?, sdt=?, CCCD=?, quocTich=?, diaChi=?, hangKH=?, diemTichLuy=? " +
             "WHERE maKH=?";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, kh.getHoTenKH());
             ps.setBoolean(2, "Nam".equalsIgnoreCase(kh.getGioiTinh()));
@@ -123,7 +123,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
     @Override
     public boolean delete(String id) {
         String sql = "DELETE FROM KhachHang WHERE maKH = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, id);
             return ps.executeUpdate() > 0;
@@ -139,7 +139,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             "SELECT maHD, maDatPhong, ngayLapHD, tongTienThanhToan, trangThai " +
             "FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maKH);
             try (ResultSet rs = ps.executeQuery()) {

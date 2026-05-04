@@ -150,8 +150,8 @@ public class RoomSearchDialog extends JDialog {
         String statusQuery = (String) cbStatus.getSelectedItem();
 
         List<Room> results = new ArrayList<>();
-        RoomBUS bus = roomPanel.getRoomBUS();
-        List<Room> currentRooms = roomPanel.getRoomList();
+        RoomBUS bus = roomPanel.getPhongBUS();
+        List<Room> currentRooms = roomPanel.getPhongList();
         
         if (currentRooms != null) {
             for (Room r : currentRooms) {

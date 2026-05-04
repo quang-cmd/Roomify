@@ -11,7 +11,7 @@ public class ServiceDAO {
     public List<Service> getAll() {
         List<Service> list = new ArrayList<>();
         String sql = "SELECT maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV FROM DichVu";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
@@ -27,7 +27,7 @@ public class ServiceDAO {
         List<Service> list = new ArrayList<>();
         String sql = "SELECT maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV FROM DichVu WHERE trangThaiDV = 'DangHoatDong'";
 
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              Statement st = con.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
@@ -41,7 +41,7 @@ public class ServiceDAO {
 
     public boolean insert(Service s) {
         String sql = "INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.getInstance().getConnection()) {
             if (s.getMaDV() == null || s.getMaDV().isBlank()) {
                 s.setMaDV(generateNextId(con));
             }
@@ -78,7 +78,7 @@ public class ServiceDAO {
 
     public boolean update(Service s) {
         String sql = "UPDATE DichVu SET tenDV = ?, donGia = ?, loaiDV = ?, moTaDV = ?, trangThaiDV = ? WHERE maDV = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, s.getTenDV());
             ps.setDouble(2, s.getGia());
@@ -96,7 +96,7 @@ public class ServiceDAO {
 
     public boolean updateStatus(String maDV, String trangThai) {
         String sql = "UPDATE DichVu SET trangThaiDV = ? WHERE maDV = ?";
-        try (Connection con = ConnectDB.getConnection();
+        try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, trangThai);
             ps.setString(2, maDV);

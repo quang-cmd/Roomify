@@ -18,9 +18,9 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import kqlhotel.bus.room.PhongBUS;
-import kqlhotel.entity.LoaiPhong;
-import kqlhotel.entity.Phong;
+import kqlhotel.bus.room.RoomBUS;
+import kqlhotel.entity.RoomType;
+import kqlhotel.entity.Room;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.dao.invoice.InvoiceDAO;
@@ -40,13 +40,13 @@ public class RoomManagementPanel extends JPanel {
     private static final Color COLOR_BAOTRI = new Color(230, 154, 30);
     private static final Color COLOR_DANGSUDUNG = new Color(239, 68, 68);
 
-    private final PhongBUS phongBUS = new PhongBUS();
-    private List<kqlhotel.entity.Phong> phongList;
+    private final RoomBUS phongBUS = new RoomBUS();
+    private List<kqlhotel.entity.Room> phongList;
     private JLabel subtitle;
     private JPanel statsRow;
 
-    public List<kqlhotel.entity.Phong> getPhongList() { return phongList; }
-    public PhongBUS getPhongBUS() { return phongBUS; }
+    public List<kqlhotel.entity.Room> getPhongList() { return phongList; }
+    public RoomBUS getPhongBUS() { return phongBUS; }
 
     public RoomManagementPanel() {
         setOpaque(false);
@@ -275,8 +275,8 @@ public class RoomManagementPanel extends JPanel {
         }
 
         gridContainer.removeAll();
-        for (kqlhotel.entity.Phong p : phongList) {
-            String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
+        for (kqlhotel.entity.Room p : phongList) {
+            String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getStatus());
             if (filter.equals("Tất cả")) {
                 if (!guiStatus.equals("Bảo trì")) {
                     gridContainer.add(createRoomCard(p));
@@ -289,9 +289,9 @@ public class RoomManagementPanel extends JPanel {
         gridContainer.repaint();
     }
 
-    public JPanel createRoomCard(kqlhotel.entity.Phong p) {
-        kqlhotel.entity.LoaiPhong lp = p.getLoaiPhong();
-        String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
+    public JPanel createRoomCard(kqlhotel.entity.Room p) {
+        kqlhotel.entity.RoomType lp = p.getRoomType();
+        String guiStatus = phongBUS.mapDbStatusToGuiStatus(p.getStatus());
         Color statusColor = COLOR_TRONG;
         if (guiStatus.equals("Bảo trì")) statusColor = COLOR_BAOTRI;
         else if (guiStatus.equals("Đang sử dụng")) statusColor = COLOR_DANGSUDUNG;
@@ -304,10 +304,10 @@ public class RoomManagementPanel extends JPanel {
         topRow.setOpaque(false);
         JPanel numGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
         numGroup.setOpaque(false);
-        JLabel roomNo = new JLabel(p.getMaPhong());
+        JLabel roomNo = new JLabel(p.getRoomId());
         roomNo.setFont(roomNo.getFont().deriveFont(Font.BOLD, 18f));
         roomNo.setForeground(new Color(30, 50, 80));
-        JLabel floor = new JLabel("Tầng " + p.getTang());
+        JLabel floor = new JLabel("Tầng " + p.getFloor());
         floor.setFont(floor.getFont().deriveFont(11f));
         floor.setForeground(new Color(130, 145, 170));
         numGroup.add(roomNo); numGroup.add(floor);
@@ -345,7 +345,7 @@ public class RoomManagementPanel extends JPanel {
         // Type & Status
         JPanel midRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         midRow.setOpaque(false);
-        midRow.add(makeBadge(lp.getTenLoaiPhong(), new Color(240, 244, 255), new Color(80, 120, 200)));
+        midRow.add(makeBadge(lp.getRoomTypeName(), new Color(240, 244, 255), new Color(80, 120, 200)));
         midRow.add(makeBadge("• " + guiStatus, new Color(statusColor.getRed(), statusColor.getGreen(), statusColor.getBlue(), 25), statusColor));
 
         // Info
@@ -356,14 +356,14 @@ public class RoomManagementPanel extends JPanel {
         Customer activeCust = null;
         if (guiStatus.equals("Đang sử dụng")) {
             InvoiceDAO invDAO = new InvoiceDAO();
-            activeInv = invDAO.getActiveByRoom(p.getMaPhong());
+            activeInv = invDAO.getActiveByRoom(p.getRoomId());
             if (activeInv != null && activeInv.getMaKhachHang() != null) {
                 CustomerDAO custDAO = new CustomerDAO();
                 activeCust = custDAO.getById(activeInv.getMaKhachHang());
             }
         }
         
-        String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChuaToiDa() + " khách");
+        String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getMaxCapacity() + " khách");
         
         JLabel lblGuest = new JLabel(" " + occupantStr);
         try {
@@ -382,7 +382,7 @@ public class RoomManagementPanel extends JPanel {
         lblGuest.setFont(lblGuest.getFont().deriveFont(11f));
         infoRow.add(lblGuest);
 
-        JLabel lblArea = new JLabel(" " + lp.getDienTich() + "m²");
+        JLabel lblArea = new JLabel(" " + lp.getArea() + "m²");
         try {
             java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/location.png");
             if (url != null) {
@@ -402,7 +402,7 @@ public class RoomManagementPanel extends JPanel {
         // Price
         JPanel priceGroup = new JPanel(new MigLayout("insets 0,wrap 1,gap 0", "[]", "[]"));
         priceGroup.setOpaque(false);
-        JLabel priceLbl = new JLabel(String.format("%,.0fđ", lp.getGiaPhong()));
+        JLabel priceLbl = new JLabel(String.format("%,.0fđ", lp.getPrice()));
         priceLbl.setFont(priceLbl.getFont().deriveFont(Font.BOLD, 14f));
         priceLbl.setForeground(new Color(30, 50, 80));
         priceGroup.add(priceLbl);
@@ -434,7 +434,7 @@ public class RoomManagementPanel extends JPanel {
                     java.awt.Container c = RoomManagementPanel.this;
                     while (c != null && !(c instanceof kqlhotel.gui.AppFrame)) c = c.getParent();
                     if (c instanceof kqlhotel.gui.AppFrame) {
-                        ((kqlhotel.gui.AppFrame) c).navigateToCheckoutWithRoom(p.getMaPhong());
+                        ((kqlhotel.gui.AppFrame) c).navigateToCheckoutWithRoom(p.getRoomId());
                     }
                 };
                 kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(

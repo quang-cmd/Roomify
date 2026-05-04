@@ -13,7 +13,7 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
     @Override
     public List<RoomType> getAll() {
         List<RoomType> list = new ArrayList<>();
-        Connection con = ConnectDB.getConnection();
+        Connection con = ConnectDB.getInstance().getConnection();
         try (Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM LoaiPhong")) {
             while (rs.next()) {
@@ -29,7 +29,7 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
     public RoomType getById(String id) {
         RoomType roomType = null;
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             String sql = "SELECT * FROM LoaiPhong WHERE maLoaiPhong = ?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);
@@ -47,7 +47,7 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
     public boolean create(RoomType roomType) {
         String sql = "INSERT INTO LoaiPhong (maLoaiPhong, tenLoaiPhong, soLuongPhong, giaPhong, sucChuaToiDa, dienTich, moTa, tienNghi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, roomType.getRoomTypeId());
             pstmt.setString(2, roomType.getRoomTypeName());
@@ -68,7 +68,7 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
     public boolean update(RoomType roomType) {
         String sql = "UPDATE LoaiPhong SET tenLoaiPhong = ?, soLuongPhong = ?, giaPhong = ?, sucChuaToiDa = ?, dienTich = ?, moTa = ?, tienNghi = ? WHERE maLoaiPhong = ?";
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, roomType.getRoomTypeName());
             pstmt.setInt(2, roomType.getRoomCount());
@@ -89,7 +89,7 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
     public boolean delete(String id) {
         String sql = "DELETE FROM LoaiPhong WHERE maLoaiPhong = ?";
         try {
-            Connection con = ConnectDB.getConnection();
+            Connection con = ConnectDB.getInstance().getConnection();
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, id);
             return pstmt.executeUpdate() > 0;

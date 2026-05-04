@@ -19,14 +19,38 @@ public class RoomDAO {
                      "FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong";
 
         try {
-            Connection con = ConnectDB.getConnection();
-            try (Statement stmt = con.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                while (rs.next()) {
-                    list.add(mapResultSetToRoom(rs));
-                }
+            ConnectDB.getInstance().connect();
+        } catch (SQLException | ClassNotFoundException e) {
+            System.err.println("Lỗi kết nối database: " + e.getMessage());
+            return list;
+        }
+
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                RoomType lp = new RoomType(
+                    rs.getString("maLoaiPhong"), // maLoaiPhong
+                    rs.getString("tenLoaiPhong"),
+                    rs.getInt("soLuongPhong"),
+                    rs.getDouble("giaPhong"),
+                    rs.getInt("sucChuaToiDa"),
+                    rs.getDouble("dienTich"),
+                    rs.getString("moTa"),
+                    rs.getString("tienNghi")
+                );
+
+                Room p = new Room(
+                    rs.getString("maPhong"),
+                    0.0, // Phong table doesn't have tienCoc
+                    lp,
+                    rs.getInt("tang"),
+                    rs.getString("trangThaiPhong")
+                );
+                list.add(p);
             }
         } catch (SQLException e) {
+            System.err.println("Lỗi truy vấn Phong: " + e.getMessage());
             e.printStackTrace();
         }
         return list;
@@ -36,13 +60,34 @@ public class RoomDAO {
         String sql = "SELECT p.*, lp.tenLoaiPhong, lp.soLuongPhong, lp.giaPhong, lp.sucChuaToiDa, lp.dienTich, lp.moTa, lp.tienNghi " +
                      "FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong WHERE p.maPhong = ?";
         try {
-            Connection con = ConnectDB.getConnection();
-            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
-                pstmt.setString(1, id);
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        return mapResultSetToRoom(rs);
-                    }
+            ConnectDB.getInstance().connect();
+        } catch (SQLException | ClassNotFoundException e) {
+            return null;
+        }
+
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setString(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    RoomType lp = new RoomType(
+                        rs.getString("maLoaiPhong"),
+                        rs.getString("tenLoaiPhong"),
+                        rs.getInt("soLuongPhong"),
+                        rs.getDouble("giaPhong"),
+                        rs.getInt("sucChuaToiDa"),
+                        rs.getDouble("dienTich"),
+                        rs.getString("moTa"),
+                        rs.getString("tienNghi")
+                    );
+
+                    return new Room(
+                        rs.getString("maPhong"),
+                        0.0,
+                        lp,
+                        rs.getInt("tang"),
+                        rs.getString("trangThaiPhong")
+                    );
                 }
             }
         } catch (SQLException e) {
@@ -51,41 +96,64 @@ public class RoomDAO {
         return null;
     }
 
-    public List<Room> search(String roomId, String roomTypeName, String status) {
+    public List<Room> search(String maPhong, String tenLoaiPhong, String trangThaiPhong) {
         List<Room> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT p.*, lp.tenLoaiPhong, lp.soLuongPhong, lp.giaPhong, lp.sucChuaToiDa, lp.dienTich, lp.moTa, lp.tienNghi " +
             "FROM Phong p JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong WHERE 1=1"
         );
 
-        if (roomId != null && !roomId.trim().isEmpty()) {
+        if (maPhong != null && !maPhong.trim().isEmpty()) {
             sql.append(" AND p.maPhong LIKE ?");
         }
-        if (roomTypeName != null && !roomTypeName.trim().isEmpty() && !roomTypeName.equals("All room types")) {
+        if (tenLoaiPhong != null && !tenLoaiPhong.trim().isEmpty() && !tenLoaiPhong.equals("Tất cả loại phòng")) {
             sql.append(" AND lp.tenLoaiPhong = ?");
         }
-        if (status != null && !status.trim().isEmpty() && !status.equals("All statuses")) {
+        if (trangThaiPhong != null && !trangThaiPhong.trim().isEmpty() && !trangThaiPhong.equals("Tất cả trạng thái")) {
             sql.append(" AND p.trangThaiPhong = ?");
         }
 
         try {
-            Connection con = ConnectDB.getConnection();
-            try (PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
-                int index = 1;
-                if (roomId != null && !roomId.trim().isEmpty()) {
-                    pstmt.setString(index++, "%" + roomId.trim() + "%");
-                }
-                if (roomTypeName != null && !roomTypeName.trim().isEmpty() && !roomTypeName.equals("All room types")) {
-                    pstmt.setString(index++, roomTypeName);
-                }
-                if (status != null && !status.trim().isEmpty() && !status.equals("All statuses")) {
-                    pstmt.setString(index++, status);
-                }
+            ConnectDB.getInstance().connect();
+        } catch (SQLException | ClassNotFoundException e) {
+            return list;
+        }
 
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        list.add(mapResultSetToRoom(rs));
-                    }
+        Connection con = ConnectDB.getInstance().getConnection();
+        try (PreparedStatement pstmt = con.prepareStatement(sql.toString())) {
+             
+            int index = 1;
+            if (maPhong != null && !maPhong.trim().isEmpty()) {
+                pstmt.setString(index++, "%" + maPhong.trim() + "%");
+            }
+            if (tenLoaiPhong != null && !tenLoaiPhong.trim().isEmpty() && !tenLoaiPhong.equals("Tất cả loại phòng")) {
+                pstmt.setString(index++, tenLoaiPhong);
+            }
+            if (trangThaiPhong != null && !trangThaiPhong.trim().isEmpty() && !trangThaiPhong.equals("Tất cả trạng thái")) {
+                pstmt.setString(index++, trangThaiPhong);
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    RoomType lp = new RoomType(
+                        rs.getString("maLoaiPhong"),
+                        rs.getString("tenLoaiPhong"),
+                        rs.getInt("soLuongPhong"),
+                        rs.getDouble("giaPhong"),
+                        rs.getInt("sucChuaToiDa"),
+                        rs.getDouble("dienTich"),
+                        rs.getString("moTa"),
+                        rs.getString("tienNghi")
+                    );
+
+                    Room p = new Room(
+                        rs.getString("maPhong"),
+                        0.0, // Phong table doesn't have tienCoc
+                        lp,
+                        rs.getInt("tang"),
+                        rs.getString("trangThaiPhong")
+                    );
+                    list.add(p);
                 }
             }
         } catch (SQLException e) {
@@ -93,11 +161,11 @@ public class RoomDAO {
         }
         return list;
     }
-
     public boolean create(Room p) {
         String sql = "INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES (?, ?, ?, ?)";
         try {
-            Connection con = ConnectDB.getConnection();
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, p.getRoomId());
                 pstmt.setString(2, p.getRoomType().getRoomTypeId());
@@ -105,7 +173,7 @@ public class RoomDAO {
                 pstmt.setString(4, p.getStatus());
                 return pstmt.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return false;
@@ -114,7 +182,8 @@ public class RoomDAO {
     public boolean update(Room p) {
         String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
         try {
-            Connection con = ConnectDB.getConnection();
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, p.getRoomType().getRoomTypeId());
                 pstmt.setInt(2, p.getFloor());
@@ -122,7 +191,7 @@ public class RoomDAO {
                 pstmt.setString(4, p.getRoomId());
                 return pstmt.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return false;
@@ -131,35 +200,16 @@ public class RoomDAO {
     public boolean updateStatus(String roomId, String status) {
         String sql = "UPDATE Phong SET trangThaiPhong = ? WHERE maPhong = ?";
         try {
-            Connection con = ConnectDB.getConnection();
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
             try (PreparedStatement pstmt = con.prepareStatement(sql)) {
                 pstmt.setString(1, status);
                 pstmt.setString(2, roomId);
                 return pstmt.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return false;
-    }
-
-    private Room mapResultSetToRoom(ResultSet rs) throws SQLException {
-        RoomType rt = new RoomType();
-        rt.setRoomTypeId(rs.getString("maLoaiPhong"));
-        rt.setRoomTypeName(rs.getString("tenLoaiPhong"));
-        rt.setDescription(rs.getString("moTa"));
-        rt.setAmenities(rs.getString("tienNghi"));
-        rt.setRoomCount(rs.getInt("soLuongPhong"));
-        rt.setPrice(rs.getDouble("giaPhong"));
-        rt.setMaxCapacity(rs.getInt("sucChuaToiDa"));
-        rt.setArea(rs.getDouble("dienTich"));
-
-        Room r = new Room();
-        r.setRoomId(rs.getString("maPhong"));
-        r.setFloor(rs.getInt("tang"));
-        r.setStatus(rs.getString("trangThaiPhong"));
-        r.setRoomType(rt);
-        r.setDeposit(0.0);
-        return r;
     }
 }
