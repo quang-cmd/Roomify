@@ -36,7 +36,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import kqlhotel.bus.customer.CustomerBUS;
-import kqlhotel.entity.KhachHangBookingHistory;
+import kqlhotel.entity.CustomerBookingHistory;
 import kqlhotel.entity.Customer;
 
 public class CustomersPanel extends JPanel {
@@ -443,20 +443,20 @@ public class CustomersPanel extends JPanel {
         section.add(title);
         section.add(Box.createVerticalStrut(14));
 
-        List<KhachHangBookingHistory> histories = bus.getBookingHistory(customer.getMaKH());
+        List<CustomerBookingHistory> histories = bus.getBookingHistory(customer.getMaKH());
         if (histories.isEmpty()) {
             section.add(createMutedLabel("Khách hàng này chưa có lịch sử đặt phòng."));
             return section;
         }
 
-        for (KhachHangBookingHistory history : histories) {
+        for (CustomerBookingHistory history : histories) {
             section.add(createHistoryRow(history));
             section.add(Box.createVerticalStrut(10));
         }
         return section;
     }
 
-    private JPanel createHistoryRow(KhachHangBookingHistory history) {
+    private JPanel createHistoryRow(CustomerBookingHistory history) {
         JPanel row = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
         row.setLayout(new BorderLayout());
         row.setBorder(new EmptyBorder(16, 16, 16, 16));

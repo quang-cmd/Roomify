@@ -2,7 +2,7 @@ package kqlhotel.bus.customer;
 
 import java.util.List;
 import kqlhotel.dao.customer.CustomerDAO;
-import kqlhotel.entity.KhachHangBookingHistory;
+import kqlhotel.entity.CustomerBookingHistory;
 import kqlhotel.entity.Customer;
 
 public class CustomerBUS {
@@ -13,7 +13,7 @@ public class CustomerBUS {
         return dao.getAll();
     }
 
-    public List<KhachHangBookingHistory> getBookingHistory(String maKH) {
+    public List<CustomerBookingHistory> getBookingHistory(String maKH) {
         return dao.getBookingHistory(maKH);
     }
 

@@ -3,7 +3,7 @@ package kqlhotel.dao.customer;
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.DAO_Interface;
 import kqlhotel.entity.Customer;
-import kqlhotel.entity.KhachHangBookingHistory;
+import kqlhotel.entity.CustomerBookingHistory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -133,8 +133,8 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         }
     }
 
-    public List<KhachHangBookingHistory> getBookingHistory(String maKH) {
-        List<KhachHangBookingHistory> list = new ArrayList<>();
+    public List<CustomerBookingHistory> getBookingHistory(String maKH) {
+        List<CustomerBookingHistory> list = new ArrayList<>();
         String sql =
             "SELECT maHD, maDatPhong, ngayLapHD, tongTienThanhToan, trangThai " +
             "FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
@@ -144,7 +144,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             ps.setString(1, maKH);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    KhachHangBookingHistory item = new KhachHangBookingHistory();
+                    CustomerBookingHistory item = new CustomerBookingHistory();
                     item.setMaHoaDon(rs.getString("maHD"));
                     item.setMaDatPhong(rs.getString("maDatPhong"));
                     item.setNgayLap(rs.getTimestamp("ngayLapHD"));

@@ -2,7 +2,7 @@ package kqlhotel.entity;
 
 import java.util.Date;
 
-public class KhachHangBookingHistory {
+public class CustomerBookingHistory {
     private String maHoaDon;
     private String maDatPhong;
     private Date ngayLap;
