@@ -16,8 +16,8 @@ public class SwapRoomDAO {
     public List<SwapRoomSearchResult> searchBookings(String bookingId, String guestName, String phoneNumber, String roomId) {
         List<SwapRoomSearchResult> results = new ArrayList<>();
         String sql =
-            "SELECT dp.maDatPhong, kh.maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
-            "ctdp.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, " +
+            "SELECT TRIM(dp.maDatPhong) as maDatPhong, TRIM(kh.maKH) as maKH, kh.hoTenKH, kh.sdt, kh.CCCD, " +
+            "TRIM(ctdp.maPhong) as maPhong, TRIM(p.maLoaiPhong) as maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, " +
             "ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, ctdp.soLuongNguoiO " +
             "FROM ChiTietDatPhong ctdp " +
             "JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
@@ -28,7 +28,7 @@ public class SwapRoomDAO {
             "AND (? = '' OR kh.hoTenKH LIKE ?) " +
             "AND (? = '' OR kh.sdt LIKE ?) " +
             "AND (? = '' OR ctdp.maPhong LIKE ?) " +
-            "ORDER BY dp.ngayNhanDuKien DESC, dp.maDatPhong DESC";
+            "ORDER BY ctdp.ngayNhanDuKien DESC, dp.maDatPhong DESC";
 
         try (Connection conn = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -72,7 +72,7 @@ public class SwapRoomDAO {
     public List<SwapRoomOption> getAvailableRooms(SwapRoomSearchResult booking) {
         List<SwapRoomOption> rooms = new ArrayList<>();
         String sql =
-            "SELECT p.maPhong, p.maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, p.tang, p.trangThaiPhong " +
+            "SELECT TRIM(p.maPhong) as maPhong, TRIM(p.maLoaiPhong) as maLoaiPhong, lp.tenLoaiPhong, lp.sucChuaToiDa, p.tang, p.trangThaiPhong " +
             "FROM Phong p " +
             "JOIN LoaiPhong lp ON lp.maLoaiPhong = p.maLoaiPhong " +
             "WHERE p.trangThaiPhong = 'Trong' " +

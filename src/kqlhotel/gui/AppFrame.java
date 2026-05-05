@@ -33,15 +33,16 @@ import kqlhotel.gui.tabs.CheckInPanel;
 import kqlhotel.gui.tabs.LoginPanel;
 import kqlhotel.gui.tabs.ShiftOpeningPanel;
 import kqlhotel.gui.tabs.StatisticsPanel;
+import kqlhotel.gui.tabs.UnderDevelopmentPanel;
 import kqlhotel.gui.tabs.CancelRoomPanel;
 import kqlhotel.gui.tabs.RoomManagementPanel;
 import kqlhotel.gui.tabs.StaffPanel;
 import kqlhotel.gui.tabs.CheckoutPanel;
 import kqlhotel.gui.tabs.PromotionsPanel;
 import kqlhotel.gui.tabs.InvoicesPanel;
-import kqlhotel.gui.tabs.SwapRoomPanel;
 import kqlhotel.gui.tabs.CustomersPanel;
 import kqlhotel.gui.tabs.ServicesPanel;
+import kqlhotel.gui.tabs.SwapRoomPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -53,8 +54,6 @@ public class AppFrame extends JFrame {
     private final JLabel pageSubtitleLabel = new JLabel();
     private final JLabel transitionTitle = new JLabel();
     private final JLabel transitionMessage = new JLabel();
-    private JLabel userNameLabel;
-    private JLabel userRoleLabel;
     private final Timer transitionTimer;
     private final Map<String, JPanel> menuItems = new LinkedHashMap<>();
     private final Map<String, JLabel> menuTextLabels = new LinkedHashMap<>();
@@ -125,9 +124,9 @@ public class AppFrame extends JFrame {
 
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
-        screenPanel.add(new SwapRoomPanel(), "swap-room");
         screenPanel.add(new CustomersPanel(this), "customers");
         screenPanel.add(new ServicesPanel(), "services");
+        screenPanel.add(new SwapRoomPanel(), "swap-room");
         activateRoute(currentRoute);
 
         contentWrap.add(screenPanel, BorderLayout.CENTER);
@@ -485,21 +484,18 @@ public class AppFrame extends JFrame {
         JPanel userArea = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill]", "[]"));
         userArea.setOpaque(false);
 
-        JPanel avatar = createCircleAvatar(ThemeColors.ACCENT, "ND", 13f);
+        JPanel avatar = createCircleAvatar(ThemeColors.ACCENT, "NL", 13f);
 
         JPanel userText = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
         userText.setOpaque(false);
-
-        userNameLabel = new JLabel("Người dùng");
-        userNameLabel.setForeground(ThemeColors.TEXT_PRIMARY);
-        userNameLabel.setFont(userNameLabel.getFont().deriveFont(Font.BOLD, 13f));
-
-        userRoleLabel = new JLabel("Nhân viên");
-        userRoleLabel.setForeground(ThemeColors.TEXT_MUTED);
-        userRoleLabel.setFont(userRoleLabel.getFont().deriveFont(11f));
-
-        userText.add(userNameLabel);
-        userText.add(userRoleLabel);
+        JLabel userName = new JLabel("Nguy\u1ec5n Kh\u1ea3 Lu\u00e2n");
+        userName.setForeground(ThemeColors.TEXT_PRIMARY);
+        userName.setFont(userName.getFont().deriveFont(Font.BOLD, 13f));
+        JLabel userRole = new JLabel("Qu\u1ea3n l\u00fd");
+        userRole.setForeground(ThemeColors.TEXT_MUTED);
+        userRole.setFont(userRole.getFont().deriveFont(11f));
+        userText.add(userName);
+        userText.add(userRole);
 
         userArea.add(avatar, "w 36!,h 36!,aligny center");
         userArea.add(userText, "aligny center");
@@ -570,8 +566,7 @@ public class AppFrame extends JFrame {
     }
 
     private void showShiftTransition() {
-        updateCurrentUserInfo();
-        showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
+        showTransition("shift", "\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng", "\u0110ang m\u1edf m\u00e0n h\u00ecnh ki\u1ec3m k\u00ea ti\u1ec1n \u0111\u1ea7u ca...");
     }
 
     private void showAppTransition() {
@@ -684,37 +679,5 @@ public class AppFrame extends JFrame {
 
         revalidate();
         repaint();
-    }
-    private String getInitials(String fullName) {
-        if (fullName == null || fullName.trim().isEmpty()) return "?";
-
-        String[] parts = fullName.trim().split("\\s+");
-
-        if (parts.length == 1) {
-            return parts[0].substring(0, 1).toUpperCase();
-        }
-
-        return (parts[0].substring(0, 1)
-                + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-    }
-
-    private void updateCurrentUserInfo() {
-        String fullName = kqlhotel.gui.Session.currentStaff != null
-                ? kqlhotel.gui.Session.currentStaff.getFullName()
-                : "Người dùng";
-
-        String role = kqlhotel.gui.Session.currentAccount != null
-                ? kqlhotel.gui.Session.currentAccount.getRole()
-                : "";
-
-        String roleText = "QuanLy".equalsIgnoreCase(role) ? "Quản lý" : "Nhân viên";
-
-        if (userNameLabel != null) {
-            userNameLabel.setText(fullName);
-        }
-
-        if (userRoleLabel != null) {
-            userRoleLabel.setText(roleText);
-        }
     }
 }
