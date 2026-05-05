@@ -15,10 +15,8 @@ import kqlhotel.entity.ServiceDetail;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.Duration;
 
 public class CheckoutBUS {
     private final InvoiceDAO invoiceDAO = new InvoiceDAO();
@@ -307,7 +305,7 @@ public class CheckoutBUS {
                 return new RoomCharge(1, 0, 0, 0, 0);
             }
 
-            RoomType roomType = roomTypeDAO.getById(room.getLoaiPhong());
+            RoomType roomType = roomTypeDAO.getById(room.getLoaiPhong().getMaLoaiPhong());
             if (roomType == null) {
                 return new RoomCharge(1, 0, 0, 0, 0);
             }

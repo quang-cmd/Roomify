@@ -5,11 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import net.miginfocom.swing.MigLayout;
-import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.tabs.RoomManagementPanel;
-import kqlhotel.entity.Room;
+import kqlhotel.bus.room.PhongBUS;
+import kqlhotel.entity.Phong;
 import kqlhotel.entity.RoomType;
-import kqlhotel.bus.room.RoomBUS;
 
 public class RoomSearchDialog extends JDialog {
 
@@ -149,12 +148,12 @@ public class RoomSearchDialog extends JDialog {
         String typeQuery = (String) cbRoomType.getSelectedItem();
         String statusQuery = (String) cbStatus.getSelectedItem();
 
-        List<Room> results = new ArrayList<>();
-        RoomBUS bus = roomPanel.getRoomBUS();
-        List<Room> currentRooms = roomPanel.getRoomList();
+        List<Phong> results = new ArrayList<>();
+        PhongBUS bus = roomPanel.getRoomBUS();
+        List<Phong> currentRooms = roomPanel.getRoomList();
         
         if (currentRooms != null) {
-            for (Room r : currentRooms) {
+            for (Phong r : currentRooms) {
                 String guiStatus = bus.mapDbStatusToGuiStatus(r.getStatus());
                 boolean matchId = roomQuery.isEmpty() || r.getRoomId().toLowerCase().contains(roomQuery);
                 boolean matchType = "All room types".equals(typeQuery) || r.getRoomType().getRoomTypeName().equals(typeQuery);
@@ -171,7 +170,7 @@ public class RoomSearchDialog extends JDialog {
         } else {
             JPanel grid = new JPanel(new MigLayout("insets 16, wrap 3, gap 16", "[grow,fill]", "[]"));
             grid.setOpaque(false);
-            for (Room r : results) {
+            for (Phong r : results) {
                 grid.add(roomPanel.createRoomCard(r));
             }
             JScrollPane sp = new JScrollPane(grid);

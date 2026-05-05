@@ -46,7 +46,9 @@ public class RoomManagementPanel extends JPanel {
     private JPanel statsRow;
 
     public List<Phong> getPhongList() { return phongList; }
+    public List<Phong> getRoomList() { return phongList; }
     public PhongBUS getPhongBUS() { return phongBUS; }
+    public PhongBUS getRoomBUS() { return phongBUS; }
 
     public RoomManagementPanel() {
         setOpaque(false);

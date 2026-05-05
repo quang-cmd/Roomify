@@ -9,9 +9,9 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.entity.Service;
 import kqlhotel.entity.ServiceDetail;
-import kqlhotel.entity.Room;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.Customer;
+import kqlhotel.entity.Phong;
 import kqlhotel.dao.service.ServiceDAO;
 import kqlhotel.dao.invoice.ServiceDetailDAO;
 
@@ -37,11 +37,11 @@ public class RoomDetailDialog extends JDialog {
     private JPanel tabInvoiceCont;
     private JButton btnFooterLeft;
 
-    public RoomDetailDialog(Window owner, Room room, Invoice invoice, Customer customer) {
+    public RoomDetailDialog(Window owner, Phong room, Invoice invoice, Customer customer) {
         this(owner, room, invoice, customer, null);
     }
 
-    public RoomDetailDialog(Window owner, Room room, Invoice invoice, Customer customer, Runnable onCheckout) {
+    public RoomDetailDialog(Window owner, Phong room, Invoice invoice, Customer customer, Runnable onCheckout) {
         super(owner, "Chi tiết phòng - " + room.getRoomId(), ModalityType.APPLICATION_MODAL);
         this.roomId = room.getRoomId();
         this.roomType = room.getRoomType().getRoomTypeName();

@@ -3,15 +3,16 @@ package kqlhotel.gui.components;
 import java.awt.*;
 import java.util.List;
 import javax.swing.*;
-import kqlhotel.bus.room.RoomBUS;
-import kqlhotel.dao.room.RoomTypeDAO;
+import kqlhotel.bus.room.PhongBUS;
+import kqlhotel.entity.Phong;
 import kqlhotel.entity.Room;
 import kqlhotel.entity.RoomType;
+import kqlhotel.dao.room.RoomTypeDAO;
 import net.miginfocom.swing.MigLayout;
 
 public class EditRoomDialog extends JDialog {
-    private final RoomBUS roomBUS;
-    private final Room currentRoom;
+    private final PhongBUS roomBUS;
+    private final Phong currentRoom;
     private final Runnable onSuccess;
     private final RoomTypeDAO roomTypeDAO = new RoomTypeDAO();
 
@@ -24,7 +25,7 @@ public class EditRoomDialog extends JDialog {
     private JLabel lblError;
     private List<RoomType> roomTypeList;
 
-    public EditRoomDialog(Window owner, Room currentRoom, RoomBUS roomBUS, Runnable onSuccess) {
+    public EditRoomDialog(Window owner, Phong currentRoom, PhongBUS roomBUS, Runnable onSuccess) {
         super(owner, "Edit Room", ModalityType.APPLICATION_MODAL);
         this.roomBUS = roomBUS;
         this.currentRoom = currentRoom;

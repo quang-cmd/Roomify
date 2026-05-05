@@ -156,4 +156,39 @@ public class PhongDAO {
         }
         return false;
     }
+
+    public boolean delete(String maPhong) {
+        String sql = "DELETE FROM Phong WHERE maPhong = ?";
+        try {
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
+            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                pstmt.setString(1, maPhong);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean updateStatus(String maPhong, String trangThai) {
+        String sql = "UPDATE Phong SET trangThaiPhong = ? WHERE maPhong = ?";
+        try {
+            ConnectDB.getInstance().connect();
+            Connection con = ConnectDB.getInstance().getConnection();
+            try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                pstmt.setString(1, trangThai);
+                pstmt.setString(2, maPhong);
+                return pstmt.executeUpdate() > 0;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public List<Phong> search(String query) {
+        return search(query, null, null);
+    }
 }

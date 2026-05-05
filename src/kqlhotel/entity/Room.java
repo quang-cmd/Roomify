@@ -1,47 +1,15 @@
 package kqlhotel.entity;
 
-public class Room {
-    private String maPhong;
-    private String loaiPhong;
-    private int tang;
-    private String trangThaiPhong;
-
+public class Room extends Phong {
     public Room() {
+        super();
     }
 
     public Room(String maPhong) {
-        this.maPhong = maPhong;
+        super(maPhong);
     }
 
-    public String getMaPhong() {
-        return maPhong;
-    }
-
-    public void setMaPhong(String maPhong) {
-        this.maPhong = maPhong;
-    }
-
-    public String getLoaiPhong() {
-        return loaiPhong;
-    }
-
-    public void setLoaiPhong(String loaiPhong) {
-        this.loaiPhong = loaiPhong;
-    }
-
-    public int getTang() {
-        return tang;
-    }
-
-    public void setTang(int tang) {
-        this.tang = tang;
-    }
-
-    public String getTrangThaiPhong() {
-        return trangThaiPhong;
-    }
-
-    public void setTrangThaiPhong(String trangThaiPhong) {
-        this.trangThaiPhong = trangThaiPhong;
+    public Room(String maPhong, Double tienCoc, LoaiPhong loaiPhong, Integer tang, String trangThaiPhong) {
+        super(maPhong, tienCoc, loaiPhong, tang, trangThaiPhong);
     }
 }
