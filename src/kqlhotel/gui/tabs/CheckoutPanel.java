@@ -779,8 +779,21 @@ public class CheckoutPanel extends JPanel {
         promotionCombo.addItem(noneText);
         promotionDisplayToCode.put(noneText, null);
 
+        CheckoutBUS.CheckoutTotals totals =
+                checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, null);
+
+        double amountBeforeDiscount =
+                totals.roomFee + totals.serviceFee + totals.surcharge + totals.tax + totals.earlyCheckoutPenalty;
+
         List<Promotion> promotions = checkoutBUS.getAvailablePromotions();
+
         for (Promotion km : promotions) {
+            double minAmount = km.getDieuKienApDung();
+
+            if (amountBeforeDiscount <= minAmount) {
+                continue;
+            }
+
             String valueText;
 
             if ("TheoPhanTram".equals(km.getLoaiKM())) {
@@ -970,17 +983,23 @@ public class CheckoutPanel extends JPanel {
             return null;
         }
 
+        CheckoutBUS.CheckoutTotals totals =
+                checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, null);
+
         double amountBeforeDiscount =
-                currentHoaDon.getTienPhong()
-                        + currentHoaDon.getTienDichVu()
-                        + currentHoaDon.getTienThue();
+                totals.roomFee + totals.serviceFee + totals.surcharge + totals.tax;
 
         String bestDisplay = null;
-        double bestEffectiveDiscount = -1;
+        double bestEffectiveDiscount = 0;
 
         List<Promotion> promotions = checkoutBUS.getAvailablePromotions();
+
         for (Promotion km : promotions) {
-            if (km == null) {
+            if (km == null) continue;
+
+            double minAmount = km.getDieuKienApDung();
+
+            if (amountBeforeDiscount <= minAmount) {
                 continue;
             }
 
@@ -1082,6 +1101,18 @@ public class CheckoutPanel extends JPanel {
                     "Lỗi",
                     JOptionPane.ERROR_MESSAGE
             );
+        }
+    }
+
+    private double parseMinimumAmount(String condition) {
+        if (condition == null || condition.isBlank()) {
+            return 0;
+        }
+
+        try {
+            return Double.parseDouble(condition.trim().replace(",", ""));
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
 }

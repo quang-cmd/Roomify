@@ -476,6 +476,11 @@ public class CheckoutBUS {
             return 0;
         }
 
+        // Không đủ điều kiện thì không giảm
+        if (!isPromotionEligible(km, amountBeforeDiscount)) {
+            return 0;
+        }
+
         double discount;
 
         if ("TheoPhanTram".equals(km.getLoaiKM())) {
@@ -674,5 +679,24 @@ public class CheckoutBUS {
 
     public double previewSurcharge(Invoice hd, List<String> roomCodes) {
         return previewTotals(hd, roomCodes, null).surcharge;
+    }
+    private boolean isPromotionEligible(Promotion km, double amountBeforeDiscount) {
+        if (km == null) return false;
+
+        double minAmount = km.getDieuKienApDung();
+
+        return amountBeforeDiscount > minAmount;
+    }
+
+    private double parseMinimumAmount(String condition) {
+        if (condition == null || condition.isBlank()) {
+            return 0;
+        }
+
+        try {
+            return Double.parseDouble(condition.trim().replace(",", ""));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 }
