@@ -2,6 +2,7 @@ package kqlhotel.bus.room;
 
 import kqlhotel.dao.room.RoomTypeDAO;
 import kqlhotel.entity.RoomType;
+
 import java.util.List;
 
 public class RoomTypeBUS {

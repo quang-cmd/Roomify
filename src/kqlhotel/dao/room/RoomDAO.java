@@ -2,7 +2,6 @@ package kqlhotel.dao.room;
 
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.DAO_Interface;
-import kqlhotel.dao.room.RoomTypeDAO;
 import kqlhotel.entity.Room;
 import kqlhotel.entity.RoomType;
 
@@ -16,7 +15,9 @@ public class RoomDAO implements DAO_Interface<Room> {
     private Room mapResultSetToRoom(ResultSet rs) throws SQLException {
         Room p = new Room();
         p.setMaPhong(rs.getString("maPhong"));
-        p.setLoaiPhong(rs.getString("maLoaiPhong"));
+        RoomType rt = new RoomType();
+        rt.setMaLoaiPhong(rs.getString("maLoaiPhong"));
+        p.setLoaiPhong(rt);
         p.setTang(rs.getInt("tang"));
         p.setTrangThaiPhong(rs.getString("trangThaiPhong"));
         return p;
@@ -63,7 +64,9 @@ public class RoomDAO implements DAO_Interface<Room> {
     private Room mapRoom(ResultSet rs) throws SQLException {
         Room p = new Room();
         p.setMaPhong(rs.getString("maPhong"));
-        p.setLoaiPhong(rs.getString("maLoaiPhong"));
+        RoomType rt = new RoomType();
+        rt.setMaLoaiPhong(rs.getString("maLoaiPhong"));
+        p.setLoaiPhong(rt);
         p.setTang(rs.getInt("tang"));
         p.setTrangThaiPhong(rs.getString("trangThaiPhong"));
         return p;
@@ -90,7 +93,7 @@ public class RoomDAO implements DAO_Interface<Room> {
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, r.getMaPhong());
-            ps.setString(2, r.getLoaiPhong());
+            ps.setString(2, r.getLoaiPhong().getMaLoaiPhong());
             ps.setInt(3, r.getTang());
             ps.setString(4, r.getTrangThaiPhong());
             return ps.executeUpdate() > 0;
@@ -104,7 +107,7 @@ public class RoomDAO implements DAO_Interface<Room> {
         String sql = "UPDATE Phong SET maLoaiPhong = ?, tang = ?, trangThaiPhong = ? WHERE maPhong = ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, r.getLoaiPhong());
+            ps.setString(1, r.getLoaiPhong().getMaLoaiPhong());
             ps.setInt(2, r.getTang());
             ps.setString(3, r.getTrangThaiPhong());
             ps.setString(4, r.getMaPhong());
@@ -137,7 +140,7 @@ public class RoomDAO implements DAO_Interface<Room> {
             rt.setMaLoaiPhong(rs.getString("maLoaiPhong"));
             rt.setTenLoaiPhong(rs.getString("tenLoaiPhong"));
             rt.setGiaPhong(rs.getDouble("giaPhong"));
-            p.setRoomType(rt);
+            p.setLoaiPhong(rt);
         } catch (SQLException e) {
             // Field might be missing in simple queries
         }

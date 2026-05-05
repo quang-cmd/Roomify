@@ -1,7 +1,7 @@
 package kqlhotel.bus.room;
 
-import kqlhotel.dao.room.RoomDAO;
-import kqlhotel.entity.Room;
+import kqlhotel.dao.room.PhongDAO;
+import kqlhotel.entity.Phong;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.Customer;
 import kqlhotel.dao.invoice.InvoiceDAO;
@@ -9,35 +9,35 @@ import kqlhotel.dao.customer.CustomerDAO;
 import java.util.List;
 
 public class RoomBUS {
-    private RoomDAO roomDAO;
+    private PhongDAO roomDAO;
     private InvoiceDAO invoiceDAO = new InvoiceDAO();
     private CustomerDAO customerDAO = new CustomerDAO();
 
     public RoomBUS() {
-        roomDAO = new RoomDAO();
+        roomDAO = new PhongDAO();
     }
 
-    public List<Room> getAll() {
+    public List<Phong> getAll() {
         return roomDAO.getAll();
     }
 
-    public List<Room> getAllRooms() {
-        return roomDAO.getAllDetailed();
+    public List<Phong> getAllRooms() {
+        return roomDAO.getAll();
     }
 
-    public List<Room> getAllDetailed() {
-        return roomDAO.getAllDetailed();
+    public List<Phong> getAllDetailed() {
+        return roomDAO.getAll();
     }
 
-    public List<Room> search(String query) {
+    public List<Phong> search(String query) {
         return roomDAO.search(query);
     }
 
-    public boolean addRoom(Room r) {
+    public boolean addRoom(Phong r) {
         return roomDAO.create(r);
     }
 
-    public boolean updateRoom(Room r) {
+    public boolean updateRoom(Phong r) {
         return roomDAO.update(r);
     }
 
@@ -49,7 +49,7 @@ public class RoomBUS {
         return roomDAO.updateStatus(roomId, status);
     }
 
-    public long countByStatus(List<Room> list, String status) {
+    public long countByStatus(List<Phong> list, String status) {
         return list.stream().filter(r -> status.equalsIgnoreCase(r.getStatus())).count();
     }
 
