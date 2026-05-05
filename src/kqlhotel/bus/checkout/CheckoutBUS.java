@@ -323,14 +323,29 @@ public class CheckoutBUS {
         if (actualIn == null) actualIn = LocalDateTime.now();
         if (actualOut == null) actualOut = LocalDateTime.now();
 
-        long actualMinutes = Duration.between(actualIn, actualOut).toMinutes();
-        if (actualMinutes <= 0) {
-            actualMinutes = 1;
-        }
-
-        int actualNights = (int) Math.ceil(actualMinutes / 1440.0);
+        int actualNights = ct.getSoDem();
         if (actualNights < 1) {
             actualNights = 1;
+        }
+
+        if (expectedOut != null && actualOut != null && actualOut.isAfter(expectedOut)) {
+            long lateDays = ChronoUnit.DAYS.between(
+                    expectedOut.toLocalDate(),
+                    actualOut.toLocalDate()
+            );
+
+            if (lateDays > 0) {
+                actualNights += (int) lateDays;
+            }
+
+            int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
+            int actualMinutesOfDay = actualOut.getHour() * 60 + actualOut.getMinute();
+
+            int lateMinutesInDay = actualMinutesOfDay - expectedMinutes;
+
+            if (lateMinutesInDay > 6 * 60) {
+                actualNights += 1;
+            }
         }
 
         /*
@@ -338,14 +353,21 @@ public class CheckoutBUS {
          * Nếu khách nhận trước ngày/giờ dự kiến, cùng ngày dự kiến và trước 5h sáng
          * thì tính thêm 1 đêm vào tiền phòng.
          */
-        boolean earlyCheckinAddOneNight =
-                expectedIn != null
-                        && actualIn.isBefore(expectedIn)
-                        && actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())
-                        && actualIn.getHour() < 5;
+        if (expectedIn != null && actualIn.isBefore(expectedIn)) {
+            if (!actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())) {
+                long earlyDays = ChronoUnit.DAYS.between(
+                        actualIn.toLocalDate(),
+                        expectedIn.toLocalDate()
+                );
 
-        if (earlyCheckinAddOneNight) {
-            actualNights += 1;
+                if (earlyDays < 1) {
+                    earlyDays = 1;
+                }
+
+                actualNights += (int) earlyDays;
+            } else if (actualIn.getHour() < 5) {
+                actualNights += 1;
+            }
         }
 
         double roomFee = actualNights * pricePerNight;
@@ -420,11 +442,8 @@ public class CheckoutBUS {
         // Không đến sớm thì không phụ thu
         if (!actualIn.isBefore(expectedIn)) return 0;
 
-        // Nếu nhận sớm khác ngày dự kiến
-        // Ví dụ dự kiến 05/05 14:00 nhưng thực tế 02/05 23:24
-        // => phụ thu thêm 50% giá 1 đêm
         if (!actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())) {
-            return pricePerNight * 0.50;
+            return 0;
         }
 
         int hour = actualIn.getHour();
@@ -450,19 +469,35 @@ public class CheckoutBUS {
     private double calculateLateCheckoutPenalty(LocalDateTime expectedOut,
                                                 LocalDateTime actualOut,
                                                 double pricePerNight) {
-        if (expectedOut == null || actualOut == null) return 0;
-
-        if (!actualOut.isAfter(expectedOut)) return 0;
-
-        long lateMinutes = Duration.between(expectedOut, actualOut).toMinutes();
-
-        // Nếu trễ quá 6 tiếng hoặc qua ngày khác:
-        // phần này xem như tính thêm 1 đêm, không ghi vào tiền phạt
-        if (!actualOut.toLocalDate().isEqual(expectedOut.toLocalDate()) || lateMinutes > 6 * 60) {
+        if (expectedOut == null || actualOut == null) {
             return 0;
         }
 
-        // Trễ nhưng chưa đủ tính thêm 1 đêm => phạt 50% giá 1 đêm
+        if (!actualOut.isAfter(expectedOut)) {
+            return 0;
+        }
+
+        int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
+        int actualMinutes = actualOut.getHour() * 60 + actualOut.getMinute();
+
+        int lateMinutesInDay = actualMinutes - expectedMinutes;
+
+        // Trả trước hoặc đúng giờ trong ngày cuối
+        if (lateMinutesInDay <= 0) {
+            return 0;
+        }
+
+        // Trễ từ 1 tiếng trở xuống: không phạt
+        if (lateMinutesInDay <= 60) {
+            return 0;
+        }
+
+        // Trễ hơn 6 tiếng: đã cộng thêm 1 đêm ở calculateRoomCharge()
+        if (lateMinutesInDay > 6 * 60) {
+            return 0;
+        }
+
+        // Trễ hơn 1 tiếng và trong vòng 6 tiếng: phạt 50% giá 1 đêm
         return pricePerNight * 0.50;
     }
 
