@@ -40,9 +40,9 @@ import kqlhotel.gui.tabs.StaffPanel;
 import kqlhotel.gui.tabs.CheckoutPanel;
 import kqlhotel.gui.tabs.PromotionsPanel;
 import kqlhotel.gui.tabs.InvoicesPanel;
+import kqlhotel.gui.tabs.SwapRoomPanel;
 import kqlhotel.gui.tabs.CustomersPanel;
 import kqlhotel.gui.tabs.ServicesPanel;
-import kqlhotel.gui.tabs.SwapRoomPanel;
 import net.miginfocom.swing.MigLayout;
 
 public class AppFrame extends JFrame {
@@ -124,9 +124,9 @@ public class AppFrame extends JFrame {
 
         screenPanel.add(new PromotionsPanel(), "promotions");
         screenPanel.add(new InvoicesPanel(), "invoices");
+        screenPanel.add(new SwapRoomPanel(), "swap-room");
         screenPanel.add(new CustomersPanel(this), "customers");
         screenPanel.add(new ServicesPanel(), "services");
-        screenPanel.add(new SwapRoomPanel(), "swap-room");
         activateRoute(currentRoute);
 
         contentWrap.add(screenPanel, BorderLayout.CENTER);
