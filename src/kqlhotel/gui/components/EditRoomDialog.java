@@ -248,7 +248,7 @@ public class EditRoomDialog extends JDialog {
     }
 
     private JLabel label(String text, boolean req) {
-        JLabel l = new JLabel(text + (req ? " *" : ""));
+        JLabel l = new JLabel("<html>" + text + (req ? " <font color='red'>*</font>" : "") + "</html>");
         l.setFont(new Font("Segoe UI", Font.BOLD, 12));
         l.setForeground(new Color(71, 85, 105));
         return l;
