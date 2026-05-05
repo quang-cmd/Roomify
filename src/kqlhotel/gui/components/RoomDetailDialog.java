@@ -138,8 +138,14 @@ public class RoomDetailDialog extends JDialog {
         textPanel.add(title);
         textPanel.add(subtitle);
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 20f));
+        JButton btnClose = new JButton();
+        ImageIcon closeIcon = loadIcon("close.png", 16, 16);
+        if (closeIcon != null) {
+            btnClose.setIcon(closeIcon);
+        } else {
+            btnClose.setText("×");
+            btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 20f));
+        }
         btnClose.setForeground(ThemeColors.TEXT_MUTED);
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);

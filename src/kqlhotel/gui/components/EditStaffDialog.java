@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.time.LocalDate;
 import javax.swing.*;
+import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.bus.staff.StaffBUS;
 import kqlhotel.entity.Account;
@@ -149,9 +150,15 @@ public class EditStaffDialog extends JDialog {
         textGroup.add(title);
         textGroup.add(sub);
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 20f));
-        btnClose.setForeground(new Color(180, 210, 255));
+        JButton btnClose = new JButton();
+        ImageIcon closeIcon = IconLoader.loadIcon("close.png", 16, 16);
+        if (closeIcon != null) {
+            btnClose.setIcon(closeIcon);
+        } else {
+            btnClose.setText("x");
+            btnClose.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        }
+        btnClose.setForeground(new Color(203, 213, 225));
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);

@@ -38,11 +38,12 @@ import javax.swing.SwingConstants;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 
 public class CancelRoomPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
-    
+
     // Status / State
     private final JPanel leftCardPanel = new JPanel(new CardLayout());
     private final JPanel rightCardPanel = new JPanel(new CardLayout());
@@ -105,14 +106,14 @@ public class CancelRoomPanel extends JPanel {
         stepper.setOpaque(false);
         stepper.setBackground(Color.WHITE);
         stepper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 235, 245), 1),
-            BorderFactory.createEmptyBorder(2, 6, 2, 6)
+                BorderFactory.createLineBorder(new Color(230, 235, 245), 1),
+                BorderFactory.createEmptyBorder(2, 6, 2, 6)
         ));
-        
+
         step1 = new JLabel("1   Tìm đặt phòng");
         step1.setFont(step1.getFont().deriveFont(Font.BOLD, 12f));
         step1.setForeground(new Color(24, 40, 66));
-        
+
         arrow = new JLabel(" > ");
         arrow.setForeground(new Color(200, 210, 230));
 
@@ -144,7 +145,7 @@ public class CancelRoomPanel extends JPanel {
         // ===== Assemble =====
         add(header);
         add(body, "grow");
-        
+
         setState("RESULT");
     }
 
@@ -178,11 +179,11 @@ public class CancelRoomPanel extends JPanel {
             // Before showing confirm, rebuild the left form with selected room details
             leftCardPanel.add(createConfirmFormCard(), "CONFIRM");
             ((CardLayout)leftCardPanel.getLayout()).show(leftCardPanel, "CONFIRM");
-            
+
             // Rebuild right side confirming state
             rightCardPanel.add(createSearchResultCard(true), "CONFIRMING");
             ((CardLayout)rightCardPanel.getLayout()).show(rightCardPanel, "CONFIRMING");
-            
+
             step1.setForeground(new Color(150, 165, 190));
             step1.setFont(step1.getFont().deriveFont(Font.PLAIN));
             step2.setForeground(new Color(220, 50, 60));
@@ -197,7 +198,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel hForm = new JPanel(new MigLayout("insets 0,gap 10", "[][]", "[]"));
         hForm.setOpaque(false);
-        
+
         JPanel iconSearch = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -329,7 +330,7 @@ public class CancelRoomPanel extends JPanel {
         txtReason.setLineWrap(true);
         txtReason.setWrapStyleWord(true);
         txtReason.setForeground(new Color(30, 50, 80));
-        
+
         RoundedPanel wrapReason = new RoundedPanel(8, Color.WHITE, new Color(220, 230, 245), 1);
         wrapReason.setLayout(new BorderLayout());
         wrapReason.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
@@ -342,16 +343,16 @@ public class CancelRoomPanel extends JPanel {
         JLabel polTitle = new JLabel("Chính sách áp dụng");
         polTitle.setFont(polTitle.getFont().deriveFont(Font.BOLD, 13f));
         polTitle.setForeground(new Color(220, 50, 60));
-        
+
         polSub.setForeground(new Color(220, 50, 60));
-        
+
         JPanel polGrid = new JPanel(new MigLayout("insets 0, gap 6", "[grow,fill][grow,fill]", "[]4[]"));
         polGrid.setOpaque(false);
         polGrid.add(createMoneyBox("Tiền cọc đã nhận", lblTienCoc));
         polGrid.add(createMoneyBox("Tiền bị trừ", lblTienTru), "wrap");
         polGrid.add(createMoneyBox("Tiền hoàn lại", lblTienHoan));
         polGrid.add(createMoneyBox("Trạng thái phòng", lblTrangThai));
-        
+
         polEnd.setForeground(new Color(220, 100, 100));
         polEnd.setFont(polEnd.getFont().deriveFont(10f));
 
@@ -370,15 +371,20 @@ public class CancelRoomPanel extends JPanel {
                 boolean success = cancelBookingInDB(selectedBooking.maDatPhong, selectedBooking.maHD, refund, selectedBooking.tienCoc);
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Hủy phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    
+
                     // Refresh RoomManagementPanel data
                     java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
                     if (win instanceof kqlhotel.gui.AppFrame) {
                         ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
                     }
 
-                    setState("SEARCH");
+                    txtMaDatPhong.setText("");
+                    txtTenKhach.setText("");
+                    txtSdt.setText("");
+                    txtNgayNhan.setText("");
+                    selectedBooking = null;
                     updateSearchResults();
+                    setState("RESULT");
                 } else {
                     JOptionPane.showMessageDialog(this, "Lỗi khi hủy phòng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
@@ -396,7 +402,7 @@ public class CancelRoomPanel extends JPanel {
                 polEnd.setText("");
             }
         };
-        
+
         txtTime.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { updatePolicy.run(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { updatePolicy.run(); }
@@ -411,7 +417,7 @@ public class CancelRoomPanel extends JPanel {
         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###đ");
         lblTienCoc.setText(df.format(deposit));
         lblTrangThai.setText("Trống");
-        
+
         if (isFullyPaid) {
             lblTienTru.setText("0đ");
             lblTienHoan.setText("0đ");
@@ -422,9 +428,9 @@ public class CancelRoomPanel extends JPanel {
         }
 
         long daysBefore = java.time.temporal.ChronoUnit.DAYS.between(cancelTime.toLocalDate(), checkInTime.toLocalDate());
-        
+
         double penalty = 0;
-        
+
         if (cancelTime.isAfter(checkInTime)) {
             penalty = deposit;
             polSub.setText("Hủy sau giờ nhận phòng: Phạt 100% cọc.");
@@ -447,7 +453,7 @@ public class CancelRoomPanel extends JPanel {
             polSub.setText("Hủy trước trên 15 ngày: Không mất phí.");
             polEnd.setText("Khách thông báo hủy sớm trên 15 ngày, được hoàn lại toàn bộ tiền cọc.");
         }
-        
+
         this.computedPenalty = penalty;
         lblTienTru.setText(df.format(penalty));
         lblTienHoan.setText(df.format(deposit - penalty));
@@ -456,13 +462,13 @@ public class CancelRoomPanel extends JPanel {
     private JPanel createSearchResultCard(boolean isConfirming) {
         JPanel wrap = new JPanel(new MigLayout("wrap 1,insets 0 0 0 0", "[grow,fill]", "[][][grow,fill]"));
         wrap.setOpaque(false);
-        
+
         JPanel titleRow = new JPanel(new MigLayout("insets 0", "[]", "[]"));
         titleRow.setOpaque(false);
         JLabel title = new JLabel("Danh sách đặt phòng phù hợp");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
         title.setForeground(new Color(24, 40, 66));
-        
+
         JPanel badge1 = new RoundedPanel(16, ThemeColors.PRIMARY, null, 0);
         badge1.setLayout(new BorderLayout());
         JLabel l1 = new JLabel("0", SwingConstants.CENTER); // Will update dynamically
@@ -470,7 +476,7 @@ public class CancelRoomPanel extends JPanel {
         badge1.add(l1); badge1.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
 
         titleRow.add(title); titleRow.add(badge1);
-        
+
         JLabel sub = new JLabel("Chọn một đặt phòng để xem chi tiết và thực hiện hủy");
         sub.setForeground(new Color(130, 145, 170));
         sub.setFont(sub.getFont().deriveFont(12f));
@@ -498,7 +504,7 @@ public class CancelRoomPanel extends JPanel {
                 }
             }
         }
-        
+
         l1.setText(String.valueOf(count));
 
         JScrollPane sp = new JScrollPane(listPnl);
@@ -510,7 +516,7 @@ public class CancelRoomPanel extends JPanel {
         sp.getVerticalScrollBar().setUnitIncrement(16);
 
         wrap.add(sp, "grow");
-        
+
         return wrap;
     }
 
@@ -518,9 +524,9 @@ public class CancelRoomPanel extends JPanel {
         String m = txtMaDatPhong.getText().trim().toLowerCase();
         String t = txtTenKhach.getText().trim().toLowerCase();
         String s = txtSdt.getText().trim().toLowerCase();
-        
+
         if (m.isEmpty() && t.isEmpty() && s.isEmpty()) return true;
-        
+
         boolean match = true;
         if (!m.isEmpty() && !code.toLowerCase().contains(m) && !code.toLowerCase().contains(m.replace("dp", ""))) match = false;
         if (!t.isEmpty() && !name.toLowerCase().contains(t)) match = false;
@@ -532,7 +538,7 @@ public class CancelRoomPanel extends JPanel {
         RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(180, 200, 240), 1.5f);
         card.setLayout(new MigLayout("insets 16 20, wrap 1, gap 4", "[grow,fill]", "[]"));
         card.setPreferredSize(new Dimension(330, 370));
-        
+
         if (!isConfirming) {
             card.setCursor(new Cursor(Cursor.HAND_CURSOR));
             card.addMouseListener(new MouseAdapter() {
@@ -564,7 +570,7 @@ public class CancelRoomPanel extends JPanel {
 
         card.add(hRow);
         card.add(rType);
-        
+
         RoundedPanel infoBox = new RoundedPanel(8, new Color(248, 250, 253), new Color(230, 235, 245), 1);
         infoBox.setLayout(new MigLayout("insets 12, wrap 1, gap 2", "[]", "[]"));
         infoBox.add(createIconText("", b.tenKhach, true));
@@ -583,7 +589,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel botRow = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         botRow.setOpaque(false);
-        JLabel stat = new JLabel("<html>Trạng thái<br><b>Đang sử dụng</b></html>");
+        JLabel stat = new JLabel("<html>Trạng thái<br><b>Chờ nhận phòng</b></html>");
         stat.setForeground(new Color(100, 115, 140));
         botRow.add(stat, "aligny center");
 
@@ -628,13 +634,13 @@ public class CancelRoomPanel extends JPanel {
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setBackground(Color.WHITE);
         wrap.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(0, 10, 0, 10)
+                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(0, 10, 0, 10)
         ));
 
         JLabel ico = new JLabel(icon + "  ");
         ico.setForeground(new Color(180, 195, 215));
-        
+
         field.setBorder(BorderFactory.createEmptyBorder());
         field.setOpaque(false);
         field.setForeground(new Color(30, 50, 80));
@@ -678,7 +684,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel illust = new JPanel(new MigLayout("wrap 1,gap 10", "[center]", "[]"));
         illust.setOpaque(false);
-        
+
         JPanel bigIcon = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -690,9 +696,16 @@ public class CancelRoomPanel extends JPanel {
             }
         };
         bigIcon.setOpaque(false);
-        JLabel xMark = new JLabel("✕", SwingConstants.CENTER);
+        JLabel xMark = new JLabel();
+        ImageIcon closeIcon = IconLoader.loadIcon("close.png", 24, 24);
+        if (closeIcon != null) {
+            xMark.setIcon(closeIcon);
+        } else {
+            xMark.setText("✕");
+            xMark.setFont(xMark.getFont().deriveFont(Font.BOLD, 24f));
+        }
         xMark.setForeground(new Color(220, 53, 69));
-        xMark.setFont(xMark.getFont().deriveFont(Font.BOLD, 24f));
+        xMark.setHorizontalAlignment(SwingConstants.CENTER);
         bigIcon.add(xMark);
 
         JLabel resTitle = new JLabel("Chưa có kết quả tra cứu");
@@ -849,17 +862,17 @@ public class CancelRoomPanel extends JPanel {
     private List<BookingDTO> fetchBookingsFromDB() {
         List<BookingDTO> list = new ArrayList<>();
         String sql = "SELECT dp.maDatPhong, ctdp.maPhong, lp.tenLoaiPhong, p.tang, " +
-                     "kh.hoTenKH, kh.sdt, ctdp.ngayNhanDuKien, dp.tienCoc, hd.maHD, " +
-                     "(CASE WHEN hd.tongTienThanhToan > 0 AND hd.tongTienThanhToan <= (SELECT ISNULL(SUM(soTienTT), 0) FROM ThanhToan WHERE maHD = hd.maHD AND trangThaiTT = 'ThanhToanThanhCong') THEN 1 ELSE 0 END) as isFullyPaid " +
-                     "FROM DatPhong dp " +
-                     "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
-                     "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
-                     "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
-                     "JOIN KhachHang kh ON dp.maKH = kh.maKH " +
-                     "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
-                     "WHERE hd.trangThai = 'ChuaThanhToan' " +
-                     "AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong) ";
-        
+                "kh.hoTenKH, kh.sdt, ctdp.ngayNhanDuKien, dp.tienCoc, hd.maHD, " +
+                "(CASE WHEN hd.tongTienThanhToan > 0 AND hd.tongTienThanhToan <= (SELECT ISNULL(SUM(soTienTT), 0) FROM ThanhToan WHERE maHD = hd.maHD AND trangThaiTT = 'ThanhToanThanhCong') THEN 1 ELSE 0 END) as isFullyPaid " +
+                "FROM DatPhong dp " +
+                "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
+                "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
+                "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
+                "JOIN KhachHang kh ON dp.maKH = kh.maKH " +
+                "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
+                "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                "AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong) ";
+
         try (Connection con = ConnectDB.getConnection();
              PreparedStatement pst = con.prepareStatement(sql);
              ResultSet rs = pst.executeQuery()) {
@@ -910,7 +923,7 @@ public class CancelRoomPanel extends JPanel {
                 // Ở đây gán vào tất cả các dòng thì sum(phiPhat) sẽ sai. 
                 // Tôi sẽ dùng lệnh update để chỉ gán vào 1 phòng duy nhất của hóa đơn đó.
                 String sqlUpdateOne = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0, phiPhat = 0 WHERE maHD = ?; " +
-                                     "UPDATE TOP (1) ChiTietHoaDon SET phiPhat = ? WHERE maHD = ?";
+                        "UPDATE TOP (1) ChiTietHoaDon SET phiPhat = ? WHERE maHD = ?";
                 try (PreparedStatement psOne = con.prepareStatement(sqlUpdateOne)) {
                     psOne.setString(1, maHD);
                     psOne.setDouble(2, penalty);

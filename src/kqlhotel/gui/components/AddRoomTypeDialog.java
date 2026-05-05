@@ -4,6 +4,7 @@ import java.awt.*;
 import javax.swing.*;
 import kqlhotel.bus.room.RoomTypeBUS;
 import kqlhotel.entity.RoomType;
+import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 
 public class AddRoomTypeDialog extends JDialog {
@@ -59,9 +60,15 @@ public class AddRoomTypeDialog extends JDialog {
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setForeground(Color.WHITE);
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 24f));
-        btnClose.setForeground(new Color(180, 190, 210));
+        JButton btnClose = new JButton();
+        ImageIcon closeIcon = IconLoader.loadIcon("close.png", 16, 16);
+        if (closeIcon != null) {
+            btnClose.setIcon(closeIcon);
+        } else {
+            btnClose.setText("x");
+            btnClose.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        }
+        btnClose.setForeground(new Color(203, 213, 225));
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
