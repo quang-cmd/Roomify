@@ -326,10 +326,12 @@ public class ServicesPanel extends JPanel {
             }
 
             Service payload = editing ? existing : new Service();
+            if (!editing) {
+                payload.setMaDV(bus.getNextId());
+            }
             payload.setTenDV(nameField.getText().trim());
             payload.setGia(price);
             payload.setLoaiDV(normalizeCategory(String.valueOf(categoryBox.getSelectedItem())));
-
 
             payload.setTrangThai(mapStatusCode(String.valueOf(statusBox.getSelectedItem())));
             payload.setMoTa(descriptionArea.getText().trim());
