@@ -7,7 +7,6 @@ import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.DateUtils;
-import kqlhotel.gui.components.PrimaryButton;
 
 import javax.swing.*;
 import java.awt.*;
@@ -76,45 +75,28 @@ public class InvoicePreviewDialog extends JDialog {
         invoiceListPanel.setBackground(new Color(245, 248, 252));
         invoiceListPanel.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
 
-        String computedStatus = invoicesBUS.getComputedStatus(hd);
-        boolean laHoaDonHuy = "DaHuy".equals(computedStatus);
-
         for (InvoiceDetail room : rooms) {
             boolean isPaid = room.getNgayTraThucTe() != null;
-            boolean canPrint = isPaid || laHoaDonHuy;
 
-            String checkBoxText;
-            if (laHoaDonHuy) {
-                checkBoxText = "Chọn hóa đơn hủy phòng " + room.getMaPhong();
-            } else if (isPaid) {
-                checkBoxText = "Chọn hóa đơn phòng " + room.getMaPhong();
-            } else {
-                checkBoxText = "Phòng " + room.getMaPhong() + " chưa thanh toán";
-            }
+            JCheckBox cb = new JCheckBox(isPaid
+                    ? "Chọn hóa đơn phòng " + room.getMaPhong()
+                    : "Phòng " + room.getMaPhong() + " chưa thanh toán");
 
-            JCheckBox cb = new JCheckBox(checkBoxText);
-            cb.setSelected(canPrint);
-            cb.setEnabled(canPrint);
+            cb.setSelected(isPaid);
+            cb.setEnabled(isPaid);
             cb.setFont(cb.getFont().deriveFont(Font.BOLD, 13f));
             cb.setOpaque(false);
-
-            Color statusColor;
-            if (laHoaDonHuy) {
-                statusColor = new Color(120, 120, 120);
-            } else if (isPaid) {
-                statusColor = new Color(30, 160, 90);
-            } else {
-                statusColor = new Color(220, 38, 38);
-            }
-
-            cb.setForeground(statusColor);
+            cb.setForeground(isPaid ? new Color(30, 160, 90) : new Color(220, 38, 38));
 
             JPanel invoicePanel = createInvoicePanel(room);
 
             JPanel wrapper = new JPanel(new BorderLayout());
             wrapper.setBackground(Color.WHITE);
             wrapper.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(statusColor, 2),
+                    BorderFactory.createLineBorder(
+                            isPaid ? new Color(30, 180, 120) : new Color(220, 38, 38),
+                            2
+                    ),
                     BorderFactory.createEmptyBorder(10, 10, 10, 10)
             ));
 
@@ -144,7 +126,6 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton selectAllBtn = new JButton("Chọn tất cả");
         selectAllBtn.setPreferredSize(new Dimension(130, 36));
-        selectAllBtn.setFocusPainted(false);
         selectAllBtn.addActionListener(e -> {
             for (JCheckBox cb : checkBoxes) {
                 if (cb.isEnabled()) {
@@ -155,32 +136,12 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton unselectAllBtn = new JButton("Bỏ chọn tất cả");
         unselectAllBtn.setPreferredSize(new Dimension(140, 36));
-        unselectAllBtn.setFocusPainted(false);
         unselectAllBtn.addActionListener(e -> checkBoxes.forEach(cb -> cb.setSelected(false)));
 
-        PrimaryButton printBtn = new PrimaryButton("In hóa đơn đã chọn");
+        JButton printBtn = new JButton("In hóa đơn đã chọn");
         printBtn.setPreferredSize(new Dimension(170, 36));
-        printBtn.setMinimumSize(new Dimension(170, 36));
-        printBtn.setMaximumSize(new Dimension(170, 36));
         printBtn.setBackground(new Color(40, 167, 69));
         printBtn.setForeground(Color.WHITE);
-        printBtn.setArc(14);
-        printBtn.setFocusPainted(false);
-        printBtn.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
-        printBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        printBtn.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                printBtn.setBackground(new Color(25, 135, 84));
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                printBtn.setBackground(new Color(40, 167, 69));
-            }
-        });
-
         printBtn.addActionListener(e -> printSelectedInvoices());
 
         left.add(selectAllBtn);
@@ -192,9 +153,7 @@ public class InvoicePreviewDialog extends JDialog {
 
         JButton closeBtn = new JButton("Đóng");
         closeBtn.setPreferredSize(new Dimension(120, 36));
-        closeBtn.setFocusPainted(false);
         closeBtn.addActionListener(e -> dispose());
-
         right.add(closeBtn);
 
         footer.add(left, BorderLayout.WEST);
@@ -209,59 +168,13 @@ public class InvoicePreviewDialog extends JDialog {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        String computedStatus = invoicesBUS.getComputedStatus(hd);
-        boolean laHoaDonHuy = "DaHuy".equals(computedStatus);
-
-        double tienCoc = 0;
-        if (hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
-            tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
-        }
-
-        String title = laHoaDonHuy
-                ? "HÓA ĐƠN HỦY PHÒNG " + room.getMaPhong()
-                : "HÓA ĐƠN THANH TOÁN PHÒNG " + room.getMaPhong();
-
-        String ngayThanhToanText = laHoaDonHuy
-                ? "Đã hủy"
-                : room.getNgayTraThucTe() == null
-                  ? "Chưa thanh toán"
-                  : room.getNgayTraThucTe().format(DTF);
-
-        String ngayTraThucTeText = laHoaDonHuy
-                ? "Đã hủy"
-                : room.getNgayTraThucTe() == null
-                  ? "Chưa trả"
-                  : room.getNgayTraThucTe().format(DTF);
-
-        String soDemText = laHoaDonHuy
-                ? "Đã hủy"
-                : room.getSoDem() + " đêm";
-
-        double donGiaPhong = 0;
-        double tienPhong = 0;
-
-        if (!laHoaDonHuy) {
-            tienPhong = Math.max(0, room.getThanhTien());
-            donGiaPhong = room.getSoDem() > 0 ? tienPhong / room.getSoDem() : tienPhong;
-        }
-
-        double tongTienPhongHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienPhong());
-        double tongTienDichVuHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienDichVu());
-        double tienThueHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienThue());
-        double tienKhuyenMaiHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienKhuyenMai());
-
-        // Theo luật mới: hủy phòng thì khách mất cọc, không hoàn cọc, không thu thêm.
-        double tongThanhToanHienThi = laHoaDonHuy
-                ? Math.max(0, tienCoc)
-                : Math.max(0, hd.getTongTienThanhToan());
-
         panel.add(centerLabel("KQL HOTEL", 24, true));
-        panel.add(centerLabel(title, 16, true));
+        panel.add(centerLabel("HÓA ĐƠN THANH TOÁN PHÒNG " + room.getMaPhong(), 16, true));
         panel.add(Box.createVerticalStrut(10));
 
         panel.add(line("Mã hóa đơn", hd.getMaHD()));
         panel.add(line("Ngày lập", DateUtils.format(hd.getNgayLapHD())));
-        panel.add(line("Ngày thanh toán", ngayThanhToanText));
+        panel.add(line("Ngày thanh toán", hd.getNgayThanhToan() == null ? "Chưa thanh toán" : DateUtils.format(hd.getNgayThanhToan())));
         panel.add(line("Khách hàng", kh != null ? kh.getHoTenKH() : hd.getMaKhachHang()));
         panel.add(line("Số điện thoại", kh != null ? kh.getSdt() : ""));
         panel.add(line("Nhân viên", staffName != null ? staffName : hd.getMaNhanVien()));
@@ -272,48 +185,34 @@ public class InvoicePreviewDialog extends JDialog {
         panel.add(line("Mã phòng", room.getMaPhong()));
         panel.add(line("Ngày nhận", room.getNgayNhanPhong() == null ? "" : room.getNgayNhanPhong().format(DTF)));
         panel.add(line("Ngày trả dự kiến", room.getNgayTraPhong() == null ? "" : room.getNgayTraPhong().format(DTF)));
-        panel.add(line("Ngày trả thực tế", ngayTraThucTeText));
-        panel.add(line("Số đêm", soDemText));
+        panel.add(line("Ngày trả thực tế", room.getNgayTraThucTe() == null ? "Chưa trả" : room.getNgayTraThucTe().format(DTF)));
+        panel.add(line("Số đêm", room.getSoDem() + " đêm"));
+
+        double donGiaPhong = room.getSoDem() > 0 ? room.getThanhTien() / room.getSoDem() : room.getThanhTien();
         panel.add(line("Đơn giá phòng", CurrencyUtils.formatVND(donGiaPhong)));
-        panel.add(line("Tiền phòng", CurrencyUtils.formatVND(tienPhong)));
+        panel.add(line("Tiền phòng", CurrencyUtils.formatVND(room.getThanhTien())));
 
         panel.add(sectionTitle("DỊCH VỤ PHÁT SINH"));
-        if (laHoaDonHuy) {
-            panel.add(line("Dịch vụ", "Đã hủy"));
-        } else if (services.isEmpty()) {
+        if (services.isEmpty()) {
             panel.add(line("Dịch vụ", "Không có"));
         } else {
             for (ServiceDetail dv : services) {
                 String tenDV = invoicesBUS.getServiceName(dv.getMaDV());
                 String name = dv.getMaDV() + (tenDV == null || tenDV.isBlank() ? "" : " - " + tenDV);
-                panel.add(line(
-                        name,
-                        dv.getSoLuong()
-                                + " x "
-                                + CurrencyUtils.formatVND(dv.getDonGia())
-                                + " = "
-                                + CurrencyUtils.formatVND(dv.getThanhTien())
-                ));
+                panel.add(line(name, dv.getSoLuong() + " x " + CurrencyUtils.formatVND(dv.getDonGia()) + " = " + CurrencyUtils.formatVND(dv.getThanhTien())));
             }
         }
 
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
-        panel.add(line("Tổng tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
-        panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
-        panel.add(line("Thuế VAT", CurrencyUtils.formatVND(tienThueHienThi)));
-        panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(tienKhuyenMaiHienThi)));
-
-        if (laHoaDonHuy) {
-            panel.add(line("Phí hủy (giữ cọc)", CurrencyUtils.formatVND(tienCoc)));
-        }
-
-        panel.add(line("Tổng thanh toán (Phạt)", CurrencyUtils.formatVND(tongThanhToanHienThi)));
-
-        if (!laHoaDonHuy) {
-            double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
-            if (refund > 0) {
-                panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
-            }
+        panel.add(line("Tổng tiền phòng", CurrencyUtils.formatVND(hd.getTienPhong())));
+        panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(hd.getTienDichVu())));
+        panel.add(line("Thuế VAT", CurrencyUtils.formatVND(hd.getTienThue())));
+        panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(hd.getTienKhuyenMai())));
+        panel.add(line("Tổng thanh toán (Phạt)", CurrencyUtils.formatVND(hd.getTongTienThanhToan())));
+        
+        double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
+        if (refund > 0) {
+            panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
         }
 
         panel.add(Box.createVerticalStrut(12));

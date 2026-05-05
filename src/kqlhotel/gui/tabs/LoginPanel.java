@@ -13,13 +13,10 @@ import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.utils.IconLoader;
-import kqlhotel.gui.Session;
 import javax.swing.ImageIcon;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.service.EmailService;
-import javax.swing.JCheckBox;
-import javax.swing.JPanel;
 
 public class LoginPanel extends LoginBackgroundPanel {
     private final Runnable onLoginSuccess;
@@ -67,21 +64,6 @@ public class LoginPanel extends LoginBackgroundPanel {
         passwordField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
         passwordField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
 
-        char defaultEchoChar = passwordField.getEchoChar();
-
-        JCheckBox showPasswordCheck = new JCheckBox("Hiện mật khẩu");
-        showPasswordCheck.setOpaque(false);
-        showPasswordCheck.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
-        showPasswordCheck.setFont(showPasswordCheck.getFont().deriveFont(java.awt.Font.PLAIN, 12f));
-
-        showPasswordCheck.addActionListener(e -> {
-            if (showPasswordCheck.isSelected()) {
-                passwordField.setEchoChar((char) 0);
-            } else {
-                passwordField.setEchoChar(defaultEchoChar);
-            }
-        });
-
         PrimaryButton loginButton = new PrimaryButton("Đăng nhập");
         loginButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         loginButton.setForeground(Color.WHITE);
@@ -127,7 +109,6 @@ public class LoginPanel extends LoginBackgroundPanel {
         card.add(usernameField, "h 40");
         card.add(passLb, "gapy 6 0");
         card.add(passwordField, "h 40");
-        card.add(showPasswordCheck, "gapy 0 4");
         card.add(loginButton, "h 44,gapy 8 2");
         card.add(forgotPassword, "alignx center,gapy 0 8");
 
@@ -202,32 +183,6 @@ public class LoginPanel extends LoginBackgroundPanel {
 
             Arrays.fill(passwordValue, '\0');
 
-// Tạo Account từ tài khoản đăng nhập
-            kqlhotel.entity.Account acc = new kqlhotel.entity.Account(
-                    rs.getString("tenDangNhap"),
-                    rs.getString("matKhau"),
-                    rs.getString("vaiTro"),
-                    rs.getString("trangThaiTK")
-            );
-
-            // Tìm nhân viên theo tenDangNhap
-            kqlhotel.entity.Staff foundStaff = null;
-            kqlhotel.bus.staff.StaffBUS staffBUS = new kqlhotel.bus.staff.StaffBUS();
-
-            for (kqlhotel.entity.Staff s : staffBUS.getAll()) {
-                if (s.getAccount() != null
-                        && s.getAccount().getUsername() != null
-                        && s.getAccount().getUsername().equals(acc.getUsername())) {
-                    foundStaff = s;
-                    break;
-                }
-            }
-
-            // Lưu user đang đăng nhập
-            Session.currentAccount = acc;
-            Session.currentStaff = foundStaff;
-
-            // Chuyển màn hình
             if (onLoginSuccess != null) {
                 onLoginSuccess.run();
             }

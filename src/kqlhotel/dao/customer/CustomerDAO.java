@@ -124,10 +124,9 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         customer.setQuocTich(rs.getString("quocTich"));
         customer.setDiaChi(rs.getString("diaChi"));
         customer.setHangKH(rs.getString("hangKH"));
+        customer.setDiemTichLuy(rs.getInt("diemTichLuy"));
         return customer;
     }
-
-    // --- Premium UI Support Methods ---
 
     // --- Premium UI Support Methods ---
 

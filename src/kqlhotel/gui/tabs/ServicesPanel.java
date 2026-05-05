@@ -1,731 +1,372 @@
 package kqlhotel.gui.tabs;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
+import java.awt.Cursor;
 import java.awt.Font;
-import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.LayoutManager;
-import java.awt.Insets;
 import java.awt.RenderingHints;
-import java.net.URL;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.border.EmptyBorder;
-import kqlhotel.bus.service.ServiceBUS;
-import kqlhotel.entity.Service;
+import kqlhotel.gui.components.PrimaryButton;
+import kqlhotel.gui.components.RoundedPanel;
+import kqlhotel.gui.theme.ThemeColors;
+import net.miginfocom.swing.MigLayout;
 
 public class ServicesPanel extends JPanel {
+    private static final Color COLOR_ACTIVE = new Color(56, 161, 105);
+    private static final Color COLOR_PAUSED = new Color(220, 53, 69);
+    private static final Color COLOR_FOOD = new Color(237, 137, 54);
+    private static final Color COLOR_SPA = new Color(143, 97, 255);
+    private static final Color ACTIVE_FILTER = new Color(18, 35, 67);
 
-    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
-    private static final List<String> CATEGORIES = Arrays.asList("Tất cả", "Vệ sinh", "Ẩm thực", "Thư giãn", "Vận chuyển", "Tiện ích");
+    private final JPanel filterRow = new JPanel(new MigLayout("insets 0,gap 10", "[]", "[]"));
+    private final JPanel gridContainer = new JPanel(new java.awt.GridLayout(0, 3, 16, 16));
 
-
-
-    private final ServiceBUS bus = new ServiceBUS();
-    private final JPanel filterPanel = new JPanel();
-    private final JPanel gridPanel = new JPanel();
-    private final JLabel countLabel = new JLabel();
-    private final Map<String, JButton> filterButtons = new LinkedHashMap<>();
-    private List<Service> services = new ArrayList<>();
-    private String selectedCategory = "Tất cả";
-
-
+    private final List<ServiceCardData> mockData = Arrays.asList(
+        new ServiceCardData("DV001", "Breakfast Buffet", "Am thuc", "Mo cua 06:00 - 10:00", "Dang ap dung", "199.000d", "Phuc vu tai nha hang tang 1 cho toi da 2 khach", COLOR_FOOD),
+        new ServiceCardData("DV002", "Laundry Express", "Tien ich", "Tra do trong 4 gio", "Dang ap dung", "89.000d", "Nhan va giao do tai phong trong ngay", ThemeColors.PRIMARY),
+        new ServiceCardData("DV003", "Airport Pickup", "Di chuyen", "Dat truoc 3 gio", "Dang ap dung", "350.000d", "Don san bay bang xe 7 cho, bao gom 1 diem dung", new Color(17, 24, 39)),
+        new ServiceCardData("DV004", "Spa Relax 60'", "Spa", "Khung gio 09:00 - 22:00", "Dang ap dung", "650.000d", "Lieu trinh massage va xong hoi co ban", COLOR_SPA),
+        new ServiceCardData("DV005", "Mini Bar Combo", "Am thuc", "Ap dung tai phong", "Tam ngung", "149.000d", "Combo snack va do uong cho khach luu tru", COLOR_PAUSED),
+        new ServiceCardData("DV006", "Romantic Setup", "Trang tri", "Dat truoc 6 gio", "Dang ap dung", "490.000d", "Trang tri phong voi nen, hoa va bang chao mung", ThemeColors.ACCENT)
+    );
 
     public ServicesPanel() {
         setOpaque(false);
-        setLayout(new BorderLayout(0, 18));
-        setBorder(new EmptyBorder(22, 26, 22, 26));
+        setLayout(new MigLayout("insets 24,gap 18,wrap 1", "[grow,fill]", "[][][][][grow,fill]"));
 
-        add(createHeader(), BorderLayout.NORTH);
-        add(createBody(), BorderLayout.CENTER);
+        add(createHeader());
+        add(createStatsRow());
+        add(createQuickOverview());
+        add(createFilterRow());
+        add(createContent(), "grow");
 
-        loadServices();
+        applyFilter("Tat ca");
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new MigLayout("insets 0", "[grow,fill][][]", "[]"));
         header.setOpaque(false);
 
-        countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        countLabel.setForeground(new Color(100, 116, 139));
+        JPanel titleWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
+        titleWrap.setOpaque(false);
 
-        JButton addButton = createPrimaryButton("Thêm dịch vụ", "services.png");
-        addButton.addActionListener(e -> showServiceDialog(null));
+        JLabel title = new JLabel("Dich vu");
+        title.setForeground(new Color(24, 40, 66));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
 
-        header.add(countLabel, BorderLayout.WEST);
-        header.add(addButton, BorderLayout.EAST);
+        JLabel subtitle = new JLabel("Quan ly danh muc dich vu bo sung, gia ban va trang thai ap dung");
+        subtitle.setForeground(new Color(130, 145, 170));
+
+        titleWrap.add(title);
+        titleWrap.add(subtitle);
+
+        JButton syncButton = createGhostButton("Dong bo bang gia");
+
+        PrimaryButton addButton = new PrimaryButton("+ Them dich vu");
+        addButton.setBackground(new Color(17, 24, 39));
+        addButton.setForeground(Color.WHITE);
+
+        header.add(titleWrap);
+        header.add(syncButton, "h 42!");
+        header.add(addButton, "h 42!");
         return header;
     }
 
-    private JPanel createBody() {
-        JPanel body = new JPanel(new BorderLayout(0, 16));
-        body.setOpaque(false);
+    private JPanel createStatsRow() {
+        JPanel row = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[]"));
+        row.setOpaque(false);
+        row.add(createStatCard("Tong dich vu", "24", "6 nhom dich vu dang khai thac", new Color(17, 24, 39)));
+        row.add(createStatCard("Dang ap dung", "19", "79% san pham dang ban", COLOR_ACTIVE));
+        row.add(createStatCard("Tam ngung", "5", "Can ra soat lai gia va nha cung cap", COLOR_PAUSED));
+        row.add(createStatCard("Ban chay", "Breakfast", "156 luot su dung trong tuan", COLOR_FOOD));
+        return row;
+    }
 
-        filterPanel.setOpaque(false);
-        filterPanel.setLayout(new BoxLayout(filterPanel, BoxLayout.X_AXIS));
-        for (String category : CATEGORIES) {
-            JButton button = createFilterButton(category);
-            filterButtons.put(category, button);
-            filterPanel.add(button);
-            filterPanel.add(Box.createHorizontalStrut(10));
-        }
+    private JPanel createQuickOverview() {
+        JPanel row = new JPanel(new MigLayout("insets 0,gap 16", "[grow,fill][260!]", "[]"));
+        row.setOpaque(false);
 
-        gridPanel.setOpaque(false);
-        gridPanel.setLayout(new WrapLayout(FlowLayout.LEFT, 16, 16));
+        RoundedPanel note = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
+        note.setLayout(new MigLayout("insets 16", "[grow,fill][]", "[]"));
 
-        JScrollPane scrollPane = new JScrollPane(gridPanel);
+        JPanel textWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 3", "[grow,fill]", "[]"));
+        textWrap.setOpaque(false);
+        JLabel title = new JLabel("Goi dich vu uu tien tuan nay");
+        title.setForeground(new Color(24, 40, 66));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
+        JLabel text = new JLabel("Day manh breakfast, airport pickup va romantic setup cho booking cuoi tuan");
+        text.setForeground(new Color(110, 125, 145));
+        textWrap.add(title);
+        textWrap.add(text);
+
+        note.add(textWrap);
+        note.add(makeBadge("Upsell focus", new Color(237, 137, 54, 28), ThemeColors.ACCENT), "aligny center");
+
+        RoundedPanel revenue = new RoundedPanel(18, new Color(237, 247, 255), new Color(190, 227, 248), 1f);
+        revenue.setLayout(new MigLayout("insets 14,wrap 1,gap 2", "[grow,fill]", "[]"));
+        JLabel revenueTitle = new JLabel("Doanh thu dich vu");
+        revenueTitle.setForeground(new Color(43, 108, 176));
+        revenueTitle.setFont(revenueTitle.getFont().deriveFont(Font.BOLD, 13f));
+        JLabel revenueValue = new JLabel("124.500.000d");
+        revenueValue.setForeground(new Color(30, 64, 175));
+        revenueValue.setFont(revenueValue.getFont().deriveFont(Font.BOLD, 24f));
+        JLabel revenueNote = new JLabel("+18% so voi 7 ngay truoc");
+        revenueNote.setForeground(new Color(59, 130, 246));
+        revenue.add(revenueTitle);
+        revenue.add(revenueValue);
+        revenue.add(revenueNote);
+
+        row.add(note, "h 74!");
+        row.add(revenue, "h 74!");
+        return row;
+    }
+
+    private JPanel createFilterRow() {
+        filterRow.setOpaque(false);
+        filterRow.add(createFilterButton("Tat ca", "6", true));
+        filterRow.add(createFilterButton("Dang ap dung", "5", false));
+        filterRow.add(createFilterButton("Tam ngung", "1", false));
+        filterRow.add(createFilterButton("Am thuc", "2", false));
+        filterRow.add(createFilterButton("Spa", "1", false));
+        return filterRow;
+    }
+
+    private JScrollPane createContent() {
+        gridContainer.setOpaque(false);
+
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.add(gridContainer, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(wrap);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
-        scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        body.add(filterPanel, BorderLayout.NORTH);
-        body.add(scrollPane, BorderLayout.CENTER);
-        return body;
+        return scrollPane;
     }
 
+    private RoundedPanel createStatCard(String label, String value, String note, Color accent) {
+        RoundedPanel card = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
+        card.setLayout(new MigLayout("insets 18,wrap 1,gap 6", "[grow,fill]", "[]"));
 
-
-
-
-    private void loadServices() {
-        services = bus.getAllDetailed();
-        long active = services.stream().filter(s -> "DangHoatDong".equalsIgnoreCase(s.getTrangThai())).count();
-        countLabel.setText(services.size() + " dịch vụ · " + active + " đang hoạt động");
-        renderGrid();
-        updateFilterStyles();
-    }
-
-
-
-
-
-    private void renderGrid() {
-        gridPanel.removeAll();
-        List<Service> filtered = getFilteredServices();
-        for (Service service : filtered) {
-            gridPanel.add(createServiceCard(service));
-        }
-        gridPanel.revalidate();
-        gridPanel.repaint();
-    }
-
-    private List<Service> getFilteredServices() {
-        if ("Tất cả".equals(selectedCategory) || "All".equals(selectedCategory)) {
-            return services;
-        }
-        List<Service> filtered = new ArrayList<>();
-        for (Service service : services) {
-            if (normalizeCategory(selectedCategory).equals(normalizeCategory(service.getLoaiDV()))) {
-                filtered.add(service);
-            }
-        }
-        return filtered;
-    }
-
-
-
-
-
-    private JPanel createServiceCard(Service service) {
-        RoundedPanel card = new RoundedPanel(22, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
-        card.setLayout(new BorderLayout(0, 14));
-        card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(392, 246));
-        card.setMinimumSize(new Dimension(392, 246));
-        card.setMaximumSize(new Dimension(392, 246));
-
-        JPanel top = new JPanel(new BorderLayout());
+        JPanel top = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
         top.setOpaque(false);
-        top.add(createCategoryIcon(service.getLoaiDV()), BorderLayout.WEST);
+        JLabel title = new JLabel(label);
+        title.setForeground(new Color(130, 145, 170));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 13f));
+        top.add(title);
+        top.add(createDot(accent), "w 10!,h 10!");
 
+        JLabel bigValue = new JLabel(value);
+        bigValue.setForeground(new Color(24, 40, 66));
+        bigValue.setFont(bigValue.getFont().deriveFont(Font.BOLD, 28f));
 
+        JLabel smallNote = new JLabel(note);
+        smallNote.setForeground(new Color(150, 165, 190));
 
-        JPanel actions = new JPanel();
-        actions.setOpaque(false);
-        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
-        actions.add(createStatusBadge(service));
-        actions.add(Box.createHorizontalStrut(10));
-        JButton editButton = new JButton("✎");
-        editButton.setBorder(null);
-        editButton.setContentAreaFilled(false);
-        editButton.setFocusPainted(false);
-        editButton.setForeground(new Color(148, 163, 184));
-        editButton.setToolTipText("Sửa dịch vụ");
-        editButton.addActionListener(e -> showServiceDialog(service));
-        actions.add(editButton);
-        top.add(actions, BorderLayout.EAST);
-
-        JPanel center = new JPanel();
-        center.setOpaque(false);
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
-
-        JLabel name = new JLabel(service.getTenDV());
-        name.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        name.setForeground(new Color(15, 23, 42));
-
-        JLabel desc = new JLabel("<html><div style='width:320px;'>" + safe(service.getMoTa()) + "</div></html>");
-        desc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        desc.setForeground(new Color(100, 116, 139));
-
-        center.add(name);
-        center.add(Box.createVerticalStrut(8));
-        center.add(desc);
-
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        bottom.setBorder(new EmptyBorder(12, 0, 0, 0));
-
-        bottom.add(createCategoryChip(service.getLoaiDV()), BorderLayout.WEST);
-
-
-
-        JPanel priceWrap = new JPanel();
-        priceWrap.setOpaque(false);
-        priceWrap.setLayout(new BoxLayout(priceWrap, BoxLayout.Y_AXIS));
-        JLabel price = new JLabel(formatPrice(service.getGia()));
-        price.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        price.setForeground(new Color(15, 23, 42));
-        price.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        JLabel unit = new JLabel(getUnitLabel(service.getLoaiDV()));
-        unit.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        unit.setForeground(new Color(148, 163, 184));
-        unit.setAlignmentX(Component.RIGHT_ALIGNMENT);
-
-
-
-
-        priceWrap.add(price);
-        priceWrap.add(unit);
-
-        bottom.add(priceWrap, BorderLayout.EAST);
-
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setOpaque(false);
-        footer.add(bottom, BorderLayout.CENTER);
-
-        JButton statusToggle = new JButton("DangHoatDong".equalsIgnoreCase(service.getTrangThai()) ? "Tạm dừng" : "Kích hoạt");
-        statusToggle.setFocusPainted(false);
-        statusToggle.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(8, 12, 8, 12)
-        ));
-        statusToggle.setBackground(new Color(248, 250, 252));
-        statusToggle.addActionListener(e -> toggleServiceStatus(service));
-        footer.add(statusToggle, BorderLayout.SOUTH);
-
-        card.add(top, BorderLayout.NORTH);
-        card.add(center, BorderLayout.CENTER);
-        card.add(footer, BorderLayout.SOUTH);
+        card.add(top);
+        card.add(bigValue);
+        card.add(smallNote);
         return card;
     }
 
-    private void toggleServiceStatus(Service service) {
-        String nextStatus = "DangHoatDong".equalsIgnoreCase(service.getTrangThai()) ? "NgungHoatDong" : "DangHoatDong";
-        if (bus.updateStatus(service.getMaDV(), nextStatus)) {
-            loadServices();
-        } else {
-            JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái.");
-        }
-    }
-
-    private void showServiceDialog(Service existing) {
-        boolean editing = existing != null;
-        JDialog dialog = new JDialog();
-        dialog.setModal(true);
-        dialog.setTitle(editing ? "Sửa dịch vụ" : "Thêm dịch vụ mới");
-        dialog.setSize(440, 580);
-        dialog.setLocationRelativeTo(this);
-
-        JPanel root = new JPanel();
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBorder(new EmptyBorder(18, 45, 18, 45));
-
-        JTextField nameField = createDialogField(editing ? existing.getTenDV() : "");
-        JTextField priceField = createDialogField(editing ? String.valueOf((long) existing.getGia()) : "");
-        JComboBox<String> categoryBox = new JComboBox<>(new String[]{"Vệ sinh", "Ẩm thực", "Thư giãn", "Vận chuyển", "Tiện ích"});
-        categoryBox.setSelectedItem(editing ? getCategoryLabel(normalizeCategory(existing.getLoaiDV())) : "Tiện ích");
-        categoryBox.setPreferredSize(new Dimension(340, 38));
-        categoryBox.setMaximumSize(new Dimension(340, 38));
-
-
-
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Đang hoạt động", "Ngưng hoạt động"});
-        statusBox.setSelectedItem(mapStatusLabel(editing ? existing.getTrangThai() : "DangHoatDong"));
-        statusBox.setPreferredSize(new Dimension(340, 38));
-        statusBox.setMaximumSize(new Dimension(340, 38));
-        JTextArea descriptionArea = new JTextArea(editing ? safe(existing.getMoTa()) : "");
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setRows(3);
-        descriptionArea.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(10, 12, 10, 12)
-        ));
-        JScrollPane descriptionScroll = new JScrollPane(descriptionArea);
-        descriptionScroll.setMaximumSize(new Dimension(340, 80));
-        descriptionScroll.setPreferredSize(new Dimension(340, 80));
-
-        root.add(createDialogFieldGroup("Tên dịch vụ", nameField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Đơn giá", priceField));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Danh mục", categoryBox));
-        root.add(Box.createVerticalStrut(10));
-
-
-        root.add(createDialogFieldGroup("Trạng thái", statusBox));
-        root.add(Box.createVerticalStrut(10));
-        root.add(createDialogFieldGroup("Mô tả", descriptionScroll));
-        root.add(Box.createVerticalStrut(18));
-
-        JPanel actions = new JPanel(new BorderLayout(10, 0));
-        actions.setOpaque(false);
-        actions.setMaximumSize(new Dimension(340, 40));
-        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JButton cancelButton = createOutlineButton("Hủy");
-        cancelButton.addActionListener(e -> dialog.dispose());
-        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu dịch vụ", "services.png");
-        saveButton.addActionListener(e -> {
-            if (nameField.getText().trim().isBlank() || priceField.getText().trim().isBlank()) {
-                JOptionPane.showMessageDialog(dialog, "Tên và đơn giá là bắt buộc.");
-                return;
-            }
-
-            double price;
-            try {
-                price = Double.parseDouble(priceField.getText().trim());
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(dialog, "Đơn giá không hợp lệ.");
-                return;
-            }
-
-            Service payload = editing ? existing : new Service();
-            payload.setTenDV(nameField.getText().trim());
-            payload.setGia(price);
-            payload.setLoaiDV(normalizeCategory(String.valueOf(categoryBox.getSelectedItem())));
-
-
-            payload.setTrangThai(mapStatusCode(String.valueOf(statusBox.getSelectedItem())));
-            payload.setMoTa(descriptionArea.getText().trim());
-
-            boolean success = editing ? bus.update(payload) : bus.insert(payload);
-            if (success) {
-                dialog.dispose();
-                loadServices();
-            } else {
-                JOptionPane.showMessageDialog(dialog, "Không thể lưu dịch vụ.");
-            }
-        });
-
-        actions.add(cancelButton, BorderLayout.WEST);
-        actions.add(saveButton, BorderLayout.EAST);
-        root.add(actions);
-
-        dialog.setContentPane(root);
-        dialog.setVisible(true);
-    }
-
-    private JPanel createDialogFieldGroup(String labelText, Component field) {
-        JPanel group = new JPanel();
-        group.setOpaque(false);
-        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
-        JLabel label = new JLabel(labelText);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setHorizontalAlignment(SwingConstants.LEFT);
-        if (field instanceof javax.swing.JComponent) {
-            ((javax.swing.JComponent) field).setAlignmentX(Component.LEFT_ALIGNMENT);
-        }
-        group.add(label);
-        group.add(Box.createVerticalStrut(6));
-        group.add(field);
-        group.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return group;
-    }
-
-    private JTextField createDialogField(String value) {
-        JTextField field = new JTextField(value);
-        field.setMaximumSize(new Dimension(340, 38));
-        field.setPreferredSize(new Dimension(340, 38));
-        field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(8, 12, 8, 12)
-        ));
-        return field;
-    }
-
-
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-
-    private String formatPrice(double value) {
-        return MONEY_FORMAT.format(value) + "đ";
-    }
-
-    private JButton createPrimaryButton(String text, String iconFile) {
-        JButton button = new JButton(text);
-        ImageIcon icon = loadIcon(iconFile, 14, 14);
-        if (icon != null) {
-            button.setIcon(icon);
-            button.setIconTextGap(8);
-        }
-        button.setBackground(new Color(15, 23, 42));
-        button.setForeground(Color.WHITE);
+    private JButton createFilterButton(String label, String badge, boolean active) {
+        JButton button = new JButton();
+        button.putClientProperty("filterLabel", label);
+        button.putClientProperty("filterBadge", badge);
         button.setFocusPainted(false);
-        button.setBorder(new EmptyBorder(10, 16, 10, 16));
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setFont(button.getFont().deriveFont(13f));
+        styleFilterButton(button, active);
+        button.addActionListener(e -> applyFilter(label));
         return button;
     }
 
-    private JButton createOutlineButton(String text) {
+    private void styleFilterButton(JButton button, boolean active) {
+        String label = (String) button.getClientProperty("filterLabel");
+        String badge = (String) button.getClientProperty("filterBadge");
+        String text = "<html>" + label + " <span style='color:" + (active ? "#A0B0E0" : "#A0B0C0")
+            + ";font-size:10px;'>&nbsp;" + badge + "&nbsp;</span></html>";
+        button.setText(text);
+        if (active) {
+            button.setBackground(ACTIVE_FILTER);
+            button.setForeground(Color.WHITE);
+            button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ACTIVE_FILTER, 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+            ));
+        } else {
+            button.setBackground(Color.WHITE);
+            button.setForeground(new Color(100, 120, 150));
+            button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+            ));
+        }
+    }
+
+    private void applyFilter(String filter) {
+        for (int i = 0; i < filterRow.getComponentCount(); i++) {
+            if (filterRow.getComponent(i) instanceof JButton) {
+                JButton button = (JButton) filterRow.getComponent(i);
+                styleFilterButton(button, filter.equals(button.getClientProperty("filterLabel")));
+            }
+        }
+
+        gridContainer.removeAll();
+        for (ServiceCardData data : mockData) {
+            boolean matches = filter.equals("Tat ca")
+                || data.status.equalsIgnoreCase(filter)
+                || data.category.equalsIgnoreCase(filter);
+            if (matches) {
+                gridContainer.add(createServiceCard(data));
+            }
+        }
+
+        gridContainer.revalidate();
+        gridContainer.repaint();
+    }
+
+    private RoundedPanel createServiceCard(ServiceCardData data) {
+        RoundedPanel card = new RoundedPanel(18, Color.WHITE, ThemeColors.BORDER, 1f);
+        card.setLayout(new MigLayout("insets 18,wrap 1,gap 10", "[grow,fill]", "[]"));
+
+        JPanel top = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
+        top.setOpaque(false);
+
+        JPanel codeWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[grow,fill]", "[]"));
+        codeWrap.setOpaque(false);
+        JLabel code = new JLabel(data.code);
+        code.setForeground(new Color(130, 145, 170));
+        code.setFont(code.getFont().deriveFont(Font.BOLD, 11f));
+        JLabel name = new JLabel(data.name);
+        name.setForeground(new Color(24, 40, 66));
+        name.setFont(name.getFont().deriveFont(Font.BOLD, 18f));
+        codeWrap.add(code);
+        codeWrap.add(name);
+
+        top.add(codeWrap);
+        top.add(makeBadge(data.status, new Color(data.accent.getRed(), data.accent.getGreen(), data.accent.getBlue(), 20), data.accent), "aligny top");
+
+        JPanel tags = new JPanel(new MigLayout("insets 0,gap 8", "[][]", "[]"));
+        tags.setOpaque(false);
+        tags.add(makeBadge(data.category, new Color(241, 245, 249), new Color(71, 85, 105)));
+        tags.add(makeBadge(data.window, new Color(248, 250, 252), new Color(100, 116, 139)));
+
+        JLabel description = new JLabel("<html><body style='width:260px'>" + data.description + "</body></html>");
+        description.setForeground(new Color(95, 110, 135));
+
+        JPanel bottom = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
+        bottom.setOpaque(false);
+
+        JPanel priceWrap = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
+        priceWrap.setOpaque(false);
+        JLabel priceTitle = new JLabel("Gia ban");
+        priceTitle.setForeground(new Color(130, 145, 170));
+        priceTitle.setFont(priceTitle.getFont().deriveFont(12f));
+        JLabel priceValue = new JLabel(data.price);
+        priceValue.setForeground(new Color(24, 40, 66));
+        priceValue.setFont(priceValue.getFont().deriveFont(Font.BOLD, 20f));
+        priceWrap.add(priceTitle);
+        priceWrap.add(priceValue);
+
+        bottom.add(priceWrap);
+        bottom.add(createGhostButton("Chinh sua"), "h 36!");
+
+        card.add(top);
+        card.add(tags);
+        card.add(description);
+        card.add(bottom, "gapy 6 0,growx");
+        return card;
+    }
+
+    private JButton createGhostButton(String text) {
         JButton button = new JButton(text);
         button.setBackground(Color.WHITE);
-        button.setForeground(new Color(71, 85, 105));
+        button.setForeground(new Color(85, 105, 135));
         button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(10, 16, 10, 16)
+            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+            BorderFactory.createEmptyBorder(8, 14, 8, 14)
         ));
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         return button;
     }
 
-    private JLabel createStatusBadge(Service service) {
-        boolean active = "DangHoatDong".equalsIgnoreCase(service.getTrangThai());
-        JLabel label = new JLabel(active ? "Hoạt động" : "Tạm dừng", SwingConstants.CENTER);
-        label.setOpaque(true);
-        label.setBorder(new EmptyBorder(4, 10, 4, 10));
-        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
-        label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
-        return label;
-    }
-
-    private JButton createFilterButton(String text) {
-        JButton button = new JButton(text);
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(10, 16, 10, 16)
-        ));
-        button.addActionListener(e -> {
-            selectedCategory = text;
-            updateFilterStyles();
-            renderGrid();
-        });
-        return button;
-    }
-
-    private void updateFilterStyles() {
-        for (Map.Entry<String, JButton> entry : filterButtons.entrySet()) {
-            boolean active = entry.getKey().equals(selectedCategory);
-            JButton button = entry.getValue();
-            button.setBackground(active ? new Color(15, 23, 42) : Color.WHITE);
-            button.setForeground(active ? Color.WHITE : new Color(71, 85, 105));
-        }
-    }
-
-    private JPanel createCategoryIcon(String category) {
-        Color bg;
-        String file;
-        switch (normalizeCategory(category)) {
-            case "Housekeeping":
-                bg = new Color(243, 232, 255); // Purple
-                file = "hygiene.png";
-                break;
-            case "Food & Drink":
-                bg = new Color(255, 247, 237); // Orange
-                file = "cuisine.png";
-                break;
-            case "Relaxation":
-                bg = new Color(236, 253, 245); // Green
-                file = "star.png";
-                break;
-            case "Transport":
-                bg = new Color(239, 246, 255); // Blue
-                file = "transport.png";
-                break;
-            default:
-                bg = new Color(238, 242, 255); // Indigo
-                file = "wifi.png";
-                break;
-        }
-
-        JPanel iconWrap = new RoundedPanel(16, bg, null, 0f, new Color(0, 0, 0, 0), 0);
-        iconWrap.setLayout(new BorderLayout());
-        iconWrap.setPreferredSize(new Dimension(42, 42));
-        JLabel icon = new JLabel("", SwingConstants.CENTER);
-        ImageIcon image = loadIcon(file, 18, 18);
-        if (image != null) {
-            icon.setIcon(image);
-        } else {
-            icon.setText("•");
-        }
-        iconWrap.add(icon, BorderLayout.CENTER);
-        return iconWrap;
-    }
-
-    private JLabel createCategoryChip(String category) {
-        String normalized = normalizeCategory(category);
-        JLabel chip = new JLabel(getCategoryLabel(normalized));
-        chip.setOpaque(true);
-        chip.setBorder(new EmptyBorder(4, 10, 4, 10));
-        chip.setFont(new Font("Segoe UI", Font.BOLD, 11));
-
-        Color bg;
-        Color fg;
-        switch (normalized) {
-            case "Housekeeping":
-                bg = new Color(243, 232, 255);
-                fg = new Color(124, 58, 237);
-                break;
-            case "Food & Drink":
-                bg = new Color(255, 237, 213);
-                fg = new Color(234, 88, 12);
-                break;
-            case "Relaxation":
-                bg = new Color(220, 252, 231);
-                fg = new Color(22, 163, 74);
-                break;
-            case "Transport":
-                bg = new Color(219, 234, 254);
-                fg = new Color(37, 99, 235);
-                break;
-            default:
-                bg = new Color(224, 231, 255);
-                fg = new Color(99, 102, 241);
-                break;
-        }
-
-        chip.setBackground(bg);
-        chip.setForeground(fg);
-        return chip;
-    }
-
-    private String getCategoryLabel(String normalized) {
-        switch (normalized) {
-            case "Housekeeping": return "Vệ sinh";
-            case "Food & Drink": return "Ẩm thực";
-            case "Relaxation": return "Thư giãn";
-            case "Transport": return "Vận chuyển";
-            default: return "Tiện ích";
-        }
-    }
-
-    private String getUnitLabel(String category) {
-        switch (normalizeCategory(category)) {
-            case "Food & Drink":
-                return "/người";
-            case "Housekeeping":
-                return "/lần";
-            case "Relaxation":
-                return "/gói";
-            case "Transport":
-                return "/chuyến";
-            default:
-                return "/dịch vụ";
-        }
-    }
-
-    private String normalizeCategory(String category) {
-        String raw = safe(category).trim().toLowerCase();
-        if (raw.isEmpty()) {
-            return "Utilities";
-        }
-        if (raw.contains("house") || raw.contains("bu") || raw.contains("giat") || raw.contains("don phong") || raw.contains("vệ sinh") || raw.contains("ve sinh")) {
-            return "Housekeeping";
-        }
-        if (raw.contains("food") || raw.contains("drink") || raw.contains("ăn") || raw.contains("uong") || raw.contains("buffet") || raw.contains("mi") || raw.contains("nuoc") || raw.contains("ẩm thực") || raw.contains("am thuc")) {
-            return "Food & Drink";
-        }
-        if (raw.contains("relax") || raw.contains("thu gian") || raw.contains("spa") || raw.contains("massage") || raw.contains("gym") || raw.contains("thư giãn")) {
-            return "Relaxation";
-        }
-        if (raw.contains("transport") || raw.contains("van chuyen") || raw.contains("dua don") || raw.contains("xe") || raw.contains("vận chuyển")) {
-            return "Transport";
-        }
-        if (raw.contains("utilit") || raw.contains("tien ich") || raw.contains("tiện ích")) {
-            return "Utilities";
-        }
-        return category;
-    }
-
-    private String mapStatusLabel(String status) {
-
-
-
-
-        return "DangHoatDong".equalsIgnoreCase(status) ? "Đang hoạt động" : "Ngưng hoạt động";
-    }
-
-    private String mapStatusCode(String status) {
-        return "Đang hoạt động".equalsIgnoreCase(status) ? "DangHoatDong" : "NgungHoatDong";
-    }
-
-    private ImageIcon loadIcon(String filename, int width, int height) {
-        try {
-            URL resource = getClass().getResource("/kqlhotel/resources/icons/" + filename);
-            if (resource == null) {
-                java.io.File file = new java.io.File("src/kqlhotel/resources/icons/" + filename);
-                if (file.exists()) {
-                    resource = file.toURI().toURL();
-                }
+    private JPanel makeBadge(String text, Color bg, Color fg) {
+        JPanel badge = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
             }
-            if (resource != null) {
-                ImageIcon icon = new ImageIcon(resource);
-                return new ImageIcon(icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH));
-            }
-        } catch (Exception e) {
-            // Ignore icon loading failures.
-        }
-        return null;
+        };
+        badge.setOpaque(false);
+        badge.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setForeground(fg);
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 11f));
+        badge.add(label);
+        return badge;
     }
 
-    private static class RoundedPanel extends JPanel {
-        private final int arc;
-        private final Color fill;
-        private final Color border;
-        private final float borderWidth;
-        private final Color shadow;
-        private final int shadowSize;
-
-        RoundedPanel(int arc, Color fill, Color border, float borderWidth, Color shadow, int shadowSize) {
-            this.arc = arc;
-            this.fill = fill;
-            this.border = border;
-            this.borderWidth = borderWidth;
-            this.shadow = shadow;
-            this.shadowSize = shadowSize;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int h = getHeight() - Math.max(shadowSize, 1);
-            if (shadowSize > 0) {
-                g2.setColor(shadow);
-                g2.fillRoundRect(0, shadowSize, getWidth() - 1, h, arc, arc);
+    private JPanel createDot(Color color) {
+        JPanel dot = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(color);
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
             }
-            g2.setColor(fill);
-            g2.fillRoundRect(0, 0, getWidth() - 1, h, arc, arc);
-            if (border != null && borderWidth > 0f) {
-                g2.setColor(border);
-                g2.setStroke(new BasicStroke(borderWidth));
-                g2.drawRoundRect(0, 0, getWidth() - 1, h, arc, arc);
-            }
-            g2.dispose();
-            super.paintComponent(g);
-        }
+        };
+        dot.setOpaque(false);
+        return dot;
     }
 
-    private static class WrapLayout extends FlowLayout {
-        WrapLayout(int align, int hgap, int vgap) {
-            super(align, hgap, vgap);
-        }
+    private static final class ServiceCardData {
+        private final String code;
+        private final String name;
+        private final String category;
+        private final String window;
+        private final String status;
+        private final String price;
+        private final String description;
+        private final Color accent;
 
-        @Override
-        public Dimension preferredLayoutSize(java.awt.Container target) {
-            return layoutSize(target, true);
-        }
-
-        @Override
-        public Dimension minimumLayoutSize(java.awt.Container target) {
-            Dimension minimum = layoutSize(target, false);
-            minimum.width -= getHgap() + 1;
-            return minimum;
-        }
-
-        private Dimension layoutSize(java.awt.Container target, boolean preferred) {
-            synchronized (target.getTreeLock()) {
-                int targetWidth = target.getWidth();
-
-                if (targetWidth == 0) {
-                    targetWidth = Integer.MAX_VALUE;
-                    for (java.awt.Container parent = target.getParent(); parent != null; parent = parent.getParent()) {
-                        if (parent.getWidth() > 0) {
-                            targetWidth = parent.getWidth();
-                            break;
-                        }
-                    }
-                }
-
-                Insets insets = target.getInsets();
-                int horizontalInsetsAndGap = insets.left + insets.right + getHgap() * 2;
-                int maxWidth = targetWidth - horizontalInsetsAndGap;
-
-                Dimension dim = new Dimension(0, 0);
-                int rowWidth = 0;
-                int rowHeight = 0;
-
-                int members = target.getComponentCount();
-                for (int i = 0; i < members; i++) {
-                    Component component = target.getComponent(i);
-                    if (!component.isVisible()) {
-                        continue;
-                    }
-
-                    Dimension componentSize = preferred ? component.getPreferredSize() : component.getMinimumSize();
-                    if (rowWidth + componentSize.width > maxWidth) {
-                        addRow(dim, rowWidth, rowHeight);
-                        rowWidth = 0;
-                        rowHeight = 0;
-                    }
-
-                    if (rowWidth != 0) {
-                        rowWidth += getHgap();
-                    }
-                    rowWidth += componentSize.width;
-                    rowHeight = Math.max(rowHeight, componentSize.height);
-                }
-
-                addRow(dim, rowWidth, rowHeight);
-                dim.width += horizontalInsetsAndGap;
-                dim.height += insets.top + insets.bottom + getVgap() * 2;
-
-                java.awt.Container scrollPane = javax.swing.SwingUtilities.getAncestorOfClass(JScrollPane.class, target);
-                if (scrollPane != null) {
-                    dim.width -= getHgap() + 1;
-                }
-
-                return dim;
-            }
-        }
-
-        private void addRow(Dimension dim, int rowWidth, int rowHeight) {
-            dim.width = Math.max(dim.width, rowWidth);
-            if (dim.height > 0) {
-                dim.height += getVgap();
-            }
-            dim.height += rowHeight;
+        private ServiceCardData(
+            String code,
+            String name,
+            String category,
+            String window,
+            String status,
+            String price,
+            String description,
+            Color accent
+        ) {
+            this.code = code;
+            this.name = name;
+            this.category = category;
+            this.window = window;
+            this.status = status;
+            this.price = price;
+            this.description = description;
+            this.accent = accent;
         }
     }
 }

@@ -44,7 +44,6 @@ public class SqlCheckInService implements CheckInService {
                         "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
                         "LEFT JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
                         "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
-                        "  AND (hd.trangThai IS NULL OR hd.trangThai <> 'DaHuy') " +
                         (isBlank(keyword) ? "" :
                                 "AND (dp.maDatPhong LIKE ? OR hd.maHD LIKE ? OR kh.hoTenKH LIKE ? OR kh.sdt LIKE ? OR kh.CCCD LIKE ?) ") +
                         "GROUP BY dp.maDatPhong, dp.ngayDat, dp.tienCoc, kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD " +

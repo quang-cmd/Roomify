@@ -60,17 +60,17 @@ public class CheckoutBUS {
         double roomFee;
         double surcharge;
         double taxableRoomFee;
-        double lateCheckoutPenalty;
+        double earlyCheckoutPenalty;
         double total;
 
         RoomCharge(int nights, double roomFee, double surcharge,
-                   double taxableRoomFee, double lateCheckoutPenalty) {
+                   double taxableRoomFee, double earlyCheckoutPenalty) {
             this.nights = nights;
             this.roomFee = roomFee;
             this.surcharge = surcharge;
             this.taxableRoomFee = taxableRoomFee;
-            this.lateCheckoutPenalty = lateCheckoutPenalty;
-            this.total = roomFee + surcharge + lateCheckoutPenalty;
+            this.earlyCheckoutPenalty = earlyCheckoutPenalty;
+            this.total = roomFee + surcharge + earlyCheckoutPenalty;
         }
     }
 
@@ -81,6 +81,11 @@ public class CheckoutBUS {
             hd = getActiveByRoomFromBooking(maPhong);
         }
 
+        if (hd == null) {
+            return null;
+        }
+
+        recalculateInvoiceTotals(hd, null);
         return hd;
     }
 
@@ -170,7 +175,6 @@ public class CheckoutBUS {
                     now,
                     charge.nights,
                     charge.surcharge,
-                    charge.lateCheckoutPenalty,
                     charge.total
             );
 
@@ -218,6 +222,8 @@ public class CheckoutBUS {
     }
 
     public CheckoutTotals previewTotals(Invoice hd, List<String> roomCodes, String maKM) {
+        double earlyCheckoutPenalty = 0;
+
         if (hd == null) {
             return new CheckoutTotals(0, 0, 0, 0, 0, 0);
         }
@@ -227,12 +233,15 @@ public class CheckoutBUS {
 
         double roomFee = 0;
         double surcharge = 0;
-        double lateCheckoutPenalty = 0;
+        double taxableRoomFee = 0;
 
         if (details != null) {
             boolean hasRoomFilter = roomCodes != null && !roomCodes.isEmpty();
 
             for (InvoiceDetail ct : details) {
+
+                // Nếu đang trả một số phòng được chọn
+                // thì bỏ qua các phòng không được chọn
                 if (hasRoomFilter && !roomCodes.contains(ct.getMaPhong())) {
                     continue;
                 }
@@ -244,15 +253,15 @@ public class CheckoutBUS {
 
                     roomFee += charge.roomFee;
                     surcharge += charge.surcharge;
-                    lateCheckoutPenalty += charge.lateCheckoutPenalty;
+                    taxableRoomFee += charge.taxableRoomFee;
+                    earlyCheckoutPenalty += charge.earlyCheckoutPenalty;
                 } else {
                     double oldSurcharge = Math.max(0, ct.getPhuThu());
-                    double oldPenalty = Math.max(0, ct.getPhiPhat());
-                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge - oldPenalty);
+                    double oldRoomFee = Math.max(0, ct.getThanhTien() - oldSurcharge);
 
                     roomFee += oldRoomFee;
                     surcharge += oldSurcharge;
-                    lateCheckoutPenalty += oldPenalty;
+                    taxableRoomFee += oldRoomFee;
                 }
             }
         }
@@ -266,25 +275,12 @@ public class CheckoutBUS {
             }
         }
 
-        double amountBeforeTax = roomFee + surcharge + serviceFee + lateCheckoutPenalty;
+        double subTotal = roomFee + serviceFee + surcharge + earlyCheckoutPenalty;
+        double tax = subTotal * 0.10;
+        double discount = calculatePromotionDiscount(maKM, subTotal + tax);
+        double total = Math.max(0, subTotal + tax - discount);
 
-        double tax = amountBeforeTax * 0.10;
-
-        double amountBeforeDiscount = amountBeforeTax + tax;
-
-        double discount = calculatePromotionDiscount(maKM, amountBeforeDiscount);
-
-        double total = Math.max(0, amountBeforeDiscount - discount);
-
-        return new CheckoutTotals(
-                roomFee,
-                serviceFee,
-                surcharge,
-                tax,
-                discount,
-                total,
-                lateCheckoutPenalty
-        );
+        return new CheckoutTotals(roomFee, serviceFee, surcharge, tax, discount, total, earlyCheckoutPenalty);
     }
 
     private void recalculateInvoiceTotals(Invoice hd, String maKM) {
@@ -355,11 +351,25 @@ public class CheckoutBUS {
         // Phụ thu nhận sớm 5h-11h: 50%, 11h-14h: 25%, <5h đã cộng thêm 1 đêm nên không phụ thu nữa
         surcharge += calculateEarlyCheckinFee(expectedIn, actualIn, pricePerNight);
 
+        // Phụ thu trả muộn
+        surcharge += calculateLateCheckoutFee(expectedOut, actualOut, pricePerNight);
+
         double taxableRoomFee = roomFee;
 
-        double lateCheckoutPenalty = calculateLateCheckoutPenalty(expectedOut, actualOut, pricePerNight);
+        double earlyCheckoutPenalty = 0;
 
-        return new RoomCharge(actualNights, roomFee, surcharge, taxableRoomFee, lateCheckoutPenalty);
+        if (expectedOut != null && actualOut.isBefore(expectedOut)) {
+            long earlyDays = java.time.temporal.ChronoUnit.DAYS.between(
+                    actualOut.toLocalDate(),
+                    expectedOut.toLocalDate()
+            );
+
+            if (earlyDays >= 1) {
+                earlyCheckoutPenalty = pricePerNight * 0.50;
+            }
+        }
+
+        return new RoomCharge(actualNights, roomFee, surcharge, taxableRoomFee, earlyCheckoutPenalty);
     }
 
     private double getBookingRoomPrice(String maDatPhong, String maPhong) {
@@ -447,23 +457,36 @@ public class CheckoutBUS {
         return 0;
     }
 
-    private double calculateLateCheckoutPenalty(LocalDateTime expectedOut,
-                                                LocalDateTime actualOut,
-                                                double pricePerNight) {
+    private double calculateLateCheckoutFee(LocalDateTime expectedOut,
+                                            LocalDateTime actualOut,
+                                            double pricePerNight) {
+
         if (expectedOut == null || actualOut == null) return 0;
 
+        // Không trả muộn
         if (!actualOut.isAfter(expectedOut)) return 0;
 
         long lateMinutes = Duration.between(expectedOut, actualOut).toMinutes();
 
-        // Nếu trễ quá 6 tiếng hoặc qua ngày khác:
-        // phần này xem như tính thêm 1 đêm, không ghi vào tiền phạt
-        if (!actualOut.toLocalDate().isEqual(expectedOut.toLocalDate()) || lateMinutes > 6 * 60) {
-            return 0;
+        // Nếu khác ngày → tính 1 đêm luôn
+        if (!actualOut.toLocalDate().isEqual(expectedOut.toLocalDate())) {
+            return pricePerNight;
         }
 
-        // Trễ nhưng chưa đủ tính thêm 1 đêm => phạt 50% giá 1 đêm
-        return pricePerNight * 0.50;
+        // ===== CÙNG NGÀY =====
+
+        // <= 3 tiếng → 25%
+        if (lateMinutes <= 3 * 60) {
+            return pricePerNight * 0.25;
+        }
+
+        // <= 6 tiếng → 50%
+        if (lateMinutes <= 6 * 60) {
+            return pricePerNight * 0.50;
+        }
+
+        // > 6 tiếng → 100%
+        return pricePerNight;
     }
 
     private double calculatePromotionDiscount(String maKM, double amountBeforeDiscount) {
@@ -473,11 +496,6 @@ public class CheckoutBUS {
 
         Promotion km = promotionDAO.getById(maKM);
         if (km == null) {
-            return 0;
-        }
-
-        // Không đủ điều kiện thì không giảm
-        if (!isPromotionEligible(km, amountBeforeDiscount)) {
             return 0;
         }
 
@@ -679,24 +697,5 @@ public class CheckoutBUS {
 
     public double previewSurcharge(Invoice hd, List<String> roomCodes) {
         return previewTotals(hd, roomCodes, null).surcharge;
-    }
-    private boolean isPromotionEligible(Promotion km, double amountBeforeDiscount) {
-        if (km == null) return false;
-
-        double minAmount = km.getDieuKienApDung();
-
-        return amountBeforeDiscount > minAmount;
-    }
-
-    private double parseMinimumAmount(String condition) {
-        if (condition == null || condition.isBlank()) {
-            return 0;
-        }
-
-        try {
-            return Double.parseDouble(condition.trim().replace(",", ""));
-        } catch (NumberFormatException e) {
-            return 0;
-        }
     }
 }

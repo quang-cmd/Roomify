@@ -298,11 +298,9 @@ public class PromotionsPanel extends JPanel {
         distBox.add(pBox);
         distBox.add(tagBox, "aligny center");
 
-        double dk = km.getDieuKienApDung();
-
         JLabel lDesc = new JLabel(
                 "<html><p style='color:#506580;line-height:1.4'>"
-                        + (dk > 0 ? "Điều kiện: Lớn hơn " + CurrencyUtils.formatVND(dk) : "")
+                        + (km.getDieuKienApDung() == null ? "" : km.getDieuKienApDung())
                         + "</p></html>"
         );
 

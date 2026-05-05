@@ -62,6 +62,7 @@ public class ServiceDAO {
         }
         return list;
     }
+
     public boolean create(Service s) {
         String sql = "INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection con = ConnectDB.getInstance().getConnection();
