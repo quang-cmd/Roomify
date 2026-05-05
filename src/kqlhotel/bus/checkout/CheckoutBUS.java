@@ -733,4 +733,48 @@ public class CheckoutBUS {
             return 0;
         }
     }
+
+    public boolean createCheckoutPayment(Invoice hd, double amount, String method, String maNV) {
+        if (hd == null || amount <= 0) {
+            return true;
+        }
+
+        String sqlMax = "SELECT MAX(maTT) AS maxMaTT FROM ThanhToan";
+        String sqlInsert = """
+        INSERT INTO ThanhToan
+        (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """;
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+
+            String newMaTT = "TT001";
+            try (java.sql.PreparedStatement ps = con.prepareStatement(sqlMax);
+                 java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getString("maxMaTT") != null) {
+                    String max = rs.getString("maxMaTT"); // VD: TT055
+                    int num = Integer.parseInt(max.substring(2)) + 1;
+                    newMaTT = String.format("TT%03d", num);
+                }
+            }
+
+            try (java.sql.PreparedStatement ps = con.prepareStatement(sqlInsert)) {
+                ps.setString(1, newMaTT);
+                ps.setTimestamp(2, java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()));
+                ps.setDouble(3, amount);
+                ps.setString(4, "Thanh toan tra phong");
+                ps.setString(5, method);
+                ps.setString(6, "ThanhToanThanhCong");
+                ps.setString(7, hd.getMaHD());
+                ps.setString(8, "PC005");
+                ps.setString(9, maNV);
+
+                return ps.executeUpdate() > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
