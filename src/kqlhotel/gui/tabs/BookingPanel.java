@@ -1543,11 +1543,10 @@ public class BookingPanel extends JPanel {
     }
 
     public void preFillCustomer(kqlhotel.entity.Customer customer) {
-        // Reset existing selection and state to start a fresh booking flow
         this.selectedRooms.clear();
         this.preFilledCustomer = customer;
 
-        // Clear existing guest forms to ensure the new customer data is applied
+        // Clear existing guest forms to ensure new data is synced correctly
         for (GuestFormRow row : guestFormRows) {
             row.idField.setText("");
             row.nameField.setText("");
