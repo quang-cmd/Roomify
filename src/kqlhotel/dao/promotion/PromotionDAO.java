@@ -72,7 +72,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, km.getMaKM());
             pstmt.setString(2, km.getTenKM());
-            pstmt.setString(3, km.getDieuKienApDung());
+            pstmt.setDouble(3, km.getDieuKienApDung());
             pstmt.setString(4, km.getLoaiKM());
             pstmt.setDouble(5, Math.max(0, km.getGiaTriToiDa()));
             pstmt.setDouble(6, Math.max(0, km.getTienKhuyenMai()));
@@ -94,7 +94,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
                          "WHERE maKM=?";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, km.getTenKM());
-            pstmt.setString(2, km.getDieuKienApDung());
+            pstmt.setDouble(2, km.getDieuKienApDung());
             pstmt.setString(3, km.getLoaiKM());
             pstmt.setDouble(4, Math.max(0, km.getGiaTriToiDa()));
             pstmt.setDouble(5, Math.max(0, km.getTienKhuyenMai()));
@@ -128,7 +128,7 @@ public class PromotionDAO implements DAO_Interface<Promotion> {
 
         km.setMaKM(rs.getString("maKM"));
         km.setTenKM(rs.getString("tenKM"));
-        km.setDieuKienApDung(rs.getString("dieuKienApDung"));
+        km.setDieuKienApDung(rs.getDouble("dieuKienApDung"));
         km.setLoaiKM(rs.getString("loaiKM"));
 
         double giaTriToiDa = rs.getDouble("giaTriToiDa");
