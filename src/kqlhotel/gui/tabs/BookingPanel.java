@@ -91,7 +91,7 @@ public class BookingPanel extends JPanel {
     private JButton guestPlusButton;
     private boolean filterLocked;
     private int currentSlideIndex;
-    private kqlhotel.entity.KhachHangEntity preFilledCustomer;
+    private kqlhotel.entity.Customer preFilledCustomer;
 
     public BookingPanel() {
         this.bookingService = BookingServiceProvider.get();
@@ -1213,7 +1213,7 @@ public class BookingPanel extends JPanel {
             GuestFormRow firstRow = guestFormRows.get(0);
             if (firstRow.idField.getText().trim().isEmpty()) {
                 firstRow.idField.setText(preFilledCustomer.getCCCD());
-                firstRow.nameField.setText(preFilledCustomer.getTenKH());
+                firstRow.nameField.setText(preFilledCustomer.getHoTenKH());
                 firstRow.phoneField.setText(preFilledCustomer.getSdt());
             }
         }
@@ -1542,12 +1542,11 @@ public class BookingPanel extends JPanel {
         checkOutField.setForeground(fieldColor);
     }
 
-    public void preFillCustomer(kqlhotel.entity.KhachHangEntity customer) {
-        // Reset existing selection and state to start a fresh booking flow
+    public void preFillCustomer(kqlhotel.entity.Customer customer) {
         this.selectedRooms.clear();
         this.preFilledCustomer = customer;
 
-        // Clear existing guest forms to ensure the new customer data is applied
+        // Clear existing guest forms to ensure new data is synced correctly
         for (GuestFormRow row : guestFormRows) {
             row.idField.setText("");
             row.nameField.setText("");
