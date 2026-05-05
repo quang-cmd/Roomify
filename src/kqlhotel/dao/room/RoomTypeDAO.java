@@ -49,14 +49,14 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
             PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, roomType.getMaLoaiPhong());
-            pstmt.setString(2, roomType.getTenLoaiPhong());
-            pstmt.setInt(3, roomType.getSoLuongPhong());
-            pstmt.setDouble(4, roomType.getGiaPhong());
-            pstmt.setInt(5, roomType.getSucChuaToiDa());
-            pstmt.setDouble(6, roomType.getDienTich());
-            pstmt.setString(7, roomType.getMoTa());
-            pstmt.setString(8, roomType.getTienNghi());
+            pstmt.setString(1, roomType.getRoomTypeId());
+            pstmt.setString(2, roomType.getRoomTypeName());
+            pstmt.setInt(3, roomType.getRoomCount());
+            pstmt.setDouble(4, roomType.getPrice());
+            pstmt.setInt(5, roomType.getMaxCapacity());
+            pstmt.setDouble(6, roomType.getArea());
+            pstmt.setString(7, roomType.getDescription());
+            pstmt.setString(8, roomType.getAmenities());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -70,14 +70,14 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
             PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, roomType.getTenLoaiPhong());
-            pstmt.setInt(2, roomType.getSoLuongPhong());
-            pstmt.setDouble(3, roomType.getGiaPhong());
-            pstmt.setInt(4, roomType.getSucChuaToiDa());
-            pstmt.setDouble(5, roomType.getDienTich());
-            pstmt.setString(6, roomType.getMoTa());
-            pstmt.setString(7, roomType.getTienNghi());
-            pstmt.setString(8, roomType.getMaLoaiPhong());
+            pstmt.setString(1, roomType.getRoomTypeName());
+            pstmt.setInt(2, roomType.getRoomCount());
+            pstmt.setDouble(3, roomType.getPrice());
+            pstmt.setInt(4, roomType.getMaxCapacity());
+            pstmt.setDouble(5, roomType.getArea());
+            pstmt.setString(6, roomType.getDescription());
+            pstmt.setString(7, roomType.getAmenities());
+            pstmt.setString(8, roomType.getRoomTypeId());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -101,14 +101,14 @@ public class RoomTypeDAO implements DAO_Interface<RoomType> {
 
     private RoomType mapResultSetToRoomType(ResultSet rs) throws SQLException {
         RoomType lp = new RoomType();
-        lp.setMaLoaiPhong(rs.getString("maLoaiPhong"));
-        lp.setTenLoaiPhong(rs.getString("tenLoaiPhong"));
-        lp.setSoLuongPhong(rs.getInt("soLuongPhong"));
-        lp.setGiaPhong(rs.getDouble("giaPhong"));
-        lp.setSucChuaToiDa(rs.getInt("sucChuaToiDa"));
-        lp.setDienTich(rs.getDouble("dienTich"));
-        lp.setMoTa(rs.getString("moTa"));
-        lp.setTienNghi(rs.getString("tienNghi"));
+        lp.setRoomTypeId(rs.getString("maLoaiPhong"));
+        lp.setRoomTypeName(rs.getString("tenLoaiPhong"));
+        lp.setRoomCount(rs.getInt("soLuongPhong"));
+        lp.setPrice(rs.getDouble("giaPhong"));
+        lp.setMaxCapacity(rs.getInt("sucChuaToiDa"));
+        lp.setArea(rs.getDouble("dienTich"));
+        lp.setDescription(rs.getString("moTa"));
+        lp.setAmenities(rs.getString("tienNghi"));
         return lp;
     }
 }

@@ -124,7 +124,84 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         customer.setQuocTich(rs.getString("quocTich"));
         customer.setDiaChi(rs.getString("diaChi"));
         customer.setHangKH(rs.getString("hangKH"));
-        customer.setDiemTichLuy(rs.getInt("diemTichLuy"));
         return customer;
+    }
+
+    // --- Premium UI Support Methods ---
+
+    // --- Premium UI Support Methods ---
+
+    public List<Customer> getAllWithStats() {
+        List<Customer> list = new ArrayList<>();
+        String sql =
+            "SELECT kh.*, " +
+            "ISNULL(stats.tongDatPhong, 0) AS tongDatPhong, " +
+            "ISNULL(stats.tongChiTieu, 0) AS tongChiTieu, " +
+            "stats.ngayDatGanNhat, " +
+            "CASE WHEN ISNULL(stats.tongDatPhong, 0) > 0 THEN 1 ELSE 0 END AS dangHoatDong " +
+            "FROM KhachHang kh " +
+            "LEFT JOIN ( " +
+            "  SELECT maKH, COUNT(maHD) AS tongDatPhong, SUM(tongTienThanhToan) AS tongChiTieu, MAX(ngayLapHD) AS ngayDatGanNhat " +
+            "  FROM HoaDon GROUP BY maKH " +
+            ") stats ON stats.maKH = kh.maKH " +
+            "ORDER BY kh.hoTenKH";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Customer kh = mapResultSetToCustomer(rs);
+                // Stats
+                kh.setTongDatPhong(rs.getInt("tongDatPhong"));
+                kh.setTongChiTieu(rs.getDouble("tongChiTieu"));
+                Timestamp ndgn = rs.getTimestamp("ngayDatGanNhat");
+                if (ndgn != null) kh.setNgayDatGanNhatDate(new java.util.Date(ndgn.getTime()));
+                kh.setDangHoatDong(rs.getInt("dangHoatDong") == 1);
+                list.add(kh);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<kqlhotel.entity.CustomerBookingHistory> getBookingHistory(String maKH) {
+        List<kqlhotel.entity.CustomerBookingHistory> list = new ArrayList<>();
+        String sql = "SELECT maHD, ngayLapHD, tongTienThanhToan, trangThai FROM HoaDon WHERE maKH = ? ORDER BY ngayLapHD DESC";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maKH);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    kqlhotel.entity.CustomerBookingHistory item = new kqlhotel.entity.CustomerBookingHistory();
+                    item.setMaHD(rs.getString("maHD"));
+                    Timestamp nlhd = rs.getTimestamp("ngayLapHD");
+                    if (nlhd != null) item.setNgayLapHD(nlhd.toLocalDateTime());
+                    item.setTongTien(rs.getDouble("tongTienThanhToan"));
+                    item.setTinhTrang(rs.getString("trangThai"));
+                    list.add(item);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public String generateNextCustomerId(Connection con) throws SQLException {
+        String sql = "SELECT MAX(maKH) FROM KhachHang";
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String lastId = rs.getString(1);
+                if (lastId != null && lastId.startsWith("KH")) {
+                    int num = Integer.parseInt(lastId.substring(2)) + 1;
+                    return String.format("KH%03d", num);
+                }
+            }
+            return "KH001";
+        }
     }
 }

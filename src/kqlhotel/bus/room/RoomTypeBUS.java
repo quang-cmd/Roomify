@@ -16,7 +16,7 @@ public class RoomTypeBUS {
     }
 
     public boolean addRoomType(RoomType rt) {
-        if (rt.getMaLoaiPhong() == null || rt.getMaLoaiPhong().trim().isEmpty()) return false;
+        if (rt.getRoomTypeId() == null || rt.getRoomTypeId().trim().isEmpty()) return false;
         return roomTypeDAO.create(rt);
     }
 }
