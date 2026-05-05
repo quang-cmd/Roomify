@@ -158,4 +158,7 @@ public class Invoice {
     public void setMaDatPhong(String maDatPhong) {
         this.maDatPhong = maDatPhong;
     }
+
+    public String getTinhTrang() { return trangThai; }
+    public void setTinhTrang(String tinhTrang) { this.trangThai = tinhTrang; }
 }
