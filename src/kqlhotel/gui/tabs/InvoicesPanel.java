@@ -482,7 +482,10 @@ public class InvoicesPanel extends JPanel {
         bConfirm.setBackground(ThemeColors.SUCCESS);
         bConfirm.setForeground(Color.WHITE);
         bConfirm.setIcon(loadIcon("check-circle.png", 16, 16));
-        bConfirm.setVisible(!"DaThanhToan".equals(computedStatus));
+        bConfirm.setVisible(
+                !"DaThanhToan".equals(computedStatus)
+                        && !"DaHuy".equals(computedStatus)
+        );
         bConfirm.addActionListener(e -> {
             if (invoicesBUS.confirmPayment(hd.getMaHD())) {
                 refreshData();
