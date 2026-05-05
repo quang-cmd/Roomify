@@ -1,4 +1,4 @@
-package kqlhotel.gui.tabs;
+﻿package kqlhotel.gui.tabs;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -52,12 +52,6 @@ public class CustomersPanel extends JPanel {
 
         applyFilter("Tat ca");
     }
-
-    // Overload for compatibility with AppFrame which passes itself as argument
-    public CustomersPanel(kqlhotel.gui.AppFrame appFrame) {
-        this();
-    }
-
 
     private JPanel createHeader() {
         JPanel header = new JPanel(new MigLayout("insets 0", "[grow,fill][][]", "[]"));
