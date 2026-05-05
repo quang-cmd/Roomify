@@ -79,7 +79,7 @@ public class PromotionDialog extends JDialog {
         panel.add(rowDate);
 
         panel.add(createInputGroup("Trạng thái", cbTrangThai));
-        panel.add(createConditionInputGroup());
+        panel.add(createInputGroup("Điều kiện / Mô tả chi tiết", txtDieuKien));
 
         // Buttons
         JPanel actionPanel = new JPanel(new MigLayout("insets 20 0 0 0", "[grow,fill][]", "[]"));
@@ -131,7 +131,7 @@ public class PromotionDialog extends JDialog {
         dpNgayBatDau.setSelectedDate(editingKM.getNgayBatDau().toLocalDate());
         dpNgayKetThuc.setSelectedDate(editingKM.getNgayKetThuc().toLocalDate());
         cbTrangThai.setSelectedItem(editingKM.getTrangThaiKM());
-        txtDieuKien.setText(String.valueOf((long) editingKM.getDieuKienApDung()));
+        txtDieuKien.setText(editingKM.getDieuKienApDung());
     }
 
     private void savePromotion() {
@@ -188,16 +188,7 @@ public class PromotionDialog extends JDialog {
             }
 
             km.setTrangThaiKM(cbTrangThai.getSelectedItem().toString());
-            double dieuKien = txtDieuKien.getText().isBlank()
-                    ? 0
-                    : Double.parseDouble(txtDieuKien.getText().trim());
-
-            if (dieuKien < 0) {
-                JOptionPane.showMessageDialog(this, "Điều kiện không được âm.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            km.setDieuKienApDung(dieuKien);
+            km.setDieuKienApDung(txtDieuKien.getText().trim());
 
             boolean success = isEditMode ? bus.updatePromotion(km) : bus.createPromotion(km);
 
@@ -212,31 +203,5 @@ public class PromotionDialog extends JDialog {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Mức giảm và giá trị tối đa phải là số.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private JPanel createConditionInputGroup() {
-        JPanel p = new JPanel(new MigLayout("wrap 1, insets 0, gap 4", "[grow,fill]", "[]"));
-        p.setOpaque(false);
-
-        JLabel l = new JLabel("Điều kiện");
-        l.setForeground(new Color(110, 125, 145));
-        l.setFont(l.getFont().deriveFont(12f));
-        p.add(l);
-
-        JPanel row = new JPanel(new MigLayout("insets 0, gap 6", "[][grow,fill]", "[]"));
-        row.setOpaque(false);
-
-        JLabel prefix = new JLabel("Lớn hơn");
-        prefix.setForeground(new Color(24, 40, 66));
-        prefix.setFont(prefix.getFont().deriveFont(Font.BOLD, 13f));
-
-        txtDieuKien.setPreferredSize(new java.awt.Dimension(0, 36));
-        txtDieuKien.putClientProperty("JTextField.placeholderText", "Nhập số tiền, ví dụ: 3000000");
-
-        row.add(prefix);
-        row.add(txtDieuKien, "h 36!");
-
-        p.add(row);
-        return p;
     }
 }

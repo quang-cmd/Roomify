@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public class Promotion {
     private String maKM;
     private String tenKM;
-    private Double dieuKienApDung;
+    private String dieuKienApDung;
     private String loaiKM;
     private double giaTriToiDa;
     private double tienKhuyenMai;
@@ -20,8 +20,8 @@ public class Promotion {
     public void setMaKM(String maKM) { this.maKM = maKM; }
     public String getTenKM() { return tenKM; }
     public void setTenKM(String tenKM) { this.tenKM = tenKM; }
-    public double getDieuKienApDung() { return dieuKienApDung; }
-    public void setDieuKienApDung(double dieuKienApDung) { this.dieuKienApDung = dieuKienApDung; }
+    public String getDieuKienApDung() { return dieuKienApDung; }
+    public void setDieuKienApDung(String dieuKienApDung) { this.dieuKienApDung = dieuKienApDung; }
     public String getLoaiKM() { return loaiKM; }
     public void setLoaiKM(String loaiKM) { this.loaiKM = loaiKM; }
     public double getGiaTriToiDa() { return giaTriToiDa; }

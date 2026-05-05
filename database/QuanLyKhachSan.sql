@@ -119,7 +119,6 @@ CREATE TABLE DichVu (
     maDV         CHAR(5)        PRIMARY KEY,
     tenDV        NVARCHAR(100)  NOT NULL,
     donGia       DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
-    loaiDV       NVARCHAR(50)   NULL,
     moTaDV       NVARCHAR(255)  NULL,
     trangThaiDV  VARCHAR(20)    NOT NULL DEFAULT 'DangHoatDong'
                  CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
@@ -129,7 +128,7 @@ GO
 CREATE TABLE KhuyenMai (
     maKM            CHAR(5)        PRIMARY KEY,
     tenKM           NVARCHAR(100)  NOT NULL,
-    dieuKienApDung  DECIMAL(18,2)  NOT NULL CHECK (dieuKienApDung >= 0),
+    dieuKienApDung  NVARCHAR(255)  NULL,
     loaiKM          VARCHAR(20)    NOT NULL CHECK (loaiKM IN ('TheoTien', 'TheoPhanTram')),
     giaTriToiDa     DECIMAL(18,2)  NOT NULL CHECK (giaTriToiDa >= 0),
     tienKhuyenMai   DECIMAL(18,2)  NOT NULL CHECK (tienKhuyenMai >= 0),
@@ -343,18 +342,18 @@ INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES
 GO
 
 -- ----- DichVu (5) + KhuyenMai (3) -----
-INSERT INTO DichVu (maDV, tenDV, donGia, loaiDV, moTaDV, trangThaiDV) VALUES
-('DV001', N'Ăn sáng buffet',      120000.00, N'Food & Drink', N'Buffet sáng theo người',         'DangHoatDong'),
-('DV002', N'Giặt ủi',              60000.00, N'Housekeeping', N'Giặt ủi theo kg',                'DangHoatDong'),
-('DV003', N'Dọn phòng thêm',       80000.00, N'Housekeeping', N'Dọn phòng ngoài giờ',            'DangHoatDong'),
-('DV004', N'Nước minibar',         30000.00, N'Food & Drink', N'Tính theo số chai tiêu thụ',     'DangHoatDong'),
-('DV005', N'Đưa đón sân bay',     250000.00, N'Transport',    N'Xe riêng đưa đón sân bay',       'DangHoatDong');
+INSERT INTO DichVu (maDV, tenDV, donGia, moTaDV, trangThaiDV) VALUES
+('DV001', N'Ăn sáng buffet',      120000.00, N'Buffet sáng theo người',         'DangHoatDong'),
+('DV002', N'Giặt ủi',              60000.00, N'Giặt ủi theo kg',                'DangHoatDong'),
+('DV003', N'Dọn phòng thêm',       80000.00, N'Dọn phòng ngoài giờ',            'DangHoatDong'),
+('DV004', N'Nước minibar',         30000.00, N'Tính theo số chai tiêu thụ',     'DangHoatDong'),
+('DV005', N'Đưa đón sân bay',     250000.00, N'Xe riêng đưa đón sân bay',       'DangHoatDong');
 GO
 
 INSERT INTO KhuyenMai (maKM, tenKM, dieuKienApDung, loaiKM, giaTriToiDa, tienKhuyenMai, ngayBatDau, ngayKetThuc, trangThaiKM) VALUES
-('KM001', N'Tet 2026',          15000000.00,  'TheoTien',     500000.00,  500000.00, '2026-01-15','2026-02-28','HetHan'),
-('KM002', N'He 2026',           3000000.00,  'TheoPhanTram', 600000.00,  30, '2026-04-01','2026-06-30','DangHoatDong'),
-('KM003', N'Trung Thu 2026',    4000000.00,  'TheoTien',     800000.00,  400000.00, '2026-08-15','2026-09-30','SapDienRa');
+('KM001', N'Tet 2026',          N'Hoa don tu 5tr',  'TheoTien',     500000.00,  500000.00, '2026-01-15','2026-02-28','HetHan'),
+('KM002', N'He 2026',           N'Hoa don tu 3tr',  'TheoPhanTram', 600000.00,  300000.00, '2026-04-01','2026-06-30','DangHoatDong'),
+('KM003', N'Trung Thu 2026',    N'Hoa don tu 4tr',  'TheoTien',     800000.00,  400000.00, '2026-08-15','2026-09-30','SapDienRa');
 GO
 
 -- =====================================================================
