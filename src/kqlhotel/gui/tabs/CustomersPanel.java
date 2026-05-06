@@ -38,7 +38,6 @@ import javax.swing.border.EmptyBorder;
 import kqlhotel.bus.customer.CustomerBUS;
 import kqlhotel.entity.CustomerBookingHistory;
 import kqlhotel.entity.Customer;
-import net.miginfocom.swing.MigLayout;
 
 public class CustomersPanel extends JPanel {
 
@@ -118,7 +117,6 @@ public class CustomersPanel extends JPanel {
         listScroll.setOpaque(false);
         listScroll.getViewport().setOpaque(false);
         listScroll.setBorder(null);
-        listScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         listScroll.getVerticalScrollBar().setUnitIncrement(16);
         leftPane.add(listScroll, BorderLayout.CENTER);
 
@@ -146,7 +144,7 @@ public class CustomersPanel extends JPanel {
         searchField.setBorder(null);
         searchField.setOpaque(false);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo tên, số điện thoại hoặc mã khách hàng...");
+        searchField.setToolTipText("Search by name, phone or ID...");
         searchField.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
@@ -210,40 +208,49 @@ public class CustomersPanel extends JPanel {
     private JPanel createCustomerRow(Customer customer) {
         boolean selected = selectedCustomer != null && safe(selectedCustomer.getMaKH()).equals(customer.getMaKH());
         JPanel row = new RoundedPanel(18, selected ? new Color(239, 246, 255) : Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 4), 2);
-        row.setLayout(new MigLayout("insets 6 8, gap 6", "[42!][][]", "[]"));
+        row.setLayout(new BorderLayout(12, 0));
+        row.setBorder(new EmptyBorder(14, 14, 14, 14));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 84));
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        JComponent avatar = createAvatar(customer.getHoTenKH(), selected ? new Color(16, 185, 129) : pickAvatarColor(customer.getMaKH()));
-        
-        JPanel textWrap = new JPanel(new MigLayout("insets 0, gap 0, wrap 1", "[grow,fill]", "[]2[]"));
+        JLabel avatar = createAvatar(customer.getHoTenKH(), selected ? new Color(16, 185, 129) : pickAvatarColor(customer.getMaKH()));
+        row.add(avatar, BorderLayout.WEST);
+
+        JPanel textWrap = new JPanel(new GridLayout(2, 1, 0, 2));
         textWrap.setOpaque(false);
 
         JLabel name = new JLabel(customer.getHoTenKH());
-        name.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        name.setFont(new Font("Segoe UI", Font.BOLD, 15));
         name.setForeground(new Color(15, 23, 42));
 
-        JLabel info = new JLabel(safe(customer.getMaKH()) + " • " + safe(customer.getSdt()));
-        info.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        info.setForeground(new Color(148, 163, 184));
-
-        JLabel rank = new JLabel("• " + mapRank(customer.getHangKH()));
-        rank.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        rank.setForeground(new Color(100, 116, 139));
-
-        JPanel subText = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        subText.setOpaque(false);
-        subText.add(info);
-        subText.add(rank);
+        JLabel phone = new JLabel(safe(customer.getSdt()));
+        phone.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        phone.setForeground(new Color(148, 163, 184));
 
         textWrap.add(name);
+        JPanel subText = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        subText.setOpaque(false);
+        subText.add(phone);
+        subText.add(new JLabel("•"));
+        subText.add(createRankBadge(customer.getHangKH()));
         textWrap.add(subText);
+        row.add(textWrap, BorderLayout.CENTER);
 
-        JComponent badge = createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong());
-        
-        row.add(avatar, "w 42!, h 42!");
-        row.add(textWrap, "");
-        row.add(badge, "gapleft 2");
+        JPanel statusWrap = new JPanel();
+        statusWrap.setOpaque(false);
+        statusWrap.setLayout(new BoxLayout(statusWrap, BoxLayout.Y_AXIS));
+
+        JLabel badge = createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong());
+        badge.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        JLabel arrow = new JLabel("›");
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        arrow.setForeground(new Color(148, 163, 184));
+        arrow.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        statusWrap.add(badge);
+        statusWrap.add(Box.createVerticalGlue());
+        statusWrap.add(arrow);
+        row.add(statusWrap, BorderLayout.EAST);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -276,13 +283,11 @@ public class CustomersPanel extends JPanel {
         RoundedPanel historyCard = new RoundedPanel(24, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
         historyCard.setLayout(new BoxLayout(historyCard, BoxLayout.Y_AXIS));
         historyCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        historyCard.setPreferredSize(new Dimension(0, 500));
         historyCard.add(createHistorySection(customer));
 
         content.add(profileCard);
         content.add(Box.createVerticalStrut(16));
         content.add(historyCard);
-        content.add(Box.createVerticalGlue());
 
         JScrollPane scrollPane = new JScrollPane(content);
         scrollPane.setOpaque(false);
@@ -302,7 +307,7 @@ public class CustomersPanel extends JPanel {
         JPanel left = new JPanel(new BorderLayout(14, 0));
         left.setOpaque(false);
 
-        JComponent avatar = createAvatar(customer.getHoTenKH(), new Color(16, 185, 129));
+        JLabel avatar = createAvatar(customer.getHoTenKH(), new Color(16, 185, 129));
         avatar.setPreferredSize(new Dimension(52, 52));
         avatar.setMinimumSize(new Dimension(52, 52));
         avatar.setMaximumSize(new Dimension(52, 52));
@@ -452,12 +457,11 @@ public class CustomersPanel extends JPanel {
     }
 
     private JPanel createHistoryRow(CustomerBookingHistory history) {
-        JPanel row = new RoundedPanel(18, Color.WHITE, new Color(230, 235, 245), 1f, new Color(15, 23, 42, 6), 2);
+        JPanel row = new RoundedPanel(18, new Color(248, 250, 252), new Color(241, 245, 249), 1f, new Color(15, 23, 42, 0), 0);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(18, 20, 18, 20));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        row.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        JPanel left = new JPanel(new MigLayout("insets 0, gap 0, wrap 1", "[grow,fill]", "[]2[]"));
+        JPanel left = new JPanel(new GridLayout(2, 1, 0, 2));
         left.setOpaque(false);
 
         JLabel booking = new JLabel("Đặt phòng " + safe(history.getMaDatPhong()) + " · Hóa đơn " + safe(history.getMaHoaDon()));
@@ -465,7 +469,7 @@ public class CustomersPanel extends JPanel {
         booking.setForeground(new Color(15, 23, 42));
 
         JLabel date = new JLabel(formatDate(history.getNgayLap()));
-        date.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        date.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         date.setForeground(new Color(148, 163, 184));
 
         left.add(booking);
@@ -476,15 +480,15 @@ public class CustomersPanel extends JPanel {
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
 
         JLabel amount = new JLabel(MONEY_FORMAT.format(history.getTongTien()) + "đ");
-        amount.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        amount.setFont(new Font("Segoe UI", Font.BOLD, 20));
         amount.setForeground(new Color(15, 23, 42));
         amount.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        JComponent status = createSquareStatusBadge(mapInvoiceStatus(history.getTrangThai()), "DaThanhToan".equalsIgnoreCase(history.getTrangThai()));
+        JLabel status = createStatusBadge(mapInvoiceStatus(history.getTrangThai()), "DaThanhToan".equalsIgnoreCase(history.getTrangThai()));
         status.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
         right.add(amount);
-        right.add(Box.createVerticalStrut(2));
+        right.add(Box.createVerticalStrut(6));
         right.add(status);
 
         row.add(left, BorderLayout.WEST);
@@ -649,69 +653,43 @@ public class CustomersPanel extends JPanel {
         return button;
     }
 
-    private JComponent createAvatar(String fullName, Color bgColor) {
+    private JLabel createAvatar(String fullName, Color bgColor) {
         String initials = "KH";
         if (fullName != null && !fullName.isBlank()) {
             String[] parts = fullName.trim().split("\\s+");
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Math.min(parts.length, 2); i++) {
-                if (!parts[i].isEmpty()) {
-                    sb.append(Character.toUpperCase(parts[i].charAt(0)));
-                }
+                sb.append(Character.toUpperCase(parts[i].charAt(0)));
             }
             initials = sb.toString();
         }
 
-        final String finalInitials = initials;
-        JPanel panel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bgColor);
-                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-                g2.dispose();
-            }
-        };
-        panel.setOpaque(false);
-        JLabel label = new JLabel(finalInitials, SwingConstants.CENTER);
+        JLabel label = new JLabel(initials, SwingConstants.CENTER);
         label.setForeground(Color.WHITE);
         label.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        panel.add(label);
-        panel.setPreferredSize(new Dimension(42, 42));
-        panel.setMinimumSize(new Dimension(42, 42));
-        panel.setMaximumSize(new Dimension(42, 42));
-        return panel;
+        label.setOpaque(true);
+        label.setBackground(bgColor);
+        label.setPreferredSize(new Dimension(42, 42));
+        label.setMinimumSize(new Dimension(42, 42));
+        label.setMaximumSize(new Dimension(42, 42));
+        return label;
     }
 
-    private JComponent createStatusBadge(String text, boolean active) {
-        Color bg = active ? new Color(220, 252, 231) : new Color(241, 245, 249);
-        Color fg = active ? new Color(22, 163, 74) : new Color(148, 163, 184);
-
-        JPanel badge = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(4, 12, 4, 12));
+    private JLabel createStatusBadge(String text, boolean active) {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setOpaque(true);
+        label.setBorder(new EmptyBorder(4, 10, 4, 10));
         label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        label.setForeground(fg);
-        badge.add(label);
-        return badge;
+        label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
+        label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
+        return label;
     }
 
-    private JComponent createRankBadge(String rankCode) {
+    private JLabel createRankBadge(String rankCode) {
         String text = mapRank(rankCode);
         Color bg;
         Color fg;
-
+        
         switch (safe(rankCode).toLowerCase()) {
             case "bac":
             case "silver":
@@ -734,33 +712,12 @@ public class CustomersPanel extends JPanel {
                 break;
         }
 
-        final Color finalBg = bg;
-        JPanel badge = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(finalBg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(3, 10, 3, 10));
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        label.setForeground(fg);
-        badge.add(label);
-        return badge;
-    }
-
-    private JComponent createSquareStatusBadge(String text, boolean active) {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
         label.setOpaque(true);
-        label.setBorder(new EmptyBorder(4, 10, 4, 10));
-        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
-        label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
+        label.setBorder(new EmptyBorder(3, 8, 3, 8));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        label.setBackground(bg);
+        label.setForeground(fg);
         return label;
     }
 
