@@ -138,8 +138,8 @@ public class AddRoomTypeDialog extends JDialog {
         btnCancel.setFocusPainted(false);
         btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCancel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
+                BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
+                BorderFactory.createEmptyBorder(8, 20, 8, 20)
         ));
         btnCancel.addActionListener(e -> dispose());
 
@@ -214,8 +214,8 @@ public class AddRoomTypeDialog extends JDialog {
         JTextField tf = new JTextField();
         tf.setFont(tf.getFont().deriveFont(13f));
         tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         tf.setBackground(new Color(250, 252, 255));
         return tf;

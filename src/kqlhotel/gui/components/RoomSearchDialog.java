@@ -59,7 +59,7 @@ public class RoomSearchDialog extends JDialog {
         JLabel title = new JLabel("Room Search");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
         title.setForeground(new Color(15, 23, 42));
-        
+
         JButton btnClose = new JButton("×");
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 24));
         btnClose.setForeground(new Color(100, 116, 139));
@@ -151,14 +151,14 @@ public class RoomSearchDialog extends JDialog {
         List<Phong> results = new ArrayList<>();
         PhongBUS bus = roomPanel.getRoomBUS();
         List<Phong> currentRooms = roomPanel.getRoomList();
-        
+
         if (currentRooms != null) {
             for (Phong r : currentRooms) {
                 String guiStatus = bus.mapDbStatusToGuiStatus(r.getStatus());
                 boolean matchId = roomQuery.isEmpty() || r.getRoomId().toLowerCase().contains(roomQuery);
                 boolean matchType = "All room types".equals(typeQuery) || r.getRoomType().getRoomTypeName().equals(typeQuery);
                 boolean matchStatus = "All statuses".equals(statusQuery) || guiStatus.equals(statusQuery);
-                
+
                 if (matchId && matchType && matchStatus) {
                     results.add(r);
                 }
