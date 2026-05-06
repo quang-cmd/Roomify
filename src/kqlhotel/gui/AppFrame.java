@@ -28,6 +28,7 @@ import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.tabs.DashboardPanel;
 import kqlhotel.gui.tabs.BookingPanel;
 import kqlhotel.gui.tabs.CheckInPanel;
 import kqlhotel.gui.tabs.LoginPanel;
@@ -65,6 +66,7 @@ public class AppFrame extends JFrame {
     private RoomManagementPanel roomManagementPanel;
     private BookingPanel bookingPanel;
     private CheckoutPanel checkoutPanel;
+    private ShiftOpeningPanel shiftPanel;
     
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -75,7 +77,7 @@ public class AppFrame extends JFrame {
 
         rootPanel.setOpaque(false);
 
-        ShiftOpeningPanel shiftPanel = new ShiftOpeningPanel(this::showAppTransition);
+        shiftPanel = new ShiftOpeningPanel(this::showAppTransition);
 
         LoginPanel loginPanel = new LoginPanel(this::showShiftTransition);
         rootPanel.add(loginPanel, "auth");
@@ -101,6 +103,8 @@ public class AppFrame extends JFrame {
         contentWrap.add(createTopbar(), BorderLayout.NORTH);
 
         screenPanel.setOpaque(false);
+        DashboardPanel dashboardPanel = new DashboardPanel();
+        screenPanel.add(dashboardPanel, "dashboard");
         bookingPanel = new BookingPanel();
         screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
@@ -176,6 +180,13 @@ public class AppFrame extends JFrame {
         brandWrap.add(hotelIcon, "w 40!,h 40!,aligny center");
         brandWrap.add(brandTextWrap, "aligny center");
         sidebar.add(brandWrap, "gapy 4 14");
+
+        JLabel dashLabel = new JLabel("DASHBOARD");
+        dashLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
+        dashLabel.setFont(dashLabel.getFont().deriveFont(Font.BOLD, 11f));
+        sidebar.add(dashLabel, "gapy 4 2");
+        registerPage("dashboard", "Dashboard", "Theo d\u00f5i ho\u1ea1t \u0111\u1ed9ng ca l\u00e0m vi\u1ec7c");
+        sidebar.add(sidebarItem("\u25D0", new Color(30, 58, 138), "Dashboard", "dashboard"));
 
         JLabel menuLabel = new JLabel("MENU CH\u00cdNH");
         menuLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
@@ -571,7 +582,13 @@ public class AppFrame extends JFrame {
 
     private void showShiftTransition() {
         updateCurrentUserInfo();
-        showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
+        boolean isManager = kqlhotel.gui.Session.currentAccount != null
+            && "QuanLy".equals(kqlhotel.gui.Session.currentAccount.getRole());
+        if (isManager) {
+            showTransition("app", "Đăng nhập thành công", "Đang vào giao diện chính...");
+        } else {
+            showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
+        }
     }
 
     private void showAppTransition() {
@@ -651,6 +668,7 @@ public class AppFrame extends JFrame {
 
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
+        vnTitles.put("dashboard", "Dashboard");
         vnTitles.put("booking", "\u0110\u1eb7t ph\u00f2ng");
         vnTitles.put("check-in", "Nh\u1eadn ph\u00f2ng");
         vnTitles.put("checkout", "Tr\u1ea3 ph\u00f2ng");
