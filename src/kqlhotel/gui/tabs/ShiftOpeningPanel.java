@@ -32,6 +32,8 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
+import kqlhotel.bus.shift.ShiftBUS;
+import kqlhotel.gui.Session;
 import kqlhotel.gui.components.BackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
@@ -310,6 +312,17 @@ public class ShiftOpeningPanel extends BackgroundPanel {
             return;
         }
 
+        boolean isManager = Session.currentAccount != null
+            && "QuanLy".equals(Session.currentAccount.getRole());
+        if (!isManager) {
+            String maNV = Session.currentStaff != null ? Session.currentStaff.getMaNV() : null;
+            if (maNV == null) {
+                JOptionPane.showMessageDialog(this, "Không xác định được nhân viên đang đăng nhập.",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            new ShiftBUS().openShift(maNV, total);
+        }
         if (this.onShiftConfirmed != null) {
             this.onShiftConfirmed.run();
         }
