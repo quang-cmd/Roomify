@@ -10,18 +10,18 @@ public class AddRoomTypeDialog extends JDialog {
     private final RoomTypeBUS roomTypeBUS;
     private final Runnable onSuccess;
 
-    private JTextField tfRoomTypeId;
-    private JTextField tfRoomTypeName;
-    private JTextField tfRoomCount;
-    private JTextField tfPrice;
-    private JTextField tfMaxCapacity;
-    private JTextField tfArea;
-    private JTextArea taDescription;
-    private JTextArea taAmenities;
+    private JTextField tfMaLoaiPhong;
+    private JTextField tfTenLoaiPhong;
+    private JTextField tfSoLuongPhong;
+    private JTextField tfGiaPhong;
+    private JTextField tfSucChuaToiDa;
+    private JTextField tfDienTich;
+    private JTextArea taMoTa;
+    private JTextArea taTienNghi;
     private JLabel lblError;
 
     public AddRoomTypeDialog(Window owner, RoomTypeBUS roomTypeBUS, Runnable onSuccess) {
-        super(owner, "Add New Room Type", ModalityType.APPLICATION_MODAL);
+        super(owner, "Thêm loại phòng mới", ModalityType.APPLICATION_MODAL);
         this.roomTypeBUS = roomTypeBUS;
         this.onSuccess = onSuccess;
 
@@ -55,7 +55,7 @@ public class AddRoomTypeDialog extends JDialog {
         };
         header.setOpaque(false);
 
-        JLabel title = new JLabel("Add New Room Type");
+        JLabel title = new JLabel("Thêm loại phòng mới");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setForeground(Color.WHITE);
 
@@ -78,40 +78,40 @@ public class AddRoomTypeDialog extends JDialog {
         JPanel form = new JPanel(new MigLayout("wrap 2, insets 24 28 8 28, gap 14 12", "[grow,fill][grow,fill]", "[]"));
         form.setOpaque(false);
 
-        form.add(label("Room Type ID", true));
-        form.add(label("Room Type Name", true));
-        tfRoomTypeId = styledField();
-        tfRoomTypeName = styledField();
-        form.add(tfRoomTypeId, "h 38!");
-        form.add(tfRoomTypeName, "h 38!");
+        form.add(label("Mã loại phòng", true));
+        form.add(label("Tên loại phòng", true));
+        tfMaLoaiPhong = styledField();
+        tfTenLoaiPhong = styledField();
+        form.add(tfMaLoaiPhong, "h 38!");
+        form.add(tfTenLoaiPhong, "h 38!");
 
-        form.add(label("Price (USD)", true));
-        form.add(label("Room Count", true));
-        tfPrice = styledField();
-        tfPrice.putClientProperty("JTextField.placeholderText", "Ex: 1500");
-        tfRoomCount = styledField();
-        tfRoomCount.putClientProperty("JTextField.placeholderText", "Ex: 10");
-        form.add(tfPrice, "h 38!");
-        form.add(tfRoomCount, "h 38!");
+        form.add(label("Giá phòng (VNĐ)", true));
+        form.add(label("Số lượng phòng", true));
+        tfGiaPhong = styledField();
+        tfGiaPhong.putClientProperty("JTextField.placeholderText", "Ví dụ: 1500000");
+        tfSoLuongPhong = styledField();
+        tfSoLuongPhong.putClientProperty("JTextField.placeholderText", "Ví dụ: 10");
+        form.add(tfGiaPhong, "h 38!");
+        form.add(tfSoLuongPhong, "h 38!");
 
-        form.add(label("Max Capacity (Persons)", true));
-        form.add(label("Area (m²)", true));
-        tfMaxCapacity = styledField();
-        tfArea = styledField();
-        form.add(tfMaxCapacity, "h 38!");
-        form.add(tfArea, "h 38!");
+        form.add(label("Sức chứa tối đa (Người)", true));
+        form.add(label("Diện tích (m²)", true));
+        tfSucChuaToiDa = styledField();
+        tfDienTich = styledField();
+        form.add(tfSucChuaToiDa, "h 38!");
+        form.add(tfDienTich, "h 38!");
 
-        form.add(label("Description", false), "span 2");
-        taDescription = new JTextArea(2, 20);
-        taDescription.setLineWrap(true);
-        taDescription.setWrapStyleWord(true);
-        form.add(styledScrollPane(taDescription), "span 2, growx");
+        form.add(label("Mô tả", false), "span 2");
+        taMoTa = new JTextArea(2, 20);
+        taMoTa.setLineWrap(true);
+        taMoTa.setWrapStyleWord(true);
+        form.add(styledScrollPane(taMoTa), "span 2, growx");
 
-        form.add(label("Amenities", false), "span 2");
-        taAmenities = new JTextArea(2, 20);
-        taAmenities.setLineWrap(true);
-        taAmenities.setWrapStyleWord(true);
-        form.add(styledScrollPane(taAmenities), "span 2, growx");
+        form.add(label("Tiện nghi", false), "span 2");
+        taTienNghi = new JTextArea(2, 20);
+        taTienNghi.setLineWrap(true);
+        taTienNghi.setWrapStyleWord(true);
+        form.add(styledScrollPane(taTienNghi), "span 2, growx");
 
         return form;
     }
@@ -131,19 +131,19 @@ public class AddRoomTypeDialog extends JDialog {
         footer.setOpaque(false);
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 235, 248)));
 
-        JButton btnCancel = new JButton("Cancel");
+        JButton btnCancel = new JButton("Huỷ");
         btnCancel.setFont(btnCancel.getFont().deriveFont(13f));
         btnCancel.setForeground(new Color(100, 120, 150));
         btnCancel.setBackground(Color.WHITE);
         btnCancel.setFocusPainted(false);
         btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCancel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
+                BorderFactory.createLineBorder(new Color(215, 225, 245), 1, true),
+                BorderFactory.createEmptyBorder(8, 20, 8, 20)
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("Add Room Type");
+        PrimaryButton btnConfirm = new PrimaryButton("Thêm loại phòng");
         btnConfirm.setBackground(new Color(17, 24, 39));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());
@@ -155,15 +155,15 @@ public class AddRoomTypeDialog extends JDialog {
 
     private void onConfirm() {
         lblError.setText(" ");
-        String ma = tfRoomTypeId.getText().trim();
-        String ten = tfRoomTypeName.getText().trim();
-        String slStr = tfRoomCount.getText().trim();
-        String giaStr = tfPrice.getText().trim();
-        String sucChuaStr = tfMaxCapacity.getText().trim();
-        String dienTichStr = tfArea.getText().trim();
+        String ma = tfMaLoaiPhong.getText().trim();
+        String ten = tfTenLoaiPhong.getText().trim();
+        String slStr = tfSoLuongPhong.getText().trim();
+        String giaStr = tfGiaPhong.getText().trim();
+        String sucChuaStr = tfSucChuaToiDa.getText().trim();
+        String dienTichStr = tfDienTich.getText().trim();
 
         if (ma.isEmpty() || ten.isEmpty() || slStr.isEmpty() || giaStr.isEmpty() || sucChuaStr.isEmpty() || dienTichStr.isEmpty()) {
-            lblError.setText("⚠ Please fill in all required fields.");
+            lblError.setText("⚠ Vui lòng nhập đầy đủ các trường bắt buộc.");
             return;
         }
 
@@ -173,7 +173,7 @@ public class AddRoomTypeDialog extends JDialog {
             sl = Integer.parseInt(slStr);
             sucChua = Integer.parseInt(sucChuaStr);
         } catch (NumberFormatException e) {
-            lblError.setText("⚠ Room count & capacity must be integers.");
+            lblError.setText("⚠ Số lượng & sức chứa phải là số nguyên.");
             return;
         }
 
@@ -181,30 +181,30 @@ public class AddRoomTypeDialog extends JDialog {
             gia = Double.parseDouble(giaStr);
             dienTich = Double.parseDouble(dienTichStr);
         } catch (NumberFormatException e) {
-            lblError.setText("⚠ Price & area must be valid numbers.");
+            lblError.setText("⚠ Giá phòng & diện tích phải là số hợp lệ.");
             return;
         }
 
         RoomType rt = new RoomType();
-        rt.setRoomTypeId(ma);
-        rt.setRoomTypeName(ten);
-        rt.setRoomCount(sl);
-        rt.setPrice(gia);
-        rt.setMaxCapacity(sucChua);
-        rt.setArea(dienTich);
-        rt.setDescription(taDescription.getText().trim());
-        rt.setAmenities(taAmenities.getText().trim());
+        rt.setMaLoaiPhong(ma);
+        rt.setTenLoaiPhong(ten);
+        rt.setSoLuongPhong(sl);
+        rt.setGiaPhong(gia);
+        rt.setSucChuaToiDa(sucChua);
+        rt.setDienTich(dienTich);
+        rt.setMoTa(taMoTa.getText().trim());
+        rt.setTienNghi(taTienNghi.getText().trim());
 
         if (roomTypeBUS.addRoomType(rt)) {
             if (onSuccess != null) onSuccess.run();
             dispose();
         } else {
-            lblError.setText("⚠ Failed to add room type. ID might already exist.");
+            lblError.setText("⚠ Thêm loại phòng thất bại. Có thể mã loại phòng đã tồn tại.");
         }
     }
 
     private JLabel label(String text, boolean req) {
-        JLabel l = new JLabel(text + (req ? " *" : ""));
+        JLabel l = new JLabel("<html>" + text + (req ? " <font color='red'>*</font>" : "") + "</html>");
         l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
         l.setForeground(new Color(70, 80, 100));
         return l;
@@ -214,8 +214,8 @@ public class AddRoomTypeDialog extends JDialog {
         JTextField tf = new JTextField();
         tf.setFont(tf.getFont().deriveFont(13f));
         tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         tf.setBackground(new Color(250, 252, 255));
         return tf;

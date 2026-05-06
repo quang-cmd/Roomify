@@ -96,6 +96,10 @@ public class SqlBookingService implements BookingService {
             || !command.getCheckOutDate().isAfter(command.getCheckInDate())) {
             return fail("Ngay nhan/tra phong khong hop le.");
         }
+        double ratio = command.getPaymentRatio();
+        if (Double.isNaN(ratio) || Double.isInfinite(ratio) || ratio <= 0 || ratio > 1.0) {
+            return fail("Ti le thanh toan khong hop le (phai trong khoang 0 < ratio <= 1).");
+        }
 
         Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) {
@@ -147,11 +151,7 @@ public class SqlBookingService implements BookingService {
             // Policy khách sạn: nhận phòng 14:00, trả phòng 12:00 ngày tra.
             LocalDateTime checkInTs = command.getCheckInDate().atTime(CHECK_IN_HOUR, 0);
             LocalDateTime checkOutTs = command.getCheckOutDate().atTime(CHECK_OUT_HOUR, 0);
-            // ngayNhanDuKien must be >= ngayDat; if user picks today, set ngayDat = now and shift checkInTs forward if needed
             LocalDateTime ngayDat = now;
-            if (checkInTs.isBefore(ngayDat)) {
-                ngayDat = checkInTs;
-            }
 
             // Pre-compute totals so we can persist tienCoc on DatPhong
             int nights = Math.max(1, (int) ChronoUnit.DAYS.between(command.getCheckInDate(), command.getCheckOutDate()));
@@ -258,42 +258,22 @@ public class SqlBookingService implements BookingService {
     }
 
     private String pickAvailableRoomId(Connection con, String roomTypeName, LocalDate checkIn, LocalDate checkOut, Set<String> excludeRoomIds) throws SQLException {
-        String sql = "SELECT TOP 1 p.maPhong FROM Phong p " +
+        String sql = "SELECT p.maPhong FROM Phong p " +
             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
             "WHERE lp.tenLoaiPhong = ? " +
             "AND p.trangThaiPhong <> 'BaoTri' " +
             "AND NOT EXISTS (" +
-            "  SELECT 1 FROM ChiTietDatPhong ctdp WHERE ctdp.maPhong = p.maPhong " +
+            "  SELECT 1 FROM ChiTietDatPhong ctdp " +
+            "  JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "  WHERE ctdp.maPhong = p.maPhong " +
+            "  AND hd.trangThai <> 'DaHuy' " +
             "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
             ") " +
-            "ORDER BY p.maPhong";
+            "ORDER BY NEWID()";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, roomTypeName);
-            ps.setTimestamp(2, Timestamp.valueOf(checkIn.atStartOfDay()));
-            ps.setTimestamp(3, Timestamp.valueOf(checkOut.atStartOfDay()));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String roomId = rs.getString(1);
-                    if (!excludeRoomIds.contains(roomId)) {
-                        return roomId;
-                    }
-                }
-            }
-        }
-        // Fallback: scan more rows if first hit was excluded
-        String sqlAll = "SELECT p.maPhong FROM Phong p " +
-            "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
-            "WHERE lp.tenLoaiPhong = ? " +
-            "AND p.trangThaiPhong <> 'BaoTri' " +
-            "AND NOT EXISTS (" +
-            "  SELECT 1 FROM ChiTietDatPhong ctdp WHERE ctdp.maPhong = p.maPhong " +
-            "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
-            ") " +
-            "ORDER BY p.maPhong";
-        try (PreparedStatement ps = con.prepareStatement(sqlAll)) {
-            ps.setString(1, roomTypeName);
-            ps.setTimestamp(2, Timestamp.valueOf(checkIn.atStartOfDay()));
-            ps.setTimestamp(3, Timestamp.valueOf(checkOut.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(checkIn.atTime(CHECK_IN_HOUR, 0)));
+            ps.setTimestamp(3, Timestamp.valueOf(checkOut.atTime(CHECK_OUT_HOUR, 0)));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String roomId = rs.getString(1);

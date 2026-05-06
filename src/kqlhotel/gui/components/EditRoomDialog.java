@@ -8,6 +8,7 @@ import kqlhotel.entity.Phong;
 import kqlhotel.entity.Room;
 import kqlhotel.entity.RoomType;
 import kqlhotel.dao.room.RoomTypeDAO;
+import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 
 public class EditRoomDialog extends JDialog {
@@ -46,7 +47,7 @@ public class EditRoomDialog extends JDialog {
         setContentPane(root);
         pack();
         setLocationRelativeTo(owner);
-        
+
         loadRoomTypes();
         populateData();
     }
@@ -63,14 +64,14 @@ public class EditRoomDialog extends JDialog {
         tfRoomId.setText(currentRoom.getRoomId());
         tfFloor.setText(String.valueOf(currentRoom.getFloor()));
         tfDeposit.setText(String.valueOf(currentRoom.getDeposit() != null ? currentRoom.getDeposit().longValue() : 0));
-        
+
         for (int i = 0; i < cbRoomType.getItemCount(); i++) {
             if (cbRoomType.getItemAt(i).roomType.getRoomTypeId().equals(currentRoom.getRoomType().getRoomTypeId())) {
                 cbRoomType.setSelectedIndex(i);
                 break;
             }
         }
-        
+
         cbStatus.setSelectedItem(roomBUS.mapDbStatusToGuiStatus(currentRoom.getStatus()));
         updateRoomTypeInfo();
     }
@@ -102,8 +103,14 @@ public class EditRoomDialog extends JDialog {
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(Color.WHITE);
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        JButton btnClose = new JButton();
+        ImageIcon closeIcon = IconLoader.loadIcon("close.png", 16, 16);
+        if (closeIcon != null) {
+            btnClose.setIcon(closeIcon);
+        } else {
+            btnClose.setText("x");
+            btnClose.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        }
         btnClose.setForeground(new Color(203, 213, 225));
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);
@@ -137,11 +144,11 @@ public class EditRoomDialog extends JDialog {
         JPanel infoArea = new JPanel(new MigLayout("insets 12, gap 20", "[][][]", "[]"));
         infoArea.setBackground(new Color(248, 250, 252));
         infoArea.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        
+
         lblPrice = infoLabel("0 USD");
         lblArea = infoLabel("0 m²");
         lblCapacity = infoLabel("0 guests");
-        
+
         infoArea.add(infoItem("Price:", lblPrice));
         infoArea.add(infoItem("Area:", lblArea));
         infoArea.add(infoItem("Capacity:", lblCapacity));
@@ -149,10 +156,10 @@ public class EditRoomDialog extends JDialog {
 
         form.add(label("Deposit (USD)", false));
         form.add(label("Status", true));
-        
+
         tfDeposit = styledField();
         cbStatus = new JComboBox<>(new String[]{"Vacant", "Occupied", "Maintenance"});
-        
+
         form.add(tfDeposit, "h 38!");
         form.add(cbStatus, "h 38!");
 
@@ -181,8 +188,8 @@ public class EditRoomDialog extends JDialog {
         btnCancel.setFocusPainted(false);
         btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCancel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
+                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
+                BorderFactory.createEmptyBorder(8, 20, 8, 20)
         ));
         btnCancel.addActionListener(e -> dispose());
 
@@ -241,7 +248,7 @@ public class EditRoomDialog extends JDialog {
     }
 
     private JLabel label(String text, boolean req) {
-        JLabel l = new JLabel(text + (req ? " *" : ""));
+        JLabel l = new JLabel("<html>" + text + (req ? " <font color='red'>*</font>" : "") + "</html>");
         l.setFont(new Font("Segoe UI", Font.BOLD, 12));
         l.setForeground(new Color(71, 85, 105));
         return l;
@@ -251,8 +258,8 @@ public class EditRoomDialog extends JDialog {
         JTextField tf = new JTextField();
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         tf.setBackground(new Color(248, 250, 252));
         return tf;
