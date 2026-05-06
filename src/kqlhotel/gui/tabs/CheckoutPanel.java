@@ -542,7 +542,7 @@ public class CheckoutPanel extends JPanel {
         detailPenaltyLabel.setFont(detailPenaltyLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailPenaltyLabel, "gapy 4 0");
 
-        JLabel depositTitle = new JLabel("Tiền cọc");
+        JLabel depositTitle = new JLabel("Tiền cọc còn lại");
         depositTitle.setForeground(new Color(110, 125, 145));
         costBox.add(depositTitle, "gapy 4 0");
 
@@ -643,10 +643,12 @@ public class CheckoutPanel extends JPanel {
             CheckoutBUS.CheckoutTotals totals =
                     checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
 
-            double depositAmount = new kqlhotel.dao.invoice.InvoiceDAO()
-                    .getTienCocByMaHD(currentHoaDon.getMaHD());
+            double remainingDeposit = checkoutBUS.getRemainingDepositForCheckout(
+                    currentHoaDon,
+                    currentRoomCodes
+            );
 
-            double amountToPay = Math.max(0, totals.total - depositAmount);
+            double amountToPay = Math.max(0, totals.total - remainingDeposit);
 
             String[] options = {"Tiền mặt", "QR Code", "Hủy"};
 
@@ -840,8 +842,10 @@ public class CheckoutPanel extends JPanel {
         CheckoutBUS.CheckoutTotals totals =
                 checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
 
-        double deposit = new kqlhotel.dao.invoice.InvoiceDAO()
-                .getDepositAmount(currentHoaDon.getMaDatPhong());
+        double deposit = checkoutBUS.getRemainingDepositForCheckout(
+                currentHoaDon,
+                currentRoomCodes
+        );
 
         double finalPay = Math.max(0, totals.total - deposit);
 

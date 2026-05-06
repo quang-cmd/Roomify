@@ -286,6 +286,63 @@ public class CheckoutBUS {
         );
     }
 
+    public double getRemainingDepositForCheckout(Invoice hd, List<String> currentRoomCodes) {
+        if (hd == null || hd.getMaDatPhong() == null || hd.getMaDatPhong().isBlank()) {
+            return 0;
+        }
+
+        double originalDeposit = invoiceDAO.getDepositAmount(hd.getMaDatPhong());
+
+        if (originalDeposit <= 0) {
+            return 0;
+        }
+
+        double usedDeposit = calculateDepositUsedByPreviousCheckedOutRooms(hd, currentRoomCodes);
+
+        return Math.max(0, originalDeposit - usedDeposit);
+    }
+
+    private double calculateDepositUsedByPreviousCheckedOutRooms(Invoice hd, List<String> currentRoomCodes) {
+        if (hd == null || hd.getMaHD() == null || hd.getMaHD().isBlank()) {
+            return 0;
+        }
+
+        List<InvoiceDetail> details = invoiceDetailDAO.getByInvoice(hd.getMaHD());
+
+        if (details == null || details.isEmpty()) {
+            return 0;
+        }
+
+        double used = 0;
+
+        for (InvoiceDetail ct : details) {
+            if (ct == null) {
+                continue;
+            }
+
+            // Chỉ tính các phòng đã trả trước đó.
+            if (ct.getNgayTraThucTe() == null) {
+                continue;
+            }
+
+            // Không tính phòng đang thanh toán hiện tại.
+            if (currentRoomCodes != null && currentRoomCodes.contains(ct.getMaPhong())) {
+                continue;
+            }
+
+            double surcharge = Math.max(0, ct.getPhuThu());
+            double penalty = Math.max(0, ct.getPhiPhat());
+            double roomFee = Math.max(0, ct.getThanhTien() - surcharge - penalty);
+
+            double amountBeforeTax = roomFee + surcharge + penalty;
+            double tax = amountBeforeTax * 0.10;
+
+            used += amountBeforeTax + tax;
+        }
+
+        return used;
+    }
+
     private void recalculateInvoiceTotals(Invoice hd, String maKM) {
         CheckoutTotals totals = previewTotals(hd, null, maKM);
 

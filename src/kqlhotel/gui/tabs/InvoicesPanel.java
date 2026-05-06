@@ -31,7 +31,7 @@ public class InvoicesPanel extends JPanel {
     private final JPanel listPanel = new JPanel(new MigLayout("wrap 1,insets 0,gap 8", "[grow,fill]", "[]"));
     private final RoundedPanel detailContainer = new RoundedPanel(20, Color.WHITE, new Color(225, 231, 245), 1.5f);
     private final JPanel detailContent = new JPanel(
-            new MigLayout("wrap 1,insets 20 20 20 20, gap 16, fillx", "[grow,fill]", "[]")
+            new MigLayout("wrap 1,insets 14 10 14 10, gap 12, fillx", "[grow,fill]", "[]")
     );
     private final JLabel summaryLabel = new JLabel();
     private final List<PrimaryButton> filterButtons = new ArrayList<>();
@@ -397,6 +397,7 @@ public class InvoicesPanel extends JPanel {
 
         double tongTienPhongThuan;
         double tongPhuThu;
+        double tongPhiPhat;
         double tienDichVuHienThi;
         double tienThueHienThi;
         double tienKhuyenMaiHienThi;
@@ -405,49 +406,62 @@ public class InvoicesPanel extends JPanel {
         double conPhaiThanhToan;
         double tienHoanTra = 0;
 
+// Tổng tiền khách đã trả thành công: gồm tiền cọc + các lần thanh toán trả phòng.
+        double tongDaThanhToan = invoicesBUS.getTotalPaidAmount(hd.getMaHD());
+
+// Dự phòng cho dữ liệu cũ chưa có dòng ThanhToan tiền cọc.
+        if (tongDaThanhToan <= 0 && tienCoc > 0) {
+            tongDaThanhToan = tienCoc;
+        }
+
+        double tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+
         if (laHoaDonHuy) {
-            // Hủy phòng: khách mất cọc, không phải trả thêm, không hoàn cọc.
+            // Hủy phòng: khách mất cọc, không thu thêm, không hoàn cọc.
             tongTienPhongThuan = 0;
             tongPhuThu = 0;
+            tongPhiPhat = 0;
             tienDichVuHienThi = 0;
             tienThueHienThi = 0;
             tienKhuyenMaiHienThi = 0;
 
-            // Tổng hóa đơn hủy chính là số tiền cọc bị giữ lại.
             tongTruocGiam = Math.max(0, tienCoc);
             tongSauKhuyenMai = Math.max(0, tienCoc);
 
             conPhaiThanhToan = 0;
             tienHoanTra = 0;
         } else {
+            // Tính footer theo chính các dòng chi tiết đang hiển thị,
+            // không lấy cứng hd.getTongTienThanhToan() để tránh lệch.
+            tongTienPhongThuan = calculateTotalBaseRoom(roomDetails);
             tongPhuThu = calculateTotalSurcharge(roomDetails);
-
-            // Tổng hóa đơn lấy theo dữ liệu đã lưu.
-            tongSauKhuyenMai = Math.max(0, hd.getTongTienThanhToan());
-
-            tienDichVuHienThi = Math.max(0, hd.getTienDichVu());
-            tienThueHienThi = Math.max(0, hd.getTienThue());
+            tongPhiPhat = calculateTotalPenalty(roomDetails);
+            tienDichVuHienThi = calculateTotalService(serviceDetails);
             tienKhuyenMaiHienThi = Math.max(0, hd.getTienKhuyenMai());
 
-            // Tổng trước giảm = tổng hóa đơn + khuyến mãi.
-            tongTruocGiam = tongSauKhuyenMai + tienKhuyenMaiHienThi;
-
-            // Tính ngược tiền phòng để phần tổng không bị lệch.
-            tongTienPhongThuan = Math.max(
+            double tongTruocThue = Math.max(
                     0,
-                    tongTruocGiam
-                            - tongPhuThu
-                            - tienDichVuHienThi
-                            - tienThueHienThi
+                    tongTienPhongThuan
+                            + tongPhuThu
+                            + tongPhiPhat
+                            + tienDichVuHienThi
             );
+
+            tienThueHienThi = tongTruocThue * 0.10;
+            tongTruocGiam = tongTruocThue + tienThueHienThi;
+            tongSauKhuyenMai = Math.max(0, tongTruocGiam - tienKhuyenMaiHienThi);
 
             if ("DaThanhToan".equals(computedStatus)) {
                 conPhaiThanhToan = 0;
-            } else {
-                conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tienCoc);
 
-                if (tienCoc > tongSauKhuyenMai) {
-                    tienHoanTra = tienCoc - tongSauKhuyenMai;
+                if (tongDaThanhToan > tongSauKhuyenMai) {
+                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
+                }
+            } else {
+                conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
+
+                if (tongDaThanhToan > tongSauKhuyenMai) {
+                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
                 }
             }
         }
@@ -559,13 +573,14 @@ public class InvoicesPanel extends JPanel {
         tablePanel.setLayout(new MigLayout("wrap 1,insets 0,gap 0,fillx", "[grow,fill]", "[]"));
 
         JPanel tHeader = new JPanel(new MigLayout(
-                "insets 14 16 14 16, fillx",
-                "[grow,fill][65::85,right][95::120,right][90::110,center][120::140,center][95::120,right]",
+                "insets 12 8 12 8, fillx",
+                "[grow,fill][52::65,right][78::92,right][80::92,right][70::82,center][92::108,center][85::98,right]",
                 "[]"
         ));
         tHeader.setBackground(new Color(250, 252, 255));
         tHeader.add(makeTText("Hạng mục", false));
-        tHeader.add(makeTText("Số đêm/SL", true));
+        tHeader.add(makeTText("Số đêm", true));
+        tHeader.add(makeTText("Đêm thực tế", true));
         tHeader.add(makeTText("Đơn giá", true));
         tHeader.add(makeTText("Tình trạng", true));
         tHeader.add(makeTText("Trả thực tế", true));
@@ -579,15 +594,19 @@ public class InvoicesPanel extends JPanel {
                     : "--";
 
             double surcharge = Math.max(0, ct.getPhuThu());
-            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
-            double donGiaTheoDem = ct.getSoDem() > 0 ? baseRoom / ct.getSoDem() : 0;
+            double penalty = Math.max(0, ct.getPhiPhat());
+            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge - penalty);
+
+            int soDemTinhTien = ct.getSoDem() > 0 ? ct.getSoDem() : 1;
+            double donGiaTheoDem = baseRoom / soDemTinhTien;
 
             boolean phongDaHuy = isCancelledRoom(ct);
             int soDemHienThi = tinhSoDemHienThi(ct);
 
             tablePanel.add(createTRow(
                     "Tiền phòng " + ct.getMaPhong(),
-                    phongDaHuy ? "--" : soDemHienThi + " đêm",
+                    getBookedNightsText(ct),
+                    getActualNightsText(ct),
                     CurrencyUtils.formatVND(donGiaTheoDem),
                     getRoomStatus(ct),
                     ngayTraText,
@@ -601,7 +620,20 @@ public class InvoicesPanel extends JPanel {
                         "",
                         "",
                         "",
+                        "",
                         CurrencyUtils.formatVND(surcharge)
+                ), "growx");
+            }
+
+            if (penalty > 0) {
+                tablePanel.add(createTRow(
+                        "Phạt trả trễ " + ct.getMaPhong(),
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        CurrencyUtils.formatVND(penalty)
                 ), "growx");
             }
         }
@@ -612,7 +644,8 @@ public class InvoicesPanel extends JPanel {
                             + (invoicesBUS.getServiceName(ct.getMaDV()).isBlank()
                             ? ""
                             : " - " + invoicesBUS.getServiceName(ct.getMaDV())),
-                    String.valueOf(ct.getSoLuong()),
+                    "SL: " + ct.getSoLuong(),
+                    "",
                     CurrencyUtils.formatVND(ct.getDonGia()),
                     "",
                     "",
@@ -632,6 +665,11 @@ public class InvoicesPanel extends JPanel {
 
         tFooter.add(makeTText("Phụ thu", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
+
+        if (tongPhiPhat > 0) {
+            tFooter.add(makeTText("Tiền phạt trả trễ", false), "alignx left");
+            tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhiPhat), true), "alignx right");
+        }
 
         tFooter.add(makeTText("Tiền dịch vụ", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(tienDichVuHienThi), true), "alignx right");
@@ -655,6 +693,11 @@ public class InvoicesPanel extends JPanel {
 
         tFooter.add(makeTText("Tiền cọc đã cọc", false), "alignx left");
         tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienCoc), true), "alignx right");
+
+        if (tienThanhToanThem > 0) {
+            tFooter.add(makeTText("Đã thanh toán thêm", false), "alignx left");
+            tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienThanhToanThem), true), "alignx right");
+        }
 
         JPanel divider = new JPanel();
         divider.setBackground(new Color(230, 235, 245));
@@ -725,10 +768,16 @@ public class InvoicesPanel extends JPanel {
         return l;
     }
 
-    private JPanel createTRow(String name, String qty, String price, String roomStatus, String actualCheckout, String total) {
+    private JPanel createTRow(String name,
+                              String bookedNights,
+                              String actualNights,
+                              String price,
+                              String roomStatus,
+                              String actualCheckout,
+                              String total) {
         JPanel row = new JPanel(new MigLayout(
-                "insets 12 16 12 16, fillx",
-                "[grow,fill][65::85,right][95::120,right][90::110,center][120::140,center][95::120,right]",
+                "insets 10 8 10 8, fillx",
+                "[grow,fill][52::65,right][78::92,right][80::92,right][70::82,center][92::108,center][85::98,right]",
                 "[]"
         ));
         row.setBackground(Color.WHITE);
@@ -737,9 +786,13 @@ public class InvoicesPanel extends JPanel {
         JLabel ln = new JLabel(name);
         ln.setForeground(new Color(50, 65, 80));
 
-        JLabel lq = new JLabel(qty);
-        lq.setForeground(new Color(50, 65, 80));
-        lq.setHorizontalAlignment(SwingConstants.RIGHT);
+        JLabel lb = new JLabel(bookedNights);
+        lb.setForeground(new Color(50, 65, 80));
+        lb.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JLabel lan = new JLabel(actualNights);
+        lan.setForeground(new Color(50, 65, 80));
+        lan.setHorizontalAlignment(SwingConstants.RIGHT);
 
         JLabel lp = new JLabel(price);
         lp.setForeground(new Color(50, 65, 80));
@@ -752,9 +805,6 @@ public class InvoicesPanel extends JPanel {
             ls.setFont(ls.getFont().deriveFont(Font.BOLD));
         } else if ("Chưa trả".equals(roomStatus)) {
             ls.setForeground(new Color(220, 38, 38));
-            ls.setFont(ls.getFont().deriveFont(Font.BOLD));
-        } else if ("Đã hủy".equals(roomStatus)) {
-            ls.setForeground(new Color(120, 120, 120));
             ls.setFont(ls.getFont().deriveFont(Font.BOLD));
         } else {
             ls.setForeground(new Color(100, 115, 135));
@@ -769,8 +819,23 @@ public class InvoicesPanel extends JPanel {
         lt.setFont(lt.getFont().deriveFont(Font.BOLD));
         lt.setHorizontalAlignment(SwingConstants.RIGHT);
 
+        Font rowFont = ln.getFont().deriveFont(12f);
+
+        ln.setFont(rowFont);
+        lb.setFont(rowFont);
+        lan.setFont(rowFont);
+        lp.setFont(rowFont);
+        ls.setFont(rowFont);
+        la.setFont(rowFont);
+        lt.setFont(lt.getFont().deriveFont(Font.BOLD, 12f));
+
+        lt.setToolTipText(total);
+        lp.setToolTipText(price);
+        la.setToolTipText(actualCheckout);
+
         row.add(ln, "growx");
-        row.add(lq, "alignx right");
+        row.add(lb, "alignx right");
+        row.add(lan, "alignx right");
         row.add(lp, "alignx right");
         row.add(ls, "alignx center");
         row.add(la, "alignx center");
@@ -819,8 +884,59 @@ public class InvoicesPanel extends JPanel {
 
         for (InvoiceDetail ct : roomDetails) {
             double surcharge = Math.max(0, ct.getPhuThu());
-            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge);
+            double penalty = Math.max(0, ct.getPhiPhat());
+            double baseRoom = Math.max(0, ct.getThanhTien() - surcharge - penalty);
             total += baseRoom;
+        }
+
+        return total;
+    }
+
+    private String getBookedNightsText(InvoiceDetail ct) {
+        if (ct == null || ct.getNgayNhanPhong() == null || ct.getNgayTraPhong() == null) {
+            return "--";
+        }
+
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(
+                ct.getNgayNhanPhong().toLocalDate(),
+                ct.getNgayTraPhong().toLocalDate()
+        );
+
+        if (nights <= 0) nights = 1;
+        return nights + " đêm";
+    }
+
+    private String getActualNightsText(InvoiceDetail ct) {
+        if (ct == null || ct.getNgayTraThucTe() == null) {
+            return "--";
+        }
+
+        return ct.getSoDem() + " đêm";
+    }
+
+    private double calculateTotalPenalty(List<InvoiceDetail> roomDetails) {
+        double total = 0;
+
+        if (roomDetails == null) {
+            return 0;
+        }
+
+        for (InvoiceDetail ct : roomDetails) {
+            total += Math.max(0, ct.getPhiPhat());
+        }
+
+        return total;
+    }
+
+    private double calculateTotalService(List<ServiceDetail> serviceDetails) {
+        double total = 0;
+
+        if (serviceDetails == null) {
+            return 0;
+        }
+
+        for (ServiceDetail ct : serviceDetails) {
+            total += Math.max(0, ct.getThanhTien());
         }
 
         return total;
