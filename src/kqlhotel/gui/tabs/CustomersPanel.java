@@ -653,21 +653,33 @@ public class CustomersPanel extends JPanel {
         return button;
     }
 
-    private JLabel createAvatar(String fullName, Color bgColor) {
+    private JLabel createAvatar(String fullName, final Color bgColor) {
         String initials = "KH";
         if (fullName != null && !fullName.isBlank()) {
             String[] parts = fullName.trim().split("\\s+");
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Math.min(parts.length, 2); i++) {
-                sb.append(Character.toUpperCase(parts[i].charAt(0)));
+                if (!parts[i].isEmpty()) {
+                    sb.append(Character.toUpperCase(parts[i].charAt(0)));
+                }
             }
             initials = sb.toString();
         }
 
-        JLabel label = new JLabel(initials, SwingConstants.CENTER);
+        JLabel label = new JLabel(initials, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         label.setForeground(Color.WHITE);
         label.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        label.setOpaque(true);
+        label.setOpaque(false);
         label.setBackground(bgColor);
         label.setPreferredSize(new Dimension(42, 42));
         label.setMinimumSize(new Dimension(42, 42));
@@ -676,8 +688,18 @@ public class CustomersPanel extends JPanel {
     }
 
     private JLabel createStatusBadge(String text, boolean active) {
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setOpaque(true);
+        JLabel label = new JLabel(text, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        label.setOpaque(false);
         label.setBorder(new EmptyBorder(4, 10, 4, 10));
         label.setFont(new Font("Segoe UI", Font.BOLD, 11));
         label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
@@ -712,8 +734,18 @@ public class CustomersPanel extends JPanel {
                 break;
         }
 
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setOpaque(true);
+        JLabel label = new JLabel(text, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        label.setOpaque(false);
         label.setBorder(new EmptyBorder(3, 8, 3, 8));
         label.setFont(new Font("Segoe UI", Font.BOLD, 10));
         label.setBackground(bg);
