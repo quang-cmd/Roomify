@@ -1,18 +1,21 @@
 package kqlhotel.gui.components;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import net.miginfocom.swing.MigLayout;
+import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.tabs.RoomManagementPanel;
-import kqlhotel.bus.room.PhongBUS;
 import kqlhotel.entity.Phong;
-import kqlhotel.entity.RoomType;
+import kqlhotel.entity.LoaiPhong;
+import kqlhotel.bus.room.PhongBUS;
+import kqlhotel.gui.utils.IconLoader;
 
 public class RoomSearchDialog extends JDialog {
 
-    private JTextField txtRoomId;
+    private JTextField txtRoomNo;
     private JComboBox<String> cbRoomType;
     private final kqlhotel.dao.room.RoomTypeDAO roomTypeDAO = new kqlhotel.dao.room.RoomTypeDAO();
     private JComboBox<String> cbStatus;
@@ -20,19 +23,25 @@ public class RoomSearchDialog extends JDialog {
     private final RoomManagementPanel roomPanel;
 
     public RoomSearchDialog(Window owner, RoomManagementPanel roomPanel) {
-        super(owner, "Search Room", ModalityType.APPLICATION_MODAL);
+        super(owner, "Tra cứu phòng", ModalityType.APPLICATION_MODAL);
         this.roomPanel = roomPanel;
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 0));
 
-        RoundedPanel rootPanel = new RoundedPanel(16, Color.WHITE, new Color(226, 232, 240), 1);
+        RoundedPanel rootPanel = new RoundedPanel(16, Color.WHITE, ThemeColors.BORDER, 1);
         rootPanel.setLayout(new MigLayout("insets 0, wrap 1, gap 0", "[fill, 800!]", "[][][][grow,fill]"));
         rootPanel.setOpaque(false);
 
+        // Header
         rootPanel.add(createHeader());
+
+        // Fields Row
         rootPanel.add(createFieldsRow(), "growx");
+
+        // Action Buttons Row
         rootPanel.add(createActionRow(), "growx");
 
+        // Result Area
         JPanel resultWrapper = new JPanel(new MigLayout("insets 0 20 20 20", "[grow,fill]", "[grow,fill]"));
         resultWrapper.setOpaque(false);
         resultWrapper.add(createResultArea());
@@ -45,33 +54,78 @@ public class RoomSearchDialog extends JDialog {
 
     private JPanel createHeader() {
         JPanel header = new JPanel(new MigLayout("insets 16 20 16 20", "[][grow][]", "[]")) {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(248, 250, 252));
+                g2.setColor(new Color(235, 243, 255));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight() + 20, 16, 16);
                 g2.dispose();
             }
         };
         header.setOpaque(false);
-        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, ThemeColors.BORDER));
 
-        JLabel title = new JLabel("Room Search");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        title.setForeground(new Color(15, 23, 42));
+        JPanel iconPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(ThemeColors.PRIMARY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        iconPanel.setOpaque(false);
+        JLabel iconLbl = new JLabel("", SwingConstants.CENTER);
+        try {
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/search.png");
+            if (url != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
+                java.awt.Image img = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
+                iconLbl.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                iconLbl.setText("🔍");
+            }
+        } catch (Exception ex) {
+            iconLbl.setText("🔍");
+        }
+        iconLbl.setForeground(Color.WHITE);
+        iconLbl.setFont(iconLbl.getFont().deriveFont(18f));
+        iconPanel.add(iconLbl);
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        btnClose.setForeground(new Color(100, 116, 139));
+        JPanel textPanel = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
+        textPanel.setOpaque(false);
+        JLabel title = new JLabel("Tra cứu phòng");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setForeground(ThemeColors.TEXT_PRIMARY);
+        JLabel subtitle = new JLabel("Tìm kiếm phòng theo số phòng, loại phòng và trạng thái");
+        subtitle.setFont(subtitle.getFont().deriveFont(12f));
+        subtitle.setForeground(ThemeColors.TEXT_MUTED);
+        textPanel.add(title);
+        textPanel.add(subtitle);
+
+        JButton btnClose = new JButton();
+        ImageIcon closeIcon = IconLoader.loadIcon("close.png", 16, 16);
+        if (closeIcon != null) {
+            btnClose.setIcon(closeIcon);
+        } else {
+            btnClose.setText("×");
+            btnClose.setFont(btnClose.getFont().deriveFont(Font.BOLD, 20f));
+        }
+        btnClose.setForeground(ThemeColors.TEXT_MUTED);
         btnClose.setBorderPainted(false);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dispose());
+        btnClose.setMargin(new Insets(0, 0, 0, 0));
 
-        header.add(new JLabel("🔍"), "w 32!, h 32!");
-        header.add(title, "gapx 10");
+        header.add(iconPanel, "w 40!, h 40!");
+        header.add(textPanel, "growx, gapx 10");
         header.add(btnClose, "top");
+
         return header;
     }
 
@@ -79,63 +133,129 @@ public class RoomSearchDialog extends JDialog {
         JPanel panel = new JPanel(new MigLayout("insets 20 20 10 20, gap 16", "[grow][grow][grow]", "[]"));
         panel.setOpaque(false);
 
-        txtRoomId = new JTextField();
+        // Room No
+        JPanel col1 = new JPanel(new MigLayout("insets 0, wrap 1, gap 8", "[grow,fill]", "[][]"));
+        col1.setBackground(Color.WHITE);
+        JLabel lbl1 = new JLabel("Số phòng");
+        lbl1.setForeground(ThemeColors.TEXT_MUTED);
+        lbl1.setFont(lbl1.getFont().deriveFont(12f));
+        txtRoomNo = new JTextField();
+        txtRoomNo.putClientProperty("JTextField.placeholderText", "Ví dụ: 101");
+        txtRoomNo.putClientProperty("JComponent.roundRect", true);
+        col1.add(lbl1);
+        col1.add(txtRoomNo, "h 36!");
+
+        // Room Type
+        JPanel col2 = new JPanel(new MigLayout("insets 0, wrap 1, gap 8", "[grow,fill]", "[][]"));
+        col2.setBackground(Color.WHITE);
+        JLabel lbl2 = new JLabel("Loại phòng");
+        lbl2.setForeground(ThemeColors.TEXT_MUTED);
+        lbl2.setFont(lbl2.getFont().deriveFont(12f));
         cbRoomType = new JComboBox<>();
-        cbRoomType.addItem("All room types");
-        java.util.List<RoomType> types = roomTypeDAO.getAll();
-        for (RoomType rt : types) {
-            cbRoomType.addItem(rt.getRoomTypeName());
+        cbRoomType.addItem("Tất cả loại phòng");
+        java.util.List<kqlhotel.entity.RoomType> loaiPhongs = roomTypeDAO.getAll();
+        for (kqlhotel.entity.RoomType rt : loaiPhongs) {
+            cbRoomType.addItem(rt.getTenLoaiPhong());
         }
+        cbRoomType.putClientProperty("JComponent.roundRect", true);
+        col2.add(lbl2);
+        col2.add(cbRoomType, "h 36!");
 
-        cbStatus = new JComboBox<>(new String[]{"All statuses", "Vacant", "Occupied", "Maintenance"});
+        // Status
+        JPanel col3 = new JPanel(new MigLayout("insets 0, wrap 1, gap 8", "[grow,fill]", "[][]"));
+        col3.setBackground(Color.WHITE);
+        JLabel lbl3 = new JLabel("Trạng thái phòng");
+        lbl3.setForeground(ThemeColors.TEXT_MUTED);
+        lbl3.setFont(lbl3.getFont().deriveFont(12f));
+        cbStatus = new JComboBox<>(new String[]{"Tất cả trạng thái", "Trống", "Đang sử dụng", "Bảo trì"});
+        cbStatus.putClientProperty("JComponent.roundRect", true);
+        col3.add(lbl3);
+        col3.add(cbStatus, "h 36!");
 
-        panel.add(createFieldCol("Room ID", txtRoomId));
-        panel.add(createFieldCol("Room Type", cbRoomType));
-        panel.add(createFieldCol("Status", cbStatus));
+        panel.add(col1);
+        panel.add(col2);
+        panel.add(col3);
 
         return panel;
-    }
-
-    private JPanel createFieldCol(String label, JComponent comp) {
-        JPanel col = new JPanel(new MigLayout("insets 0, wrap 1, gap 8", "[grow,fill]", "[][]"));
-        col.setOpaque(false);
-        JLabel lbl = new JLabel(label);
-        lbl.setForeground(new Color(100, 116, 139));
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        col.add(lbl);
-        col.add(comp, "h 36!");
-        return col;
     }
 
     private JPanel createActionRow() {
         JPanel panel = new JPanel(new MigLayout("insets 0 20 20 20, gap 12", "[][]", "[]"));
         panel.setOpaque(false);
 
-        JButton btnSearch = new JButton("Search");
-        btnSearch.setBackground(new Color(15, 23, 42));
+        PrimaryButton btnSearch = new PrimaryButton(" Tìm kiếm");
+        try {
+            java.net.URL searchURL = getClass().getResource("/kqlhotel/resources/icons/search.png");
+            if (searchURL != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(searchURL);
+                java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+                btnSearch.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                btnSearch.setText("🔍 Tìm kiếm");
+            }
+        } catch (Exception ex) {
+            btnSearch.setText("🔍 Tìm kiếm");
+        }
+        btnSearch.setBackground(new Color(17, 24, 39));
         btnSearch.setForeground(Color.WHITE);
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSearch.addActionListener(e -> performSearch());
 
-        JButton btnReset = new JButton("Reset");
+        JButton btnReset = new JButton("Làm mới");
+        btnReset.setFont(btnReset.getFont().deriveFont(13f));
+        btnReset.setForeground(ThemeColors.TEXT_MUTED);
         btnReset.setBackground(Color.WHITE);
+        btnReset.setFocusPainted(false);
+        btnReset.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnReset.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeColors.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+        ));
         btnReset.addActionListener(e -> resetForm());
 
-        panel.add(btnSearch, "h 36!, w 120!");
-        panel.add(btnReset, "h 36!, w 100!");
+        panel.add(btnSearch, "h 36!");
+        panel.add(btnReset, "h 36!");
 
         return panel;
     }
 
     private JPanel createResultArea() {
-        RoundedPanel panel = new RoundedPanel(12, Color.WHITE, new Color(226, 232, 240), 1);
+        RoundedPanel panel = new RoundedPanel(12, Color.WHITE, ThemeColors.BORDER, 1);
         panel.setLayout(new MigLayout("insets 0, wrap 1, gap 0", "[grow,fill]", "[][grow,fill]"));
 
+        // Result Header
+        JPanel resHeader = new JPanel(new MigLayout("insets 16 20 16 20, wrap 1, gap 2", "[]", "[]"));
+        resHeader.setOpaque(false);
+        resHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 240, 245)));
+        JLabel resTitle = new JLabel("Kết quả tra cứu");
+        resTitle.setFont(resTitle.getFont().deriveFont(Font.BOLD, 14f));
+        resTitle.setForeground(ThemeColors.TEXT_PRIMARY);
+        JLabel resSub = new JLabel("Nhập tiêu chí và bấm tìm kiếm");
+        resSub.setFont(resSub.getFont().deriveFont(11f));
+        resSub.setForeground(ThemeColors.TEXT_PLACEHOLDER);
+        resHeader.add(resTitle);
+        resHeader.add(resSub);
+
+        // Result Body (Empty state initially)
         resultContainer = new JPanel(new BorderLayout());
         resultContainer.setOpaque(false);
-        resultContainer.setPreferredSize(new Dimension(0, 300));
+        resultContainer.setPreferredSize(new Dimension(0, 200));
 
-        panel.add(new JLabel(" Search Results") {{ setFont(new Font("Segoe UI", Font.BOLD, 14)); setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20)); }}, "growx");
+        JPanel emptyState = new JPanel(new MigLayout("insets 40, wrap 1, gap 12", "[center]", "[]"));
+        emptyState.setOpaque(false);
+        JLabel icon = new JLabel();
+        ImageIcon searchIco = IconLoader.loadIcon("search.png", 48, 48);
+        if (searchIco != null) icon.setIcon(searchIco); else icon.setText("🔍");
+        icon.setFont(icon.getFont().deriveFont(40f));
+        icon.setForeground(new Color(200, 210, 225));
+        JLabel text = new JLabel("Chưa thực hiện tìm kiếm");
+        text.setFont(text.getFont().deriveFont(12f));
+        text.setForeground(ThemeColors.TEXT_MUTED);
+        emptyState.add(icon);
+        emptyState.add(text);
+
+        resultContainer.add(emptyState, BorderLayout.CENTER);
+
+        panel.add(resHeader);
         panel.add(resultContainer);
 
         return panel;
@@ -144,38 +264,55 @@ public class RoomSearchDialog extends JDialog {
     private void performSearch() {
         resultContainer.removeAll();
 
-        String roomQuery = txtRoomId.getText().trim().toLowerCase();
+        String roomQuery = txtRoomNo.getText().trim().toLowerCase();
         String typeQuery = (String) cbRoomType.getSelectedItem();
         String statusQuery = (String) cbStatus.getSelectedItem();
 
         List<Phong> results = new ArrayList<>();
-        PhongBUS bus = roomPanel.getRoomBUS();
-        List<Phong> currentRooms = roomPanel.getRoomList();
+        PhongBUS bus = roomPanel.getPhongBUS();
+        List<Phong> currentRooms = roomPanel.getPhongList();
 
-        if (currentRooms != null) {
-            for (Phong r : currentRooms) {
-                String guiStatus = bus.mapDbStatusToGuiStatus(r.getStatus());
-                boolean matchId = roomQuery.isEmpty() || r.getRoomId().toLowerCase().contains(roomQuery);
-                boolean matchType = "All room types".equals(typeQuery) || r.getRoomType().getRoomTypeName().equals(typeQuery);
-                boolean matchStatus = "All statuses".equals(statusQuery) || guiStatus.equals(statusQuery);
+        if (currentRooms == null) currentRooms = new ArrayList<>();
 
-                if (matchId && matchType && matchStatus) {
-                    results.add(r);
-                }
+        for (Phong p : currentRooms) {
+            String guiStatus = bus.mapDbStatusToGuiStatus(p.getTrangThaiPhong());
+            LoaiPhong lp = p.getLoaiPhong();
+
+            boolean matchNo = roomQuery.isEmpty() || p.getMaPhong().toLowerCase().contains(roomQuery);
+            boolean matchType = "Tất cả loại phòng".equals(typeQuery) || lp.getTenLoaiPhong().equals(typeQuery);
+            boolean matchStatus = "Tất cả trạng thái".equals(statusQuery) || guiStatus.equals(statusQuery);
+
+            if (matchNo && matchType && matchStatus) {
+                results.add(p);
             }
         }
 
         if (results.isEmpty()) {
-            resultContainer.add(new JLabel("No results found", SwingConstants.CENTER));
+            JPanel emptyState = new JPanel(new MigLayout("insets 40, wrap 1, gap 12", "[center]", "[]"));
+            emptyState.setOpaque(false);
+            JLabel icon = new JLabel();
+            ImageIcon searchIco = IconLoader.loadIcon("search.png", 48, 48);
+            if (searchIco != null) icon.setIcon(searchIco); else icon.setText("🔍");
+            icon.setFont(icon.getFont().deriveFont(40f));
+            icon.setForeground(new Color(200, 210, 225));
+            JLabel text = new JLabel("Không tìm thấy kết quả phù hợp");
+            text.setFont(text.getFont().deriveFont(12f));
+            text.setForeground(ThemeColors.TEXT_MUTED);
+            emptyState.add(icon);
+            emptyState.add(text);
+            resultContainer.add(emptyState, BorderLayout.CENTER);
         } else {
-            JPanel grid = new JPanel(new MigLayout("insets 16, wrap 3, gap 16", "[grow,fill]", "[]"));
+            JPanel grid = new JPanel(new MigLayout("insets 12 16 16 16, wrap 2, gap 16", "[grow,fill][grow,fill]", "[]"));
             grid.setOpaque(false);
-            for (Phong r : results) {
-                grid.add(roomPanel.createRoomCard(r));
+            for (Phong p : results) {
+                grid.add(roomPanel.createRoomCard(p));
             }
-            JScrollPane sp = new JScrollPane(grid);
-            sp.setBorder(null);
-            resultContainer.add(sp);
+            JScrollPane scrollPane = new JScrollPane(grid);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
+            scrollPane.setOpaque(false);
+            scrollPane.getViewport().setOpaque(false);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            resultContainer.add(scrollPane, BorderLayout.CENTER);
         }
 
         resultContainer.revalidate();
@@ -183,9 +320,27 @@ public class RoomSearchDialog extends JDialog {
     }
 
     private void resetForm() {
-        txtRoomId.setText("");
+        txtRoomNo.setText("");
         cbRoomType.setSelectedIndex(0);
         cbStatus.setSelectedIndex(0);
-        performSearch();
+
+        resultContainer.removeAll();
+        JPanel emptyState = new JPanel(new MigLayout("insets 40, wrap 1, gap 12", "[center]", "[]"));
+        emptyState.setOpaque(false);
+        JLabel icon = new JLabel();
+        ImageIcon searchIco = IconLoader.loadIcon("search.png", 48, 48);
+        if (searchIco != null) icon.setIcon(searchIco); else icon.setText("🔍");
+        icon.setFont(icon.getFont().deriveFont(40f));
+        icon.setForeground(new Color(200, 210, 225));
+        JLabel text = new JLabel("Chưa thực hiện tìm kiếm");
+        text.setFont(text.getFont().deriveFont(12f));
+        text.setForeground(ThemeColors.TEXT_MUTED);
+        emptyState.add(icon);
+        emptyState.add(text);
+
+        resultContainer.add(emptyState, BorderLayout.CENTER);
+        resultContainer.revalidate();
+        resultContainer.repaint();
     }
+
 }
