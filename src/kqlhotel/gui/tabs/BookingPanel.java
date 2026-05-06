@@ -57,6 +57,7 @@ public class BookingPanel extends JPanel {
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
     private LocalDate selectedCheckInDate;
     private LocalDate selectedCheckOutDate;
+    private static final int MAX_GUESTS = 10;
     private int guestCount = 2;
     private JLabel guestCountLabel;
 
@@ -424,7 +425,7 @@ public class BookingPanel extends JPanel {
             if (filterLocked) {
                 return;
             }
-            if (guestCount < 4) {
+            if (guestCount < MAX_GUESTS) {
                 guestCount++;
                 guestCountLabel.setText(guestCount + " khách");
                 syncGuestForms();
@@ -475,7 +476,7 @@ public class BookingPanel extends JPanel {
         guestCountLabel.setText(guestCount + " khách");
 
         boolean minusEnabled = !filterLocked && guestCount > 1;
-        boolean plusEnabled = !filterLocked && guestCount < 4;
+        boolean plusEnabled = !filterLocked && guestCount < MAX_GUESTS;
 
         applyGuestStepperButtonState(guestMinusButton, minusEnabled);
         applyGuestStepperButtonState(guestPlusButton, plusEnabled);
@@ -941,10 +942,10 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        if (guestCount < 1 || guestCount > 4) {
+        if (guestCount < 1 || guestCount > MAX_GUESTS) {
             JOptionPane.showMessageDialog(
                 this,
-                "Số khách phải trong khoảng từ 1 đến 4.",
+                "Số khách phải trong khoảng từ 1 đến " + MAX_GUESTS + ".",
                 "Dữ liệu không hợp lệ",
                 JOptionPane.WARNING_MESSAGE
             );
@@ -1521,7 +1522,7 @@ public class BookingPanel extends JPanel {
         if (totalCapacity < guestCount) {
             JOptionPane.showMessageDialog(this,
                 "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người) không đủ cho " + guestCount + " khách.\n"
-                + "Vui lòng chọn thêm phòng hoặc giảm số khách.",
+                + "Vui lòng chọn thêm phòng.",
                 "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
             return;
         }
