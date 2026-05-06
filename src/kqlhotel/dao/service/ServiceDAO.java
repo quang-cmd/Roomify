@@ -121,6 +121,24 @@ public class ServiceDAO {
         }
     }
 
+    public String getNextId() {
+        String sql = "SELECT MAX(maDV) FROM DichVu";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String lastId = rs.getString(1);
+                if (lastId != null && lastId.startsWith("DV")) {
+                    int num = Integer.parseInt(lastId.substring(2));
+                    return String.format("DV%03d", num + 1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "DV001";
+    }
+
     private Service mapResultSetToService(ResultSet rs) throws SQLException {
         Service s = new Service();
         s.setMaDV(rs.getString("maDV"));

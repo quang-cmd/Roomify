@@ -51,7 +51,7 @@ public class SwapRoomPanel extends JPanel {
 
     private final SwapRoomBUS bus = new SwapRoomBUS();
 
-    private final InputField inpMaDatPhong = new InputField("search.png", "VD: BK001");
+    private final InputField inpMaDatPhong = new InputField("search.png", "VD: DP001");
     private final InputField inpTenKhach = new InputField("client.png", "VD: Nguyễn Văn A");
     private final InputField inpSoDienThoai = new InputField("telephone.png", "VD: 0987654321");
     private final InputField inpSoPhong = new InputField("room.png", "VD: 101");
