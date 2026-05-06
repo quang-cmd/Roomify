@@ -44,7 +44,7 @@ public class AddRoomDialog extends JDialog {
         setContentPane(root);
         pack();
         setLocationRelativeTo(owner);
-        
+
         loadRoomTypes();
     }
 
