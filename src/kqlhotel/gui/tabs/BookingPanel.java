@@ -789,12 +789,12 @@ public class BookingPanel extends JPanel {
         PrimaryButton depositButton = new PrimaryButton("ĐẶT CỌC 30%");
         depositButton.setBackground(ThemeColors.PREMIUM_ACCENT);
         depositButton.setForeground(Color.WHITE);
-        depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", 0.30));
+        depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", CreateBookingCommand.DEPOSIT_RATIO));
 
         PrimaryButton fullPaymentButton = new PrimaryButton("THANH TOÁN 100%");
         fullPaymentButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         fullPaymentButton.setForeground(Color.WHITE);
-        fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", 1.0));
+        fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", CreateBookingCommand.FULL_RATIO));
 
         JPanel actions = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill][grow,fill]", "[]"));
         actions.setOpaque(false);
@@ -1515,6 +1515,14 @@ public class BookingPanel extends JPanel {
     private void openCustomerInfo() {
         if (selectedRooms.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        int totalCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
+        if (totalCapacity < guestCount) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người) không đủ cho " + guestCount + " khách.\n"
+                + "Vui lòng chọn thêm phòng hoặc giảm số khách.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
             return;
         }
         bookingCards.show(bookingContent, "customer-info");

@@ -22,15 +22,14 @@ public class RoomDaoSqlServer implements RoomDao {
         "JOIN Phong p ON p.maLoaiPhong = lp.maLoaiPhong " +
         "LEFT JOIN ChiTietDatPhong ctdp ON ctdp.maPhong = p.maPhong " +
         "AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien " +
-        "WHERE lp.sucChuaToiDa >= ? " +
-        "AND (? = 1 OR lp.tenLoaiPhong LIKE ?) " +
+        "WHERE (? = 1 OR lp.tenLoaiPhong LIKE ?) " +
         "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi " +
         "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 " +
         "ORDER BY lp.giaPhong ASC";
 
     @Override
     public List<RoomEntity> findAvailableRooms(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int guests) {
-        if (checkInDate == null || checkOutDate == null || guests <= 0) {
+        if (checkInDate == null || checkOutDate == null) {
             return Collections.emptyList();
         }
 
@@ -46,9 +45,8 @@ public class RoomDaoSqlServer implements RoomDao {
         try (PreparedStatement statement = connection.prepareStatement(SQL_FIND_AVAILABLE)) {
             statement.setTimestamp(1, Timestamp.valueOf(checkInDate.atStartOfDay()));
             statement.setTimestamp(2, Timestamp.valueOf(checkOutDate.atStartOfDay()));
-            statement.setInt(3, guests);
-            statement.setInt(4, allRoomTypes ? 1 : 0);
-            statement.setString(5, roomTypePattern);
+            statement.setInt(3, allRoomTypes ? 1 : 0);
+            statement.setString(4, roomTypePattern);
 
             try (ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
