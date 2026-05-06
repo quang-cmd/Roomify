@@ -682,7 +682,22 @@ public class CheckoutPanel extends JPanel {
                 }
             }
 
-            boolean success = checkoutBUS.completeCheckout(currentHoaDon, currentRoomCodes, nextRoomStatus, selectedPromotionCode);
+            String paymentMethod = (choice == 1) ? "ChuyenKhoan" : "TienMat";
+
+            boolean paymentSuccess = checkoutBUS.createCheckoutPayment(
+                    currentHoaDon,
+                    amountToPay,
+                    paymentMethod,
+                    currentHoaDon.getMaNhanVien()
+            );
+
+            boolean success = paymentSuccess && checkoutBUS.completeCheckout(
+                    currentHoaDon,
+                    currentRoomCodes,
+                    nextRoomStatus,
+                    selectedPromotionCode
+            );
+
             if (success) {
                 refreshInvoicePreview();
 

@@ -103,7 +103,7 @@ public class CustomersPanel extends JPanel {
         JPanel searchPanel = new JPanel(new BorderLayout(0, 10));
         searchPanel.setOpaque(false);
         searchPanel.add(createSearchBox(), BorderLayout.CENTER);
-        
+
         rankFilter.setPreferredSize(new Dimension(100, 36));
         rankFilter.addActionListener(e -> renderCustomerList(filterCustomers(searchField.getText().trim())));
         searchPanel.add(rankFilter, BorderLayout.SOUTH);
@@ -181,13 +181,13 @@ public class CustomersPanel extends JPanel {
         for (Customer customer : customers) {
             // Check rank
             boolean matchesRank = "Tất cả hạng".equals(selectedRank) || mapRank(customer.getHangKH()).equals(selectedRank);
-            
+
             // Check keyword
-            boolean matchesKeyword = loweredKeyword.isEmpty() 
-                || safe(customer.getHoTenKH()).toLowerCase().contains(loweredKeyword)
-                || safe(customer.getSdt()).contains(loweredKeyword)
-                || safe(customer.getMaKH()).toLowerCase().contains(loweredKeyword);
-            
+            boolean matchesKeyword = loweredKeyword.isEmpty()
+                    || safe(customer.getHoTenKH()).toLowerCase().contains(loweredKeyword)
+                    || safe(customer.getSdt()).contains(loweredKeyword)
+                    || safe(customer.getMaKH()).toLowerCase().contains(loweredKeyword);
+
             if (matchesRank && matchesKeyword) {
                 filtered.add(customer);
             }
@@ -619,8 +619,8 @@ public class CustomersPanel extends JPanel {
         field.setMaximumSize(new Dimension(320, 36));
         field.setPreferredSize(new Dimension(320, 36));
         field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(8, 10, 8, 10)
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                new EmptyBorder(8, 10, 8, 10)
         ));
         return field;
     }
@@ -646,8 +646,8 @@ public class CustomersPanel extends JPanel {
         button.setForeground(new Color(37, 99, 235));
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(191, 219, 254)),
-            new EmptyBorder(12, 18, 12, 18)
+                BorderFactory.createLineBorder(new Color(191, 219, 254)),
+                new EmptyBorder(12, 18, 12, 18)
         ));
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         return button;
@@ -711,7 +711,7 @@ public class CustomersPanel extends JPanel {
         String text = mapRank(rankCode);
         Color bg;
         Color fg;
-        
+
         switch (safe(rankCode).toLowerCase()) {
             case "bac":
             case "silver":
@@ -833,11 +833,11 @@ public class CustomersPanel extends JPanel {
 
     private Color pickAvatarColor(String seed) {
         Color[] colors = {
-            new Color(59, 130, 246),
-            new Color(139, 92, 246),
-            new Color(236, 72, 153),
-            new Color(245, 158, 11),
-            new Color(6, 182, 212)
+                new Color(59, 130, 246),
+                new Color(139, 92, 246),
+                new Color(236, 72, 153),
+                new Color(245, 158, 11),
+                new Color(6, 182, 212)
         };
         int index = Math.abs(safe(seed).hashCode()) % colors.length;
         return colors[index];
