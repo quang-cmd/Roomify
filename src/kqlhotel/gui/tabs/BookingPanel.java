@@ -57,6 +57,7 @@ public class BookingPanel extends JPanel {
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
     private LocalDate selectedCheckInDate;
     private LocalDate selectedCheckOutDate;
+    private static final int MAX_GUESTS = 10;
     private int guestCount = 2;
     private JLabel guestCountLabel;
 
@@ -424,7 +425,7 @@ public class BookingPanel extends JPanel {
             if (filterLocked) {
                 return;
             }
-            if (guestCount < 4) {
+            if (guestCount < MAX_GUESTS) {
                 guestCount++;
                 guestCountLabel.setText(guestCount + " khách");
                 syncGuestForms();
@@ -475,7 +476,7 @@ public class BookingPanel extends JPanel {
         guestCountLabel.setText(guestCount + " khách");
 
         boolean minusEnabled = !filterLocked && guestCount > 1;
-        boolean plusEnabled = !filterLocked && guestCount < 4;
+        boolean plusEnabled = !filterLocked && guestCount < MAX_GUESTS;
 
         applyGuestStepperButtonState(guestMinusButton, minusEnabled);
         applyGuestStepperButtonState(guestPlusButton, plusEnabled);
@@ -789,12 +790,12 @@ public class BookingPanel extends JPanel {
         PrimaryButton depositButton = new PrimaryButton("ĐẶT CỌC 30%");
         depositButton.setBackground(ThemeColors.PREMIUM_ACCENT);
         depositButton.setForeground(Color.WHITE);
-        depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", 0.30));
+        depositButton.addActionListener(e -> submitBookingWithPayment("ĐẶT CỌC 30%", CreateBookingCommand.DEPOSIT_RATIO));
 
         PrimaryButton fullPaymentButton = new PrimaryButton("THANH TOÁN 100%");
         fullPaymentButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
         fullPaymentButton.setForeground(Color.WHITE);
-        fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", 1.0));
+        fullPaymentButton.addActionListener(e -> submitBookingWithPayment("THANH TOÁN 100%", CreateBookingCommand.FULL_RATIO));
 
         JPanel actions = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill][grow,fill]", "[]"));
         actions.setOpaque(false);
@@ -941,10 +942,10 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        if (guestCount < 1 || guestCount > 4) {
+        if (guestCount < 1 || guestCount > MAX_GUESTS) {
             JOptionPane.showMessageDialog(
                 this,
-                "Số khách phải trong khoảng từ 1 đến 4.",
+                "Số khách phải trong khoảng từ 1 đến " + MAX_GUESTS + ".",
                 "Dữ liệu không hợp lệ",
                 JOptionPane.WARNING_MESSAGE
             );
@@ -1515,6 +1516,14 @@ public class BookingPanel extends JPanel {
     private void openCustomerInfo() {
         if (selectedRooms.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        int totalCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
+        if (totalCapacity < guestCount) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người) không đủ cho " + guestCount + " khách.\n"
+                + "Vui lòng chọn thêm phòng.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
             return;
         }
         bookingCards.show(bookingContent, "customer-info");

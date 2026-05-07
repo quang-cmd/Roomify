@@ -131,4 +131,8 @@ public class InvoicesBUS {
     public double getRefundAmount(String maHD) {
         return invoiceDAO.getRefundAmount(maHD);
     }
+
+    public double getTotalPaidAmount(String maHD) {
+        return invoiceDAO.getTotalSuccessfulPaymentByInvoice(maHD);
+    }
 }

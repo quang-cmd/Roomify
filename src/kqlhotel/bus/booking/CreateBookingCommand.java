@@ -4,6 +4,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 public class CreateBookingCommand {
+
+    public static final double DEPOSIT_RATIO = 0.30;
+    public static final double FULL_RATIO    = 1.0;
+
     private final LocalDate checkInDate;
     private final LocalDate checkOutDate;
     private final int totalGuests;
