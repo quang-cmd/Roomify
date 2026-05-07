@@ -83,7 +83,7 @@ public class CustomersPanel extends JPanel {
 
         titleWrap.add(countLabel);
 
-        JButton addButton = createPrimaryButton("Thêm khách hàng", "khachHang.png");
+        JButton addButton = createPrimaryButton("Thêm khách hàng", "client.png");
         addButton.addActionListener(e -> showCustomerDialog(null));
 
         header.add(titleWrap, BorderLayout.WEST);

@@ -369,16 +369,14 @@ public class RoomManagementPanel extends JPanel {
         
         JLabel lblGuest = new JLabel(" " + occupantStr);
         try {
-            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/khachHang.png");
+            java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/client.png");
             if (url != null) {
                 javax.swing.ImageIcon icon = new javax.swing.ImageIcon(url);
                 java.awt.Image img = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
                 lblGuest.setIcon(new javax.swing.ImageIcon(img));
-            } else {
-                lblGuest.setText("👤 " + occupantStr);
             }
         } catch (Exception ex) {
-            lblGuest.setText("👤 " + occupantStr);
+            // No icon
         }
         lblGuest.setForeground(new Color(130, 145, 170));
         lblGuest.setFont(lblGuest.getFont().deriveFont(11f));
