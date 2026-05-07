@@ -59,6 +59,10 @@ public class CheckoutPanel extends JPanel {
     private final JLabel detailSurchargeLabel = new JLabel();
     private final JLabel detailTaxLabel = new JLabel();
     private final JLabel detailDiscountLabel = new JLabel();
+
+    private final JLabel detailRankDiscountTitleLabel = new JLabel("Khuyến mãi hạng khách hàng");
+    private final JLabel detailRankDiscountLabel = new JLabel();
+
     private final JLabel detailTotalFinalLabel = new JLabel();
 
     private final JLabel kName = new JLabel();
@@ -486,7 +490,7 @@ public class CheckoutPanel extends JPanel {
         leftPanel.add(tCost, "gapy 10 6");
 
         RoundedPanel costBox = new RoundedPanel(12, Color.WHITE, new Color(225, 231, 245), 1f);
-        costBox.setLayout(new MigLayout("wrap 2,insets 14", "[grow,fill][]", "[]"));
+        costBox.setLayout(new MigLayout("wrap 2,insets 14,hidemode 3", "[grow,fill][]", "[]"));
 
         JLabel lTotal = new JLabel("Tổng chi phí");
         lTotal.setFont(lTotal.getFont().deriveFont(Font.BOLD, 14f));
@@ -532,6 +536,17 @@ public class CheckoutPanel extends JPanel {
         detailDiscountLabel.setForeground(new Color(40, 167, 69));
         detailDiscountLabel.setFont(detailDiscountLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailDiscountLabel, "gapy 4 0");
+
+        detailRankDiscountTitleLabel.setForeground(new Color(110, 125, 145));
+        costBox.add(detailRankDiscountTitleLabel, "gapy 4 0");
+
+        detailRankDiscountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        detailRankDiscountLabel.setForeground(new Color(40, 167, 69));
+        detailRankDiscountLabel.setFont(detailRankDiscountLabel.getFont().deriveFont(Font.BOLD, 13f));
+        costBox.add(detailRankDiscountLabel, "gapy 4 0");
+
+        detailRankDiscountTitleLabel.setVisible(false);
+        detailRankDiscountLabel.setVisible(false);
 
         JLabel penalty = new JLabel("Tiền phạt trả trễ");
         penalty.setForeground(new Color(110, 125, 145));
@@ -701,13 +716,23 @@ public class CheckoutPanel extends JPanel {
             );
 
             if (success) {
+                int addedPoints = checkoutBUS.addCustomerLoyaltyPoints(
+                        currentHoaDon.getMaKhachHang(),
+                        totals.total
+                );
+
                 refreshInvoicePreview();
 
                 if (isPrintInvoice) {
                     PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
                 }
 
-                JOptionPane.showMessageDialog(this, "Trả phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                String message = "Trả phòng thành công!";
+                if (addedPoints > 0) {
+                    message += "\nĐã cộng " + addedPoints + " điểm tích lũy cho khách hàng.";
+                }
+
+                JOptionPane.showMessageDialog(this, message, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 
                 // Refresh RoomManagementPanel data
                 java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
@@ -854,6 +879,21 @@ public class CheckoutPanel extends JPanel {
         detailSurchargeLabel.setText(CurrencyUtils.formatVND(totals.surcharge));
         detailTaxLabel.setText(CurrencyUtils.formatVND(totals.tax));
         detailDiscountLabel.setText("-" + CurrencyUtils.formatVND(totals.discount));
+
+        if (totals.rankDiscount > 0) {
+            String rankDisplay = checkoutBUS.getCustomerRankDisplay(currentHoaDon.getMaKhachHang());
+            String percentText = removeDecimalZero(totals.rankDiscountRate * 100);
+
+            detailRankDiscountTitleLabel.setText("Khuyến mãi hạng " + rankDisplay + " (" + percentText + "%)");
+            detailRankDiscountLabel.setText("-" + CurrencyUtils.formatVND(totals.rankDiscount));
+
+            detailRankDiscountTitleLabel.setVisible(true);
+            detailRankDiscountLabel.setVisible(true);
+        } else {
+            // Khách hạng Đồng thì không hiện dòng này
+            detailRankDiscountTitleLabel.setVisible(false);
+            detailRankDiscountLabel.setVisible(false);
+        }
 
         // dòng mới
         detailPenaltyLabel.setText(CurrencyUtils.formatVND(totals.earlyCheckoutPenalty));
