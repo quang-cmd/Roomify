@@ -1,6 +1,8 @@
 package kqlhotel.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Invoice {
     private String maHD;
@@ -20,8 +22,17 @@ public class Invoice {
     private String phuongThucTT;
     private String trangThai;
     private String maDatPhong;
+    private List<Customer> dsKhachHang = new ArrayList<>();
 
     public Invoice() {}
+
+    public List<Customer> getDsKhachHang() {
+        return dsKhachHang;
+    }
+
+    public void setDsKhachHang(List<Customer> dsKhachHang) {
+        this.dsKhachHang = dsKhachHang;
+    }
 
     public String getMaHD() {
         return maHD;
