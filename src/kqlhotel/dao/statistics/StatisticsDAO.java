@@ -50,7 +50,7 @@ public class StatisticsDAO {
     }
 
     public int countTotalRooms() {
-        return countQuery("SELECT COUNT(*) FROM Phong");
+        return countQuery("SELECT COUNT(*) FROM Phong WHERE trangThaiPhong <> 'BaoTri'");
     }
 
     public int countOccupiedRooms() {
@@ -269,7 +269,15 @@ public class StatisticsDAO {
             "           cthd.maPhong " +
             "    FROM ChiTietHoaDon cthd " +
             "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
-            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy'" +
+            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy' " +
+            "    UNION " +
+            "    SELECT CAST(ctdp.ngayNhanDuKien AS DATE) AS inDate, " +
+            "           CAST(ctdp.ngayTraDuKien AS DATE) AS outDate, " +
+            "           ctdp.maPhong " +
+            "    FROM ChiTietDatPhong ctdp " +
+            "    JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "    WHERE hd.trangThai = 'ChuaThanhToan' " +
+            "      AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd2 WHERE cthd2.maHD = hd.maHD AND cthd2.maPhong = ctdp.maPhong)" +
             ")" +
             "SELECT ds.dt AS date, (SELECT cnt FROM TotalRooms) AS totalRooms, COUNT(DISTINCT o.maPhong) AS occupiedRooms " +
             "FROM DateSeries ds " +
@@ -359,7 +367,7 @@ public class StatisticsDAO {
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai != 'DaHuy'";
+            "  AND hd.trangThai = 'DaThanhToan'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -386,19 +394,12 @@ public class StatisticsDAO {
         int totalRooms = countTotalRooms();
         if (totalRooms == 0 || days == 0) return 0.0;
 
-        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy
+        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy có tiền
         String sql =
-            "SELECT SUM( " +
-            "    CASE " +
-            "        WHEN hd.trangThai = 'DaThanhToan' THEN hd.tongTienThanhToan " +
-            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhat, 0) " +
-            "        ELSE 0 " +
-            "    END " +
-            ") AS totalRevenue " +
+            "SELECT SUM(hd.tongTienThanhToan) AS totalRevenue " +
             "FROM HoaDon hd " +
-            "LEFT JOIN ChiTietHoaDon cthd ON cthd.maHD = hd.maHD " +
             "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
-            "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
+            "  AND (hd.trangThai = 'DaThanhToan' OR (hd.trangThai = 'DaHuy' AND hd.tongTienThanhToan > 0))";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -425,7 +426,7 @@ public class StatisticsDAO {
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai != 'DaHuy'";
+            "  AND hd.trangThai = 'DaThanhToan'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
