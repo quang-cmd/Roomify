@@ -58,6 +58,15 @@ public class Customer {
     public void setTongChiTieu(double tongChiTieu) { this.tongChiTieu = tongChiTieu; }
     public LocalDateTime getNgayDatGanNhat() { return ngayDatGanNhat; }
     public void setNgayDatGanNhat(LocalDateTime ngayDatGanNhat) { this.ngayDatGanNhat = ngayDatGanNhat; }
+    
+    public Date getNgayDatGanNhatDate() {
+        return ngayDatGanNhat == null ? null : Date.from(ngayDatGanNhat.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    public void setNgayDatGanNhatDate(Date date) {
+        this.ngayDatGanNhat = date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
     public boolean isDangHoatDong() { return dangHoatDong; }
     public void setDangHoatDong(boolean dangHoatDong) { this.dangHoatDong = dangHoatDong; }
 }
