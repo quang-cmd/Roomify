@@ -156,9 +156,9 @@ public class ServicesPanel extends JPanel {
         RoundedPanel card = new RoundedPanel(22, Color.WHITE, new Color(226, 232, 240), 1f, new Color(15, 23, 42, 10), 4);
         card.setLayout(new BorderLayout(0, 14));
         card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(392, 246));
-        card.setMinimumSize(new Dimension(392, 246));
-        card.setMaximumSize(new Dimension(392, 246));
+        card.setPreferredSize(new Dimension(392, 260));
+        card.setMinimumSize(new Dimension(392, 260));
+        card.setMaximumSize(new Dimension(392, 260));
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
@@ -194,12 +194,12 @@ public class ServicesPanel extends JPanel {
         desc.setForeground(new Color(100, 116, 139));
 
         center.add(name);
-        center.add(Box.createVerticalStrut(8));
+        center.add(Box.createVerticalStrut(4));
         center.add(desc);
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(false);
-        bottom.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottom.setBorder(new EmptyBorder(6, 0, 0, 0));
 
         bottom.add(createCategoryChip(service.getLoaiDV()), BorderLayout.WEST);
 
@@ -229,13 +229,28 @@ public class ServicesPanel extends JPanel {
         footer.setOpaque(false);
         footer.add(bottom, BorderLayout.CENTER);
 
-        JButton statusToggle = new JButton("DangHoatDong".equalsIgnoreCase(service.getTrangThai()) ? "Tạm dừng" : "Kích hoạt");
+        boolean active = "DangHoatDong".equalsIgnoreCase(service.getTrangThai());
+        JButton statusToggle = new JButton(active ? "Tạm dừng" : "Kích hoạt") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(new Color(226, 232, 240));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         statusToggle.setFocusPainted(false);
-        statusToggle.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(8, 12, 8, 12)
-        ));
+        statusToggle.setContentAreaFilled(false);
+        statusToggle.setBorder(new EmptyBorder(8, 12, 8, 12));
         statusToggle.setBackground(new Color(248, 250, 252));
+        statusToggle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        statusToggle.setForeground(new Color(71, 85, 105));
+        statusToggle.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         statusToggle.addActionListener(e -> toggleServiceStatus(service));
         footer.add(statusToggle, BorderLayout.SOUTH);
 
@@ -392,17 +407,29 @@ public class ServicesPanel extends JPanel {
     }
 
     private JButton createPrimaryButton(String text, String iconFile) {
-        JButton button = new JButton(text);
-        ImageIcon icon = loadIcon(iconFile, 14, 14);
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        ImageIcon icon = loadIcon(iconFile, 16, 16);
         if (icon != null) {
             button.setIcon(icon);
-            button.setIconTextGap(8);
+            button.setIconTextGap(10);
         }
         button.setBackground(new Color(15, 23, 42));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
-        button.setBorder(new EmptyBorder(10, 16, 10, 16));
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(10, 20, 10, 20));
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         return button;
     }
 
@@ -421,9 +448,19 @@ public class ServicesPanel extends JPanel {
 
     private JLabel createStatusBadge(Service service) {
         boolean active = "DangHoatDong".equalsIgnoreCase(service.getTrangThai());
-        JLabel label = new JLabel(active ? "Hoạt động" : "Tạm dừng", SwingConstants.CENTER);
-        label.setOpaque(true);
-        label.setBorder(new EmptyBorder(4, 10, 4, 10));
+        JLabel label = new JLabel(active ? "Hoạt động" : "Tạm dừng", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        label.setOpaque(false);
+        label.setBorder(new EmptyBorder(4, 12, 4, 12));
         label.setFont(new Font("Segoe UI", Font.BOLD, 11));
         label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
         label.setForeground(active ? new Color(22, 163, 74) : new Color(148, 163, 184));
@@ -431,12 +468,25 @@ public class ServicesPanel extends JPanel {
     }
 
     private JButton createFilterButton(String text) {
-        JButton button = new JButton(text);
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                if (getBackground() == Color.WHITE) {
+                    g2.setColor(new Color(226, 232, 240));
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240)),
-            new EmptyBorder(10, 16, 10, 16)
-        ));
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(8, 18, 8, 18));
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         button.addActionListener(e -> {
             selectedCategory = text;
             updateFilterStyles();
