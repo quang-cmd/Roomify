@@ -25,12 +25,16 @@ import kqlhotel.entity.statistics.RoomTypeShare;
  */
 public class StatisticsDAO {
 
-    /** Tổng doanh thu (DaThanhToan) trong khoảng [start, end]. */
+    /** Điều kiện doanh thu: DaThanhToan hoặc DaHuy nhưng đã thu tiền. */
+    private static final String REVENUE_COND =
+        "(trangThai = 'DaThanhToan' OR (trangThai = 'DaHuy' AND tongTienThanhToan > 0))";
+
+    /** Tổng doanh thu trong khoảng [start, end]. */
     public double getRevenue(LocalDateTime start, LocalDateTime end) {
         String sql =
             "SELECT COALESCE(SUM(tongTienThanhToan), 0) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan BETWEEN ? AND ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -46,7 +50,7 @@ public class StatisticsDAO {
     }
 
     public int countTotalRooms() {
-        return countQuery("SELECT COUNT(*) FROM Phong");
+        return countQuery("SELECT COUNT(*) FROM Phong WHERE trangThaiPhong <> 'BaoTri'");
     }
 
     public int countOccupiedRooms() {
@@ -98,7 +102,7 @@ public class StatisticsDAO {
             "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
             "       SUM(tongTienThanhToan) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
         try (Connection con = ConnectDB.getInstance().getConnection();
@@ -139,7 +143,7 @@ public class StatisticsDAO {
         String sql =
             "SELECT CAST(ngayThanhToan AS DATE) AS dt, SUM(tongTienThanhToan) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY CAST(ngayThanhToan AS DATE)";
 
@@ -265,7 +269,15 @@ public class StatisticsDAO {
             "           cthd.maPhong " +
             "    FROM ChiTietHoaDon cthd " +
             "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
-            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy'" +
+            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy' " +
+            "    UNION " +
+            "    SELECT CAST(ctdp.ngayNhanDuKien AS DATE) AS inDate, " +
+            "           CAST(ctdp.ngayTraDuKien AS DATE) AS outDate, " +
+            "           ctdp.maPhong " +
+            "    FROM ChiTietDatPhong ctdp " +
+            "    JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "    WHERE hd.trangThai = 'ChuaThanhToan' " +
+            "      AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd2 WHERE cthd2.maHD = hd.maHD AND cthd2.maPhong = ctdp.maPhong)" +
             ")" +
             "SELECT ds.dt AS date, (SELECT cnt FROM TotalRooms) AS totalRooms, COUNT(DISTINCT o.maPhong) AS occupiedRooms " +
             "FROM DateSeries ds " +
@@ -355,7 +367,7 @@ public class StatisticsDAO {
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai != 'DaHuy'";
+            "  AND hd.trangThai = 'DaThanhToan'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -382,19 +394,12 @@ public class StatisticsDAO {
         int totalRooms = countTotalRooms();
         if (totalRooms == 0 || days == 0) return 0.0;
 
-        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy
+        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy có tiền
         String sql =
-            "SELECT SUM( " +
-            "    CASE " +
-            "        WHEN hd.trangThai = 'DaThanhToan' THEN hd.tongTienThanhToan " +
-            "        WHEN hd.trangThai = 'DaHuy' THEN COALESCE(cthd.phiPhat, 0) " +
-            "        ELSE 0 " +
-            "    END " +
-            ") AS totalRevenue " +
+            "SELECT SUM(hd.tongTienThanhToan) AS totalRevenue " +
             "FROM HoaDon hd " +
-            "LEFT JOIN ChiTietHoaDon cthd ON cthd.maHD = hd.maHD " +
             "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
-            "  AND hd.trangThai IN ('DaThanhToan', 'DaHuy')";
+            "  AND (hd.trangThai = 'DaThanhToan' OR (hd.trangThai = 'DaHuy' AND hd.tongTienThanhToan > 0))";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -421,7 +426,7 @@ public class StatisticsDAO {
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai != 'DaHuy'";
+            "  AND hd.trangThai = 'DaThanhToan'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {

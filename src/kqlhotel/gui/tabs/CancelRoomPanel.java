@@ -905,12 +905,13 @@ public class CancelRoomPanel extends JPanel {
             double refund = Math.max(0, tienHoan);
             double penalty = Math.max(0, tienCoc - refund);
 
-            // 1. Cập nhật HoaDon: đánh dấu đã hủy, chỉ giữ phí phạt, xóa khuyến mãi
-            String updateHoaDon = "UPDATE HoaDon SET trangThai = 'DaHuy', tienPhong = 0, tienThue = 0, tienKhuyenMai = 0, tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?";
+            // 1. Cập nhật HoaDon: đánh dấu đã hủy, chỉ giữ phí phạt, xóa khuyến mãi, cập nhật ngày thanh toán (ngày hủy)
+            String updateHoaDon = "UPDATE HoaDon SET trangThai = 'DaHuy', ngayThanhToan = ?, tienPhong = 0, tienThue = 0, tienKhuyenMai = 0, tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?";
             try (PreparedStatement pst1 = con.prepareStatement(updateHoaDon)) {
-                pst1.setDouble(1, penalty);
+                pst1.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
                 pst1.setDouble(2, penalty);
-                pst1.setString(3, maHD);
+                pst1.setDouble(3, penalty);
+                pst1.setString(4, maHD);
                 pst1.executeUpdate();
             }
 

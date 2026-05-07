@@ -160,6 +160,18 @@ public class SqlCheckInService implements CheckInService {
             }
 
             LocalDateTime now = LocalDateTime.now();
+
+            // Validate: không được nhận phòng trước ngày dự kiến
+            LocalDate earliest = rooms.stream()
+                    .map(r -> ((Timestamp) r[1]).toLocalDateTime().toLocalDate())
+                    .min(LocalDate::compareTo)
+                    .orElse(LocalDate.now());
+            if (LocalDate.now().isBefore(earliest)) {
+                con.rollback();
+                return CheckInResult.fail(
+                    "Chưa đến ngày nhận phòng. Ngày nhận phòng dự kiến: "
+                    + earliest.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".");
+            }
             BigDecimal totalRoom = BigDecimal.ZERO;
 
                 String insertSql =
