@@ -19,7 +19,6 @@ public class AddRoomDialog extends JDialog {
     private JTextField tfMaPhong;
     private JTextField tfTang;
     private JComboBox<RoomTypeWrapper> cbLoaiPhong;
-    private JTextField tfTienCoc;
     private JLabel lblGia, lblDienTich, lblSucChua;
     private JLabel lblError;
     private List<RoomType> listLoaiPhong;
@@ -129,11 +128,6 @@ public class AddRoomDialog extends JDialog {
         infoArea.add(infoItem("Sức chứa:", lblSucChua));
         form.add(infoArea, "span 2, growx");
 
-        form.add(label("Tiền cọc (VNĐ)", false), "span 2");
-        tfTienCoc = styledField();
-        tfTienCoc.putClientProperty("JTextField.placeholderText", "0");
-        form.add(tfTienCoc, "span 2, h 38!");
-
         return form;
     }
 
@@ -193,17 +187,6 @@ public class AddRoomDialog extends JDialog {
             return;
         }
 
-        Double tienCoc = 0.0;
-        String cocStr = tfTienCoc.getText().trim();
-        if (!cocStr.isEmpty()) {
-            try {
-                tienCoc = Double.parseDouble(cocStr);
-            } catch (NumberFormatException e) {
-                lblError.setText("⚠ Tiền cọc không hợp lệ.");
-                return;
-            }
-        }
-
         // Map RoomType (entity used by RoomTypeDAO) to LoaiPhong (entity used by Phong)
         RoomType rt = wrapper.roomType;
 
@@ -217,7 +200,7 @@ public class AddRoomDialog extends JDialog {
 
         LoaiPhong lp = new LoaiPhong(rt.getMaLoaiPhong(), rt.getTenLoaiPhong(), rt.getSoLuongPhong(), rt.getGiaPhong(), rt.getSucChuaToiDa(), rt.getDienTich(), rt.getMoTa(), rt.getTienNghi());
 
-        Phong p = new Phong(ma, tienCoc, lp, tang, "Trong");
+        Phong p = new Phong(ma, 0.0, lp, tang, "Trong");
 
         if (phongBUS.addRoom(p)) {
             if (onSuccess != null) onSuccess.run();
