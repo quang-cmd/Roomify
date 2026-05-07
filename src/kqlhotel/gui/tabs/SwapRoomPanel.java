@@ -51,7 +51,7 @@ public class SwapRoomPanel extends JPanel {
 
     private final SwapRoomBUS bus = new SwapRoomBUS();
 
-    private final InputField inpMaDatPhong = new InputField("search.png", "VD: BK001");
+    private final InputField inpMaDatPhong = new InputField("search.png", "VD: DP001");
     private final InputField inpTenKhach = new InputField("client.png", "VD: Nguyễn Văn A");
     private final InputField inpSoDienThoai = new InputField("telephone.png", "VD: 0987654321");
     private final InputField inpSoPhong = new InputField("room.png", "VD: 101");
@@ -283,30 +283,55 @@ public class SwapRoomPanel extends JPanel {
         return group;
     }
 
-    private JButton createPrimaryButton(String text, String iconFile, Color bgColor) {
-        JButton button = new JButton(text);
-        ImageIcon icon = loadIcon(iconFile, 14, 14);
+    private JButton createPrimaryButton(String text, String iconFile, Color bg) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        ImageIcon icon = loadIcon(iconFile, 16, 16);
         if (icon != null) {
             button.setIcon(icon);
-            button.setIconTextGap(8);
+            button.setIconTextGap(10);
         }
-        button.setBackground(bgColor);
+        button.setBackground(bg);
         button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(12, 14, 12, 14));
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(10, 20, 10, 20));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         return button;
     }
 
     private JButton createSecondaryButton(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(new Color(241, 245, 249));
-        button.setForeground(TEXT_PRIMARY);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(new Color(226, 232, 240));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setBackground(Color.WHITE);
+        button.setForeground(new Color(71, 85, 105));
         button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(12, 14, 12, 14));
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(10, 20, 10, 20));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         return button;
     }
 

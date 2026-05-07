@@ -17,6 +17,7 @@ import java.awt.RenderingHints;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -42,6 +43,7 @@ import kqlhotel.entity.Customer;
 public class CustomersPanel extends JPanel {
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final DateTimeFormatter LDT_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
 
     private kqlhotel.gui.AppFrame appFrame;
@@ -323,6 +325,13 @@ public class CustomersPanel extends JPanel {
         meta.setOpaque(false);
         meta.add(createRankBadge(customer.getHangKH()));
         meta.add(Box.createHorizontalStrut(8));
+        
+        JLabel pointsLabel = new JLabel(customer.getDiemTichLuy() + " điểm");
+        pointsLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        pointsLabel.setForeground(new Color(245, 158, 11)); // Amber color
+        meta.add(pointsLabel);
+        meta.add(Box.createHorizontalStrut(8));
+
         meta.add(createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong()));
         meta.add(Box.createHorizontalStrut(8));
         meta.add(createMutedLabel("Lần cuối: " + formatDate(customer.getNgayDatGanNhatDate())));
@@ -363,7 +372,7 @@ public class CustomersPanel extends JPanel {
         row.setOpaque(false);
         row.add(createStatCard("Tổng đặt phòng", String.valueOf(customer.getTongDatPhong())));
         row.add(createStatCard("Tổng chi tiêu", MONEY_FORMAT.format(customer.getTongChiTieu()) + "đ"));
-        row.add(createStatCard("Đặt phòng gần nhất", formatDate(customer.getNgayDatGanNhatDate())));
+        row.add(createStatCard("Đặt phòng gần nhất", customer.getNgayDatGanNhat() != null ? customer.getNgayDatGanNhat().format(LDT_FORMAT) : "-"));
         return row;
     }
 
@@ -394,7 +403,7 @@ public class CustomersPanel extends JPanel {
         grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "telephone.png"));
         grid.add(createInfoCard("Địa chỉ email", safe(customer.getEmail()), "email.png"));
         grid.add(createInfoCard("Địa chỉ cư trú", safe(customer.getDiaChi()), "location.png"));
-        grid.add(createInfoCard("Ngày sinh", formatDate(customer.getNgaySinhDate()), "calendar.png"));
+        grid.add(createInfoCard("Ngày sinh", customer.getNgaySinh() != null ? customer.getNgaySinh().format(LDT_FORMAT) : "-", "calendar.png"));
         grid.add(createInfoCard("CCCD / Hộ chiếu", safe(customer.getCCCD()), "client.png"));
         grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "location.png"));
         return grid;
@@ -515,7 +524,8 @@ public class CustomersPanel extends JPanel {
         JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
         JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
         JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Việt Nam");
-        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinh()) : "01/01/1990");
+        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? existing.getNgaySinh().format(LDT_FORMAT) : "01/01/1990");
+        JTextField pointsField = createDialogField(editing ? String.valueOf(existing.getDiemTichLuy()) : "0");
         JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nữ"});
         genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
         JComboBox<String> rankBox = new JComboBox<>(new String[]{"Đồng", "Bạc", "Vàng", "Kim cương"});
@@ -538,6 +548,8 @@ public class CustomersPanel extends JPanel {
         fieldContainer.add(createDialogFieldGroup("Giới tính", genderBox));
         fieldContainer.add(Box.createVerticalStrut(10));
         fieldContainer.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Điểm tích lũy", pointsField));
 
         JPanel actions = new JPanel(new BorderLayout(10, 0));
         actions.setOpaque(false);
@@ -554,10 +566,16 @@ public class CustomersPanel extends JPanel {
             payload.setQuocTich(nationalityField.getText().trim());
             payload.setGioiTinh(String.valueOf(genderBox.getSelectedItem()));
             payload.setHangKH(mapRankToCode(String.valueOf(rankBox.getSelectedItem())));
-            payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+            try {
+                payload.setDiemTichLuy(Integer.parseInt(pointsField.getText().trim()));
+            } catch (Exception ex) {
+                payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+            }
 
             try {
-                payload.setNgaySinhDate(DATE_FORMAT.parse(birthField.getText().trim()));
+                String birthStr = birthField.getText().trim();
+                java.time.LocalDate ld = java.time.LocalDate.parse(birthStr, LDT_FORMAT);
+                payload.setNgaySinh(ld.atStartOfDay());
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog, "Ngày sinh phải đúng định dạng dd/MM/yyyy.");
                 return;
@@ -653,21 +671,33 @@ public class CustomersPanel extends JPanel {
         return button;
     }
 
-    private JLabel createAvatar(String fullName, Color bgColor) {
+    private JLabel createAvatar(String fullName, final Color bgColor) {
         String initials = "KH";
         if (fullName != null && !fullName.isBlank()) {
             String[] parts = fullName.trim().split("\\s+");
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Math.min(parts.length, 2); i++) {
-                sb.append(Character.toUpperCase(parts[i].charAt(0)));
+                if (!parts[i].isEmpty()) {
+                    sb.append(Character.toUpperCase(parts[i].charAt(0)));
+                }
             }
             initials = sb.toString();
         }
 
-        JLabel label = new JLabel(initials, SwingConstants.CENTER);
+        JLabel label = new JLabel(initials, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         label.setForeground(Color.WHITE);
         label.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        label.setOpaque(true);
+        label.setOpaque(false);
         label.setBackground(bgColor);
         label.setPreferredSize(new Dimension(42, 42));
         label.setMinimumSize(new Dimension(42, 42));
@@ -676,8 +706,18 @@ public class CustomersPanel extends JPanel {
     }
 
     private JLabel createStatusBadge(String text, boolean active) {
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setOpaque(true);
+        JLabel label = new JLabel(text, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        label.setOpaque(false);
         label.setBorder(new EmptyBorder(4, 10, 4, 10));
         label.setFont(new Font("Segoe UI", Font.BOLD, 11));
         label.setBackground(active ? new Color(220, 252, 231) : new Color(241, 245, 249));
@@ -712,8 +752,18 @@ public class CustomersPanel extends JPanel {
                 break;
         }
 
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setOpaque(true);
+        JLabel label = new JLabel(text, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        label.setOpaque(false);
         label.setBorder(new EmptyBorder(3, 8, 3, 8));
         label.setFont(new Font("Segoe UI", Font.BOLD, 10));
         label.setBackground(bg);
