@@ -17,6 +17,7 @@ import java.awt.RenderingHints;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -42,6 +43,7 @@ import kqlhotel.entity.Customer;
 public class CustomersPanel extends JPanel {
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final DateTimeFormatter LDT_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
 
     private kqlhotel.gui.AppFrame appFrame;
@@ -370,7 +372,7 @@ public class CustomersPanel extends JPanel {
         row.setOpaque(false);
         row.add(createStatCard("Tổng đặt phòng", String.valueOf(customer.getTongDatPhong())));
         row.add(createStatCard("Tổng chi tiêu", MONEY_FORMAT.format(customer.getTongChiTieu()) + "đ"));
-        row.add(createStatCard("Đặt phòng gần nhất", formatDate(customer.getNgayDatGanNhatDate())));
+        row.add(createStatCard("Đặt phòng gần nhất", customer.getNgayDatGanNhat() != null ? customer.getNgayDatGanNhat().format(LDT_FORMAT) : "-"));
         return row;
     }
 
@@ -401,7 +403,7 @@ public class CustomersPanel extends JPanel {
         grid.add(createInfoCard("Số điện thoại", safe(customer.getSdt()), "telephone.png"));
         grid.add(createInfoCard("Địa chỉ email", safe(customer.getEmail()), "email.png"));
         grid.add(createInfoCard("Địa chỉ cư trú", safe(customer.getDiaChi()), "location.png"));
-        grid.add(createInfoCard("Ngày sinh", formatDate(customer.getNgaySinhDate()), "calendar.png"));
+        grid.add(createInfoCard("Ngày sinh", customer.getNgaySinh() != null ? customer.getNgaySinh().format(LDT_FORMAT) : "-", "calendar.png"));
         grid.add(createInfoCard("CCCD / Hộ chiếu", safe(customer.getCCCD()), "client.png"));
         grid.add(createInfoCard("Quốc tịch", safe(customer.getQuocTich()), "location.png"));
         return grid;
@@ -522,7 +524,7 @@ public class CustomersPanel extends JPanel {
         JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
         JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
         JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Việt Nam");
-        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinhDate()) : "01/01/1990");
+        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? existing.getNgaySinh().format(LDT_FORMAT) : "01/01/1990");
         JTextField pointsField = createDialogField(editing ? String.valueOf(existing.getDiemTichLuy()) : "0");
         JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nữ"});
         genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
@@ -571,7 +573,9 @@ public class CustomersPanel extends JPanel {
             }
 
             try {
-                payload.setNgaySinhDate(DATE_FORMAT.parse(birthField.getText().trim()));
+                String birthStr = birthField.getText().trim();
+                java.time.LocalDate ld = java.time.LocalDate.parse(birthStr, LDT_FORMAT);
+                payload.setNgaySinh(ld.atStartOfDay());
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog, "Ngày sinh phải đúng định dạng dd/MM/yyyy.");
                 return;
