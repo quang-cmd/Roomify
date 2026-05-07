@@ -23,6 +23,9 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
+
+import kqlhotel.bus.shift.ShiftBUS;
+import kqlhotel.gui.dialog.ShiftClosingDialog;
 import kqlhotel.gui.components.BackgroundPanel;
 import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.RoundedPanel;
@@ -56,6 +59,7 @@ public class AppFrame extends JFrame {
     private final JLabel transitionMessage = new JLabel();
     private JLabel userNameLabel;
     private JLabel userRoleLabel;
+    private JButton closeShiftBtn;
     private final Timer transitionTimer;
     private final Map<String, JPanel> menuItems = new LinkedHashMap<>();
     private final Map<String, JLabel> menuTextLabels = new LinkedHashMap<>();
@@ -67,7 +71,8 @@ public class AppFrame extends JFrame {
     private BookingPanel bookingPanel;
     private CheckoutPanel checkoutPanel;
     private ShiftOpeningPanel shiftPanel;
-    
+    private LoginPanel loginPanel;
+
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -79,7 +84,7 @@ public class AppFrame extends JFrame {
 
         shiftPanel = new ShiftOpeningPanel(this::showAppTransition);
 
-        LoginPanel loginPanel = new LoginPanel(this::showShiftTransition);
+        loginPanel = new LoginPanel(this::showShiftTransition);
         rootPanel.add(loginPanel, "auth");
         rootPanel.add(shiftPanel, "shift");
         rootPanel.add(createTransitionPanel(), "transition");
@@ -430,7 +435,7 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createTopbarRight() {
-        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][][]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][][][]", "[]"));
         panel.setOpaque(false);
 
         // Notification bell with badge
@@ -528,6 +533,19 @@ public class AppFrame extends JFrame {
         // Logout button: outline style, subtle red — less aggressive than
         // the previous solid red badge, harmonises with light topbar.
         JButton logoutBtn = new JButton("\u0110\u0103ng xu\u1ea5t");
+        closeShiftBtn = new JButton("Kết ca");
+        closeShiftBtn.setFont(closeShiftBtn.getFont().deriveFont(Font.BOLD, 12f));
+        closeShiftBtn.setForeground(new Color(25, 135, 84));
+        closeShiftBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
+        closeShiftBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(25, 135, 84), 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)
+        ));
+        closeShiftBtn.setFocusPainted(false);
+        closeShiftBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        closeShiftBtn.setToolTipText("Kết ca làm việc hiện tại");
+        closeShiftBtn.addActionListener(e -> showShiftClosingDialog());
+        closeShiftBtn.setVisible(false);
         logoutBtn.setFont(logoutBtn.getFont().deriveFont(Font.BOLD, 12f));
         logoutBtn.setForeground(ThemeColors.DANGER);
         logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
@@ -542,7 +560,8 @@ public class AppFrame extends JFrame {
         panel.add(bellWrap, "w 36!,h 36!,aligny center");
         panel.add(sep, "aligny center");
         panel.add(userArea, "aligny center");
-        panel.add(logoutBtn, "aligny center,gapleft 8");
+        panel.add(closeShiftBtn, "aligny center,gapleft 8");
+        panel.add(logoutBtn, "aligny center,gapleft 4");
         return panel;
     }
 
@@ -582,6 +601,56 @@ public class AppFrame extends JFrame {
         rootCards.show(rootPanel, "app");
     }
 
+    private void showShiftClosingDialog() {
+        if (Permission.isQuanLy()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Tài khoản quản lý không cần kết ca.",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+
+        String maNV = Session.currentStaff != null
+                ? Session.currentStaff.getMaNV()
+                : null;
+
+        if (maNV == null || maNV.isBlank()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không xác định được nhân viên đang đăng nhập.",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        ShiftBUS shiftBUS = new ShiftBUS();
+        kqlhotel.dao.shift.ShiftDAO.ShiftInfo shiftInfo = shiftBUS.getOpenShiftByStaff(maNV);
+
+        if (shiftInfo == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Nhân viên hiện không có ca đang mở.",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+
+        ShiftClosingDialog dialog = new ShiftClosingDialog(
+                this,
+                shiftInfo,
+                () -> {
+                    Session.clear();
+                    showCleanLoginScreen();
+                }
+        );
+
+        dialog.setVisible(true);
+    }
+
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
             this,
@@ -596,9 +665,7 @@ public class AppFrame extends JFrame {
         }
 
         Session.clear();
-        currentRoute = "booking";
-        pendingCardName = null;
-        rootCards.show(rootPanel, "auth");
+        showCleanLoginScreen();
     }
 
     private void showShiftTransition() {
@@ -606,9 +673,48 @@ public class AppFrame extends JFrame {
 
         if (Permission.isQuanLy()) {
             showTransition("app", "Đăng nhập thành công", "Đang vào giao diện chính...");
-        } else {
-            showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
+            return;
         }
+
+        String maNV = Session.currentStaff != null
+                ? Session.currentStaff.getMaNV()
+                : null;
+
+        if (maNV == null || maNV.isBlank()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không xác định được nhân viên đang đăng nhập.",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            Session.clear();
+            showCleanLoginScreen();
+            return;
+        }
+
+        ShiftBUS shiftBUS = new ShiftBUS();
+        String activeMaNV = shiftBUS.getLatestOpenShiftStaffId();
+
+        if (activeMaNV == null || activeMaNV.isBlank()) {
+            showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
+            return;
+        }
+
+        if (activeMaNV.equals(maNV)) {
+            showTransition("app", "Đăng nhập thành công", "Đang quay lại ca làm việc hiện tại...");
+            return;
+        }
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Hiện đang có ca làm việc đang mở bởi nhân viên " + activeMaNV + ".\n"
+                        + "Vui lòng kết ca hiện tại trước khi nhân viên khác đăng nhập.",
+                "Ca làm việc đang mở",
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        Session.clear();
+        showCleanLoginScreen();
     }
 
     private void showAppTransition() {
@@ -775,6 +881,10 @@ public class AppFrame extends JFrame {
         if (userRoleLabel != null) {
             userRoleLabel.setText(roleText);
         }
+
+        if (closeShiftBtn != null) {
+            closeShiftBtn.setVisible("NhanVien".equalsIgnoreCase(role));
+        }
     }
 
     private void applyMenuPermissions() {
@@ -796,5 +906,20 @@ public class AppFrame extends JFrame {
 
         currentRoute = Permission.getDefaultRoute();
         activateRoute(currentRoute);
+    }
+
+    private void showCleanLoginScreen() {
+        if (loginPanel != null) {
+            loginPanel.resetForm();
+        }
+
+        if (shiftPanel != null) {
+            shiftPanel.resetOpeningForm();
+        }
+
+        currentRoute = "booking";
+        pendingCardName = null;
+
+        rootCards.show(rootPanel, "auth");
     }
 }

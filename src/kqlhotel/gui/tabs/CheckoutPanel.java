@@ -24,6 +24,7 @@ import kqlhotel.entity.Promotion;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
+import kqlhotel.gui.Session;
 import kqlhotel.utils.CurrencyUtils;
 import kqlhotel.utils.PDFInvoiceGenerator;
 import net.miginfocom.swing.MigLayout;
@@ -701,11 +702,25 @@ public class CheckoutPanel extends JPanel {
 
             String paymentMethod = (choice == 1) ? "ChuyenKhoan" : "TienMat";
 
+            String currentStaffId = Session.currentStaff != null
+                    ? Session.currentStaff.getMaNV()
+                    : null;
+
+            if (currentStaffId == null || currentStaffId.isBlank()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Không xác định được nhân viên đang đăng nhập.",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
             boolean paymentSuccess = checkoutBUS.createCheckoutPayment(
                     currentHoaDon,
                     amountToPay,
                     paymentMethod,
-                    currentHoaDon.getMaNhanVien()
+                    currentStaffId
             );
 
             boolean success = paymentSuccess && checkoutBUS.completeCheckout(
