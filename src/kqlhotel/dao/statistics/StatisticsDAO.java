@@ -25,12 +25,16 @@ import kqlhotel.entity.statistics.RoomTypeShare;
  */
 public class StatisticsDAO {
 
-    /** Tổng doanh thu (DaThanhToan) trong khoảng [start, end]. */
+    /** Điều kiện doanh thu: DaThanhToan hoặc DaHuy nhưng đã thu tiền. */
+    private static final String REVENUE_COND =
+        "(trangThai = 'DaThanhToan' OR (trangThai = 'DaHuy' AND tongTienThanhToan > 0))";
+
+    /** Tổng doanh thu trong khoảng [start, end]. */
     public double getRevenue(LocalDateTime start, LocalDateTime end) {
         String sql =
             "SELECT COALESCE(SUM(tongTienThanhToan), 0) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan BETWEEN ? AND ?";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -98,7 +102,7 @@ public class StatisticsDAO {
             "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
             "       SUM(tongTienThanhToan) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
         try (Connection con = ConnectDB.getInstance().getConnection();
@@ -139,7 +143,7 @@ public class StatisticsDAO {
         String sql =
             "SELECT CAST(ngayThanhToan AS DATE) AS dt, SUM(tongTienThanhToan) AS total " +
             "FROM HoaDon " +
-            "WHERE trangThai = 'DaThanhToan' " +
+            "WHERE " + REVENUE_COND + " " +
             "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
             "GROUP BY CAST(ngayThanhToan AS DATE)";
 

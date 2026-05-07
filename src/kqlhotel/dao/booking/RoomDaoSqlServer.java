@@ -17,11 +17,12 @@ public class RoomDaoSqlServer implements RoomDao {
     private static final String SQL_FIND_AVAILABLE =
         "SELECT lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi, " +
         "SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) AS soPhongTrong, " +
-        "COUNT(*) AS tongSoPhong " +
+        "COUNT(DISTINCT p.maPhong) AS tongSoPhong " +
         "FROM LoaiPhong lp " +
         "JOIN Phong p ON p.maLoaiPhong = lp.maLoaiPhong " +
         "LEFT JOIN ChiTietDatPhong ctdp ON ctdp.maPhong = p.maPhong " +
         "AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien " +
+        "AND EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDatPhong = ctdp.maDatPhong AND hd.trangThai = 'ChuaThanhToan') " +
         "WHERE (? = 1 OR lp.tenLoaiPhong LIKE ?) " +
         "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi " +
         "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 " +
