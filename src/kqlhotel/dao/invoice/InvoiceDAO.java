@@ -367,6 +367,34 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         return 0;
     }
 
+    public double getTotalSuccessfulPaymentByInvoice(String maHD) {
+        if (maHD == null || maHD.isBlank()) {
+            return 0;
+        }
+
+        String sql = """
+        SELECT COALESCE(SUM(soTienTT), 0) AS tongDaThanhToan
+        FROM ThanhToan
+        WHERE maHD = ?
+          AND trangThaiTT = 'ThanhToanThanhCong'
+    """;
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maHD);
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("tongDaThanhToan");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
     @Override
     public boolean delete(String id) {
         return false;
