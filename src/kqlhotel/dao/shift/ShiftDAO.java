@@ -38,8 +38,10 @@ public class ShiftDAO {
         "  CONVERT(VARCHAR(5), cl.gioBatDau, 108) AS gioBatDau, " +
         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
         "  nv.hoTenNV, pc.tienMoCa, " +
-        "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
-        "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
+                "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
+                "                    AND tt.phuongThucTT = 'TienMat' " +
+                "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
+                "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
         "FROM PhanCongCa pc " +
         "JOIN CaLam cl ON pc.maCa = cl.maCa " +
         "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
@@ -56,12 +58,25 @@ public class ShiftDAO {
     public boolean openShift(String maNV, long tienMoCa) {
         Connection con = ConnectDB.getConnection();
         if (con == null) return false;
+
         try {
+            String activeMaNV = getLatestOpenShiftStaffId();
+
+            // Nếu đang có nhân viên khác mở ca thì không cho mở thêm ca mới
+            if (activeMaNV != null && !activeMaNV.isBlank() && !activeMaNV.equals(maNV)) {
+                return false;
+            }
+
             String maCa = findCurrentMaCa(con);
             if (maCa == null) return false;
+
+            // Nếu chính nhân viên này đã có ca đang mở thì coi như thành công,
+            // không tạo thêm dòng PhanCongCa mới.
             if (hasOpenShift(con, maNV, maCa)) return true;
+
             String maPC = nextMaPC(con);
             String sql = "INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES (?, ?, ?, 0, ?, ?)";
+
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setString(1, maPC);
                 ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
@@ -70,6 +85,7 @@ public class ShiftDAO {
                 ps.setString(5, maCa);
                 ps.executeUpdate();
             }
+
             return true;
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -109,6 +125,57 @@ public class ShiftDAO {
         return "PC001";
     }
 
+    public ShiftInfo getOpenShiftByStaff(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return null;
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return null;
+        }
+
+        String sql =
+                "SELECT TOP 1 pc.maPC, cl.loaiCa, " +
+                        "  CONVERT(VARCHAR(5), cl.gioBatDau, 108) AS gioBatDau, " +
+                        "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
+                        "  nv.hoTenNV, pc.tienMoCa, " +
+                        "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
+                        "                    AND tt.phuongThucTT = 'TienMat' " +
+                        "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
+                        "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
+                        "FROM PhanCongCa pc " +
+                        "JOIN CaLam cl ON pc.maCa = cl.maCa " +
+                        "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
+                        "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
+                        "WHERE pc.tienKetCa = 0 AND pc.maNV = ? " +
+                        "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
+                        "ORDER BY pc.ngay DESC";
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new ShiftInfo(
+                            rs.getString("maPC"),
+                            rs.getString("loaiCa"),
+                            rs.getString("gioBatDau"),
+                            rs.getString("gioKetThuc"),
+                            rs.getString("hoTenNV"),
+                            rs.getDouble("tienMoCa"),
+                            rs.getDouble("doanhThu"),
+                            rs.getInt("soGiaoDich")
+                    );
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
     public ShiftInfo getCurrentShift() {
         Connection con = ConnectDB.getConnection();
         if (con == null) return null;
@@ -130,5 +197,116 @@ public class ShiftDAO {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    public boolean hasOpenShiftNow(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return false;
+        }
+
+        try {
+            String maCa = findCurrentMaCa(con);
+            if (maCa == null) {
+                return false;
+            }
+
+            return hasOpenShift(con, maNV, maCa);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    public String getLatestOpenShiftStaffId() {
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return null;
+        }
+
+        String sql = """
+        SELECT TOP 1 maNV
+        FROM PhanCongCa
+        WHERE tienKetCa = 0
+        ORDER BY ngay DESC
+    """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            if (rs.next()) {
+                return rs.getString("maNV");
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public String getOpenShiftIdByStaff(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return null;
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return null;
+        }
+
+        String sql = """
+        SELECT TOP 1 maPC
+        FROM PhanCongCa
+        WHERE maNV = ?
+          AND tienKetCa = 0
+        ORDER BY ngay DESC
+    """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("maPC");
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public boolean closeShift(String maPC, long tienKetCa) {
+        if (maPC == null || maPC.isBlank()) {
+            return false;
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return false;
+        }
+
+        String sql = """
+        UPDATE PhanCongCa
+        SET tienKetCa = ?
+        WHERE maPC = ?
+          AND tienKetCa = 0
+    """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBigDecimal(1, java.math.BigDecimal.valueOf(tienKetCa));
+            ps.setString(2, maPC);
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
     }
 }

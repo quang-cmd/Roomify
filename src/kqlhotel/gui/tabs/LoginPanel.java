@@ -1,6 +1,7 @@
 package kqlhotel.gui.tabs;
 
 import java.awt.BorderLayout;
+import javax.swing.SwingUtilities;
 import java.awt.Color;
 import java.util.Arrays;
 import javax.swing.JOptionPane;
@@ -23,6 +24,11 @@ import javax.swing.JPanel;
 
 public class LoginPanel extends LoginBackgroundPanel {
     private final Runnable onLoginSuccess;
+
+    private AppTextField usernameField;
+    private JPasswordField passwordField;
+    private JCheckBox showPasswordCheck;
+    private char defaultEchoChar;
 
     public LoginPanel(Runnable onLoginSuccess) {
         this.onLoginSuccess = onLoginSuccess;
@@ -53,7 +59,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         userLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
         userLb.setFont(userLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
 
-        AppTextField usernameField = new AppTextField();
+        usernameField = new AppTextField();
         usernameField.putClientProperty("JTextField.placeholderText", "Nhập tên đăng nhập");
         usernameField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
         usernameField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
@@ -62,14 +68,14 @@ public class LoginPanel extends LoginBackgroundPanel {
         passLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
         passLb.setFont(passLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
 
-        JPasswordField passwordField = new JPasswordField();
+        passwordField = new JPasswordField();
         passwordField.putClientProperty("JTextField.placeholderText", "Nhập mật khẩu");
         passwordField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
         passwordField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
 
-        char defaultEchoChar = passwordField.getEchoChar();
+        defaultEchoChar = passwordField.getEchoChar();
 
-        JCheckBox showPasswordCheck = new JCheckBox("Hiện mật khẩu");
+        showPasswordCheck = new JCheckBox("Hiện mật khẩu");
         showPasswordCheck.setOpaque(false);
         showPasswordCheck.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
         showPasswordCheck.setFont(showPasswordCheck.getFont().deriveFont(java.awt.Font.PLAIN, 12f));
@@ -321,5 +327,26 @@ public class LoginPanel extends LoginBackgroundPanel {
     private String generateOtp() {
         int otp = 100000 + new java.util.Random().nextInt(900000);
         return String.valueOf(otp);
+    }
+
+    public void resetForm() {
+        if (usernameField != null) {
+            usernameField.setText("");
+        }
+
+        if (passwordField != null) {
+            passwordField.setText("");
+            passwordField.setEchoChar(defaultEchoChar);
+        }
+
+        if (showPasswordCheck != null) {
+            showPasswordCheck.setSelected(false);
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            if (usernameField != null) {
+                usernameField.requestFocusInWindow();
+            }
+        });
     }
 }

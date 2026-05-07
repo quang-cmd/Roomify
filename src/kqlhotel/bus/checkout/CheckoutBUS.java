@@ -6,6 +6,7 @@ import kqlhotel.dao.invoice.ServiceDetailDAO;
 import kqlhotel.dao.promotion.PromotionDAO;
 import kqlhotel.dao.room.RoomDAO;
 import kqlhotel.dao.room.RoomTypeDAO;
+import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.Promotion;
@@ -826,7 +827,24 @@ public class CheckoutBUS {
             return true;
         }
 
+        if (method == null || method.isBlank()) {
+            method = "TienMat";
+        }
+
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+
+        String maPC = new ShiftBUS().getOpenShiftIdByStaff(maNV);
+
+        // Trả phòng phải thuộc ca đang mở của nhân viên hiện tại.
+        // Nếu không có ca mở thì không cho lưu thanh toán.
+        if (maPC == null || maPC.isBlank()) {
+            return false;
+        }
+
         String sqlMax = "SELECT MAX(maTT) AS maxMaTT FROM ThanhToan";
+
         String sqlInsert = """
         INSERT INTO ThanhToan
         (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV)
@@ -837,10 +855,12 @@ public class CheckoutBUS {
             java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
 
             String newMaTT = "TT001";
+
             try (java.sql.PreparedStatement ps = con.prepareStatement(sqlMax);
                  java.sql.ResultSet rs = ps.executeQuery()) {
+
                 if (rs.next() && rs.getString("maxMaTT") != null) {
-                    String max = rs.getString("maxMaTT"); // VD: TT055
+                    String max = rs.getString("maxMaTT");
                     int num = Integer.parseInt(max.substring(2)) + 1;
                     newMaTT = String.format("TT%03d", num);
                 }
@@ -854,7 +874,7 @@ public class CheckoutBUS {
                 ps.setString(5, method);
                 ps.setString(6, "ThanhToanThanhCong");
                 ps.setString(7, hd.getMaHD());
-                ps.setString(8, "PC005");
+                ps.setString(8, maPC);
                 ps.setString(9, maNV);
 
                 return ps.executeUpdate() > 0;

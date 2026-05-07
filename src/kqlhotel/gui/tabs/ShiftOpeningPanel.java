@@ -60,7 +60,7 @@ public class ShiftOpeningPanel extends BackgroundPanel {
         add(buildLeftCard(), "grow");
         add(buildRightCard(), "growy,w 380!");
 
-        recalculateTotal();
+        resetOpeningForm();
     }
 
     private RoundedPanel buildLeftCard() {
@@ -318,11 +318,24 @@ public class ShiftOpeningPanel extends BackgroundPanel {
             String maNV = Session.currentStaff != null ? Session.currentStaff.getMaNV() : null;
             if (maNV == null) {
                 JOptionPane.showMessageDialog(this, "Không xác định được nhân viên đang đăng nhập.",
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            new ShiftBUS().openShift(maNV, total);
+
+            boolean success = new ShiftBUS().openShift(maNV, total);
+            if (!success) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Mở ca thất bại.",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
         }
+
+        resetOpeningForm();
+
         if (this.onShiftConfirmed != null) {
             this.onShiftConfirmed.run();
         }
@@ -419,5 +432,13 @@ public class ShiftOpeningPanel extends BackgroundPanel {
             case 500_000: return new Color(0x82B0D2); // xanh lơ / xanh tím
             default:      return ThemeColors.TEXT_MUTED;
         }
+    }
+
+    public void resetOpeningForm() {
+        for (JSpinner spinner : denominationSpinners.values()) {
+            spinner.setValue(0);
+        }
+        noteArea.setText("");
+        recalculateTotal();
     }
 }
