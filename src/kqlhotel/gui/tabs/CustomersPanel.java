@@ -323,6 +323,13 @@ public class CustomersPanel extends JPanel {
         meta.setOpaque(false);
         meta.add(createRankBadge(customer.getHangKH()));
         meta.add(Box.createHorizontalStrut(8));
+        
+        JLabel pointsLabel = new JLabel(customer.getDiemTichLuy() + " điểm");
+        pointsLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        pointsLabel.setForeground(new Color(245, 158, 11)); // Amber color
+        meta.add(pointsLabel);
+        meta.add(Box.createHorizontalStrut(8));
+
         meta.add(createStatusBadge(customer.isDangHoatDong() ? "Hoạt động" : "Không hoạt động", customer.isDangHoatDong()));
         meta.add(Box.createHorizontalStrut(8));
         meta.add(createMutedLabel("Lần cuối: " + formatDate(customer.getNgayDatGanNhatDate())));
@@ -515,7 +522,8 @@ public class CustomersPanel extends JPanel {
         JTextField emailField = createDialogField(editing ? safe(existing.getEmail()) : "");
         JTextField addressField = createDialogField(editing ? safe(existing.getDiaChi()) : "");
         JTextField nationalityField = createDialogField(editing ? safe(existing.getQuocTich()) : "Việt Nam");
-        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinh()) : "01/01/1990");
+        JTextField birthField = createDialogField(editing && existing.getNgaySinh() != null ? DATE_FORMAT.format(existing.getNgaySinhDate()) : "01/01/1990");
+        JTextField pointsField = createDialogField(editing ? String.valueOf(existing.getDiemTichLuy()) : "0");
         JComboBox<String> genderBox = new JComboBox<>(new String[]{"Nam", "Nữ"});
         genderBox.setSelectedItem(editing ? safe(existing.getGioiTinh()) : "Nam");
         JComboBox<String> rankBox = new JComboBox<>(new String[]{"Đồng", "Bạc", "Vàng", "Kim cương"});
@@ -538,6 +546,8 @@ public class CustomersPanel extends JPanel {
         fieldContainer.add(createDialogFieldGroup("Giới tính", genderBox));
         fieldContainer.add(Box.createVerticalStrut(10));
         fieldContainer.add(createDialogFieldGroup("Hạng khách hàng", rankBox));
+        fieldContainer.add(Box.createVerticalStrut(10));
+        fieldContainer.add(createDialogFieldGroup("Điểm tích lũy", pointsField));
 
         JPanel actions = new JPanel(new BorderLayout(10, 0));
         actions.setOpaque(false);
@@ -554,7 +564,11 @@ public class CustomersPanel extends JPanel {
             payload.setQuocTich(nationalityField.getText().trim());
             payload.setGioiTinh(String.valueOf(genderBox.getSelectedItem()));
             payload.setHangKH(mapRankToCode(String.valueOf(rankBox.getSelectedItem())));
-            payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+            try {
+                payload.setDiemTichLuy(Integer.parseInt(pointsField.getText().trim()));
+            } catch (Exception ex) {
+                payload.setDiemTichLuy(editing ? existing.getDiemTichLuy() : 0);
+            }
 
             try {
                 payload.setNgaySinhDate(DATE_FORMAT.parse(birthField.getText().trim()));

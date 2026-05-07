@@ -107,21 +107,40 @@ public class SwapRoomDAO {
     }
 
     public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom) {
-        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE maDatPhong = ? AND maPhong = ?";
-        String updateInvoiceSql = "UPDATE ChiTietHoaDon SET maPhong = ? WHERE maPhong = ? AND maHD IN (SELECT maHD FROM HoaDon WHERE maDatPhong = ?)";
+        // Use TRIM to handle CHAR padding in database
+        String updateDetailSql = "UPDATE ChiTietDatPhong SET maPhong = ? WHERE TRIM(maDatPhong) = ? AND TRIM(maPhong) = ?";
+        String updateInvoiceSql = "UPDATE ChiTietHoaDon SET maPhong = ? WHERE TRIM(maPhong) = ? AND maHD IN (SELECT maHD FROM HoaDon WHERE TRIM(maDatPhong) = ?)";
         
-        String updateOldRoomSql = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?";
-        String updateNewRoomSql = "UPDATE Phong SET trangThaiPhong = 'DangSuDung' WHERE maPhong = ?";
-
         try (Connection conn = ConnectDB.getInstance().getConnection()) {
             boolean autoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
             try {
-                try (PreparedStatement updateDetailPs = conn.prepareStatement(updateDetailSql);
-                     PreparedStatement updateInvoicePs = conn.prepareStatement(updateInvoiceSql);
-                     PreparedStatement updateOldRoomPs = conn.prepareStatement(updateOldRoomSql);
-                     PreparedStatement updateNewRoomPs = conn.prepareStatement(updateNewRoomSql)) {
-                    
+                // 1. Get current status and check-in date to decide next status
+                String oldRoomStatus = "Trong";
+                Timestamp checkInDate = null;
+                String checkInfoSql = "SELECT p.trangThaiPhong, ctdp.ngayNhanDuKien " +
+                                     "FROM Phong p " +
+                                     "LEFT JOIN ChiTietDatPhong ctdp ON TRIM(ctdp.maPhong) = TRIM(p.maPhong) AND TRIM(ctdp.maDatPhong) = ? " +
+                                     "WHERE TRIM(p.maPhong) = ?";
+                
+                try (PreparedStatement checkPs = conn.prepareStatement(checkInfoSql)) {
+                    checkPs.setString(1, maDatPhong);
+                    checkPs.setString(2, oldRoom);
+                    try (ResultSet rs = checkPs.executeQuery()) {
+                        if (rs.next()) {
+                            oldRoomStatus = rs.getString("trangThaiPhong");
+                            checkInDate = rs.getTimestamp("ngayNhanDuKien");
+                        }
+                    }
+                }
+
+                // If check-in date is in the future, both should be 'Trong'
+                boolean isFutureBooking = checkInDate != null && checkInDate.after(new Timestamp(System.currentTimeMillis()));
+                String nextNewStatus = isFutureBooking ? "Trong" : oldRoomStatus;
+                String nextOldStatus = "DangSuDung".equalsIgnoreCase(oldRoomStatus) && !isFutureBooking ? "BaoTri" : "Trong";
+
+                // 2. Update booking detail
+                try (PreparedStatement updateDetailPs = conn.prepareStatement(updateDetailSql)) {
                     updateDetailPs.setString(1, newRoom);
                     updateDetailPs.setString(2, maDatPhong);
                     updateDetailPs.setString(3, oldRoom);
@@ -131,17 +150,28 @@ public class SwapRoomDAO {
                         conn.rollback();
                         return false;
                     }
+                }
 
+                // 3. Update invoice detail (if exists)
+                try (PreparedStatement updateInvoicePs = conn.prepareStatement(updateInvoiceSql)) {
                     updateInvoicePs.setString(1, newRoom);
                     updateInvoicePs.setString(2, oldRoom);
                     updateInvoicePs.setString(3, maDatPhong);
                     updateInvoicePs.executeUpdate();
+                }
 
-                    updateOldRoomPs.setString(1, oldRoom);
-                    updateOldRoomPs.executeUpdate();
-
-                    updateNewRoomPs.setString(1, newRoom);
-                    updateNewRoomPs.executeUpdate();
+                // 4. Update room statuses
+                String updateStatusSql = "UPDATE Phong SET trangThaiPhong = ? WHERE TRIM(maPhong) = ?";
+                try (PreparedStatement updateStatusPs = conn.prepareStatement(updateStatusSql)) {
+                    // Update old room
+                    updateStatusPs.setString(1, nextOldStatus);
+                    updateStatusPs.setString(2, oldRoom);
+                    updateStatusPs.executeUpdate();
+                    
+                    // Update new room
+                    updateStatusPs.setString(1, nextNewStatus);
+                    updateStatusPs.setString(2, newRoom);
+                    updateStatusPs.executeUpdate();
                 }
 
                 conn.commit();

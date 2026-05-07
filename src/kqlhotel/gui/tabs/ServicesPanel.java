@@ -171,12 +171,19 @@ public class ServicesPanel extends JPanel {
         actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
         actions.add(createStatusBadge(service));
         actions.add(Box.createHorizontalStrut(10));
-        JButton editButton = new JButton("✎");
+        JButton editButton = new JButton();
+        ImageIcon editIcon = loadIcon("edit.png", 16, 16);
+        if (editIcon != null) {
+            editButton.setIcon(editIcon);
+        } else {
+            editButton.setText("✎");
+        }
         editButton.setBorder(null);
         editButton.setContentAreaFilled(false);
         editButton.setFocusPainted(false);
         editButton.setForeground(new Color(148, 163, 184));
         editButton.setToolTipText("Sửa dịch vụ");
+        editButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         editButton.addActionListener(e -> showServiceDialog(service));
         actions.add(editButton);
         top.add(actions, BorderLayout.EAST);
@@ -325,7 +332,7 @@ public class ServicesPanel extends JPanel {
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
         JButton cancelButton = createOutlineButton("Hủy");
         cancelButton.addActionListener(e -> dialog.dispose());
-        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu dịch vụ", "services.png");
+        JButton saveButton = createPrimaryButton(editing ? "Cập nhật" : "Lưu dịch vụ", editing ? "edit.png" : "services.png");
         saveButton.addActionListener(e -> {
             if (nameField.getText().trim().isBlank() || priceField.getText().trim().isBlank()) {
                 JOptionPane.showMessageDialog(dialog, "Tên và đơn giá là bắt buộc.");
