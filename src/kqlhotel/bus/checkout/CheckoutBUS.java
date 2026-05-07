@@ -32,23 +32,44 @@ public class CheckoutBUS {
         public double serviceFee;
         public double surcharge;
         public double tax;
+
+        // Khuyến mãi theo mã khuyến mãi đang chọn
         public double discount;
+
+        // Khuyến mãi theo hạng khách hàng
+        public double rankDiscount;
+        public double rankDiscountRate;
+
+        // Tổng toàn bộ khuyến mãi = mã KM + hạng KH
+        public double totalDiscount;
+
         public double total;
         public double earlyCheckoutPenalty;
 
         public CheckoutTotals(double roomFee, double serviceFee, double surcharge,
                               double tax, double discount, double total) {
-            this(roomFee, serviceFee, surcharge, tax, discount, total, 0);
+            this(roomFee, serviceFee, surcharge, tax, discount, total, 0, 0, 0);
         }
 
         public CheckoutTotals(double roomFee, double serviceFee, double surcharge,
                               double tax, double discount, double total,
                               double earlyCheckoutPenalty) {
+            this(roomFee, serviceFee, surcharge, tax, discount, total, earlyCheckoutPenalty, 0, 0);
+        }
+
+        public CheckoutTotals(double roomFee, double serviceFee, double surcharge,
+                              double tax, double discount, double total,
+                              double earlyCheckoutPenalty,
+                              double rankDiscount,
+                              double rankDiscountRate) {
             this.roomFee = roomFee;
             this.serviceFee = serviceFee;
             this.surcharge = surcharge;
             this.tax = tax;
             this.discount = discount;
+            this.rankDiscount = rankDiscount;
+            this.rankDiscountRate = rankDiscountRate;
+            this.totalDiscount = discount + rankDiscount;
             this.total = total;
             this.earlyCheckoutPenalty = earlyCheckoutPenalty;
         }
@@ -94,7 +115,7 @@ public class CheckoutBUS {
         hd.setTienPhong(totals.roomFee);
         hd.setTienDichVu(totals.serviceFee);
         hd.setTienThue(totals.tax);
-        hd.setTienKhuyenMai(totals.discount);
+        hd.setTienKhuyenMai(totals.totalDiscount);
         hd.setTongTienThanhToan(totals.total);
     }
 
@@ -193,7 +214,7 @@ public class CheckoutBUS {
         hd.setTienPhong(totals.roomFee);
         hd.setTienDichVu(totals.serviceFee);
         hd.setTienThue(totals.tax);
-        hd.setTienKhuyenMai(totals.discount);
+        hd.setTienKhuyenMai(totals.totalDiscount);
         hd.setTongTienThanhToan(totals.total);
 
         List<InvoiceDetail> updatedRoomDetails = invoiceDetailDAO.getByInvoice(hd.getMaHD());
@@ -271,9 +292,16 @@ public class CheckoutBUS {
 
         double amountBeforeDiscount = amountBeforeTax + tax;
 
+        // 1. Giảm theo mã khuyến mãi trước
         double discount = calculatePromotionDiscount(maKM, amountBeforeDiscount);
 
-        double total = Math.max(0, amountBeforeDiscount - discount);
+        // 2. Giảm theo hạng khách hàng sau khi đã trừ mã khuyến mãi
+        double rankDiscountRate = getCustomerRankDiscountRate(hd.getMaKhachHang());
+        double amountAfterPromotion = Math.max(0, amountBeforeDiscount - discount);
+        double rankDiscount = amountAfterPromotion * rankDiscountRate;
+
+        // 3. Tổng cuối
+        double total = Math.max(0, amountBeforeDiscount - discount - rankDiscount);
 
         return new CheckoutTotals(
                 roomFee,
@@ -282,7 +310,9 @@ public class CheckoutBUS {
                 tax,
                 discount,
                 total,
-                lateCheckoutPenalty
+                lateCheckoutPenalty,
+                rankDiscount,
+                rankDiscountRate
         );
     }
 
@@ -350,7 +380,7 @@ public class CheckoutBUS {
         hd.setTienPhong(totals.roomFee);
         hd.setTienDichVu(totals.serviceFee);
         hd.setTienThue(totals.tax);
-        hd.setTienKhuyenMai(totals.discount);
+        hd.setTienKhuyenMai(totals.totalDiscount);
         hd.setTongTienThanhToan(totals.total);
     }
 
@@ -833,5 +863,82 @@ public class CheckoutBUS {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public String getCustomerRank(String maKH) {
+        if (maKH == null || maKH.isBlank()) {
+            return "Dong";
+        }
+
+        String sql = "SELECT hangKH FROM KhachHang WHERE maKH = ?";
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maKH);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                String rank = rs.getString("hangKH");
+                return rank == null || rank.isBlank() ? "Dong" : rank;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "Dong";
+    }
+
+    public String getCustomerRankDisplay(String maKH) {
+        String rank = getCustomerRank(maKH);
+
+        return switch (rank) {
+            case "Bac" -> "Bạc";
+            case "Vang" -> "Vàng";
+            case "KimCuong" -> "Kim cương";
+            default -> "Đồng";
+        };
+    }
+
+    public double getCustomerRankDiscountRate(String maKH) {
+        String rank = getCustomerRank(maKH);
+
+        return switch (rank) {
+            case "Bac" -> 0.05;
+            case "Vang" -> 0.10;
+            case "KimCuong" -> 0.15;
+            default -> 0.0;
+        };
+    }
+
+    public int addCustomerLoyaltyPoints(String maKH, double spentAmount) {
+        if (maKH == null || maKH.isBlank()) {
+            return 0;
+        }
+
+        int points = (int) Math.floor(Math.max(0, spentAmount) / 1_000_000.0);
+
+        if (points <= 0) {
+            return 0;
+        }
+
+        String sql = """
+        UPDATE KhachHang
+        SET diemTichLuy = diemTichLuy + ?
+        WHERE maKH = ?
+    """;
+
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, points);
+            ps.setString(2, maKH);
+
+            return ps.executeUpdate() > 0 ? points : 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 }

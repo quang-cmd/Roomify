@@ -245,15 +245,67 @@ public class InvoicePreviewDialog extends JDialog {
             donGiaPhong = room.getSoDem() > 0 ? tienPhong / room.getSoDem() : tienPhong;
         }
 
-        double tongTienPhongHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienPhong());
-        double tongTienDichVuHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienDichVu());
-        double tienThueHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienThue());
-        double tienKhuyenMaiHienThi = laHoaDonHuy ? 0 : Math.max(0, hd.getTienKhuyenMai());
+// Tiền phòng riêng của phòng hiện tại
+        double tongTienPhongHienThi = laHoaDonHuy ? 0 : Math.max(0, tienPhong);
 
-        // Theo luật mới: hủy phòng thì khách mất cọc, không hoàn cọc, không thu thêm.
+// Hiện tại ServiceDetail chưa tách theo mã phòng,
+// nên không lấy toàn bộ dịch vụ của hóa đơn để in lặp cho từng phòng.
+        double tongTienDichVuHienThi = 0;
+
+// VAT riêng của phòng hiện tại
+        double tienThueHienThi = laHoaDonHuy
+                ? 0
+                : (tongTienPhongHienThi + tongTienDichVuHienThi) * 0.10;
+
+// Tổng trước giảm riêng phòng hiện tại
+        double tongTruocGiamHienThi = tongTienPhongHienThi
+                + tongTienDichVuHienThi
+                + tienThueHienThi;
+
+        double tyLeGiamHangThanhVien = laHoaDonHuy ? 0 : getMembershipDiscountRate(kh);
+        String tenHangThanhVien = laHoaDonHuy ? "Đồng" : getMembershipRankName(kh);
+
+// Tổng trước giảm của cả hóa đơn
+        double tongTruocGiamHoaDon = Math.max(
+                0,
+                hd.getTienPhong() + hd.getTienDichVu() + hd.getTienThue()
+        );
+
+// Tổng khuyến mãi của cả hóa đơn
+        double tongKhuyenMaiHoaDon = laHoaDonHuy
+                ? 0
+                : Math.max(0, hd.getTienKhuyenMai());
+
+// Tách phần khuyến mãi mã ra khỏi tổng khuyến mãi hóa đơn.
+// Lý do: hd.getTienKhuyenMai() đang là tổng = khuyến mãi mã + khuyến mãi hạng.
+        double tongKhuyenMaiMaHoaDon = calculatePromotionOnlyDiscount(
+                tongTruocGiamHoaDon,
+                tongKhuyenMaiHoaDon,
+                tyLeGiamHangThanhVien
+        );
+
+// Áp dụng khuyến mãi mã trực tiếp cho phòng đang in,
+// giống màn Trả phòng, không chia tỷ lệ.
+        double tienKhuyenMaiMaHienThi = Math.min(
+                tongKhuyenMaiMaHoaDon,
+                tongTruocGiamHienThi
+        );
+
+// Khuyến mãi hạng khách hàng tính sau khi trừ khuyến mãi mã.
+        double tienKhuyenMaiHangHienThi = Math.max(
+                0,
+                (tongTruocGiamHienThi - tienKhuyenMaiMaHienThi) * tyLeGiamHangThanhVien
+        );
+
+// Tổng thanh toán riêng phòng, chưa trừ cọc.
         double tongThanhToanHienThi = laHoaDonHuy
                 ? Math.max(0, tienCoc)
-                : Math.max(0, hd.getTongTienThanhToan());
+                : Math.max(
+                0,
+                tongTruocGiamHienThi
+                - tienKhuyenMaiMaHienThi
+                - tienKhuyenMaiHangHienThi
+        );
 
         panel.add(centerLabel("KQL HOTEL", 24, true));
         panel.add(centerLabel(title, 16, true));
@@ -280,28 +332,28 @@ public class InvoicePreviewDialog extends JDialog {
         panel.add(sectionTitle("DỊCH VỤ PHÁT SINH"));
         if (laHoaDonHuy) {
             panel.add(line("Dịch vụ", "Đã hủy"));
-        } else if (services.isEmpty()) {
-            panel.add(line("Dịch vụ", "Không có"));
         } else {
-            for (ServiceDetail dv : services) {
-                String tenDV = invoicesBUS.getServiceName(dv.getMaDV());
-                String name = dv.getMaDV() + (tenDV == null || tenDV.isBlank() ? "" : " - " + tenDV);
-                panel.add(line(
-                        name,
-                        dv.getSoLuong()
-                                + " x "
-                                + CurrencyUtils.formatVND(dv.getDonGia())
-                                + " = "
-                                + CurrencyUtils.formatVND(dv.getThanhTien())
-                ));
-            }
+            panel.add(line("Dịch vụ", "Không có"));
         }
 
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
         panel.add(line("Tổng tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
         panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
         panel.add(line("Thuế VAT", CurrencyUtils.formatVND(tienThueHienThi)));
-        panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(tienKhuyenMaiHienThi)));
+
+        if (tienKhuyenMaiMaHienThi > 0) {
+            panel.add(line(
+                    "Khuyến mãi",
+                    "-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi)
+            ));
+        }
+
+        if (tienKhuyenMaiHangHienThi > 0) {
+            panel.add(line(
+                    "Khuyến mãi hạng " + tenHangThanhVien + " (" + formatPercent(tyLeGiamHangThanhVien) + ")",
+                    "-" + CurrencyUtils.formatVND(tienKhuyenMaiHangHienThi)
+            ));
+        }
 
         if (laHoaDonHuy) {
             panel.add(line("Phí hủy (giữ cọc)", CurrencyUtils.formatVND(tienCoc)));
@@ -409,5 +461,74 @@ public class InvoicePreviewDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, "In hóa đơn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    private double getMembershipDiscountRate(Customer kh) {
+        if (kh == null || kh.getHangKH() == null) {
+            return 0;
+        }
+
+        String hang = kh.getHangKH().trim();
+
+        return switch (hang) {
+            case "Bac" -> 0.05;
+            case "Vang" -> 0.10;
+            case "KimCuong" -> 0.15;
+            default -> 0.0;
+        };
+    }
+
+    private String getMembershipRankName(Customer kh) {
+        if (kh == null || kh.getHangKH() == null) {
+            return "Đồng";
+        }
+
+        String hang = kh.getHangKH().trim();
+
+        return switch (hang) {
+            case "Bac" -> "Bạc";
+            case "Vang" -> "Vàng";
+            case "KimCuong" -> "Kim cương";
+            default -> "Đồng";
+        };
+    }
+
+    private String formatPercent(double rate) {
+        double percent = rate * 100;
+
+        if (percent == (long) percent) {
+            return ((long) percent) + "%";
+        }
+
+        return percent + "%";
+    }
+
+    private double calculatePromotionOnlyDiscount(double amountBeforeDiscount,
+                                                  double totalDiscount,
+                                                  double membershipRate) {
+        totalDiscount = Math.max(0, totalDiscount);
+        amountBeforeDiscount = Math.max(0, amountBeforeDiscount);
+        membershipRate = Math.max(0, membershipRate);
+
+        if (totalDiscount <= 0) {
+            return 0;
+        }
+
+        if (membershipRate <= 0) {
+            return totalDiscount;
+        }
+
+        if (membershipRate >= 1) {
+            return 0;
+        }
+
+        double promotionDiscount =
+                (totalDiscount - amountBeforeDiscount * membershipRate) / (1 - membershipRate);
+
+        if (Double.isNaN(promotionDiscount) || Double.isInfinite(promotionDiscount)) {
+            return 0;
+        }
+
+        return Math.max(0, Math.min(promotionDiscount, totalDiscount));
     }
 }
