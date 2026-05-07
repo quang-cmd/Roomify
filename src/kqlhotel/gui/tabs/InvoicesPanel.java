@@ -400,7 +400,13 @@ public class InvoicesPanel extends JPanel {
         double tongPhiPhat;
         double tienDichVuHienThi;
         double tienThueHienThi;
+
         double tienKhuyenMaiHienThi;
+        double tienKhuyenMaiMaHienThi;
+        double tienKhuyenMaiHangHienThi;
+        double tyLeGiamHangThanhVien;
+        String tenHangThanhVien;
+
         double tongTruocGiam;
         double tongSauKhuyenMai;
         double conPhaiThanhToan;
@@ -414,7 +420,7 @@ public class InvoicesPanel extends JPanel {
             tongDaThanhToan = tienCoc;
         }
 
-        double tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+        double tienThanhToanThem = 0;
 
         if (laHoaDonHuy) {
             // Hủy phòng: khách mất cọc, không thu thêm, không hoàn cọc.
@@ -423,7 +429,12 @@ public class InvoicesPanel extends JPanel {
             tongPhiPhat = 0;
             tienDichVuHienThi = 0;
             tienThueHienThi = 0;
+
             tienKhuyenMaiHienThi = 0;
+            tienKhuyenMaiMaHienThi = 0;
+            tienKhuyenMaiHangHienThi = 0;
+            tyLeGiamHangThanhVien = 0;
+            tenHangThanhVien = "Đồng";
 
             tongTruocGiam = Math.max(0, tienCoc);
             tongSauKhuyenMai = Math.max(0, tienCoc);
@@ -449,19 +460,47 @@ public class InvoicesPanel extends JPanel {
 
             tienThueHienThi = tongTruocThue * 0.10;
             tongTruocGiam = tongTruocThue + tienThueHienThi;
-            tongSauKhuyenMai = Math.max(0, tongTruocGiam - tienKhuyenMaiHienThi);
+
+            // Tách khuyến mãi đang lưu trong hóa đơn thành:
+            // 1. Khuyến mãi theo mã
+            // 2. Khuyến mãi theo hạng thành viên
+            tyLeGiamHangThanhVien = getMembershipDiscountRate(kh);
+            tenHangThanhVien = getMembershipRankName(kh);
+
+            tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
+                    tongTruocGiam,
+                    tienKhuyenMaiHienThi,
+                    tyLeGiamHangThanhVien
+            );
+
+            tienKhuyenMaiHangHienThi = Math.max(
+                    0,
+                    tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
+            );
+
+            tongSauKhuyenMai = Math.max(
+                    0,
+                    tongTruocGiam - tienKhuyenMaiMaHienThi - tienKhuyenMaiHangHienThi
+            );
 
             if ("DaThanhToan".equals(computedStatus)) {
-                conPhaiThanhToan = 0;
+                // Hóa đơn đã thanh toán thì footer phải cân về 0.
+                // Không lấy số đã thanh toán thêm từ giao dịch thực tế nữa,
+                // mà hiển thị theo số còn lại sau khi trừ cọc.
+                tienThanhToanThem = Math.max(0, tongSauKhuyenMai - tienCoc);
 
-                if (tongDaThanhToan > tongSauKhuyenMai) {
-                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
-                }
+                conPhaiThanhToan = 0;
+                tienHoanTra = 0;
             } else {
+                // Hóa đơn chưa thanh toán xong thì lấy theo giao dịch thực tế.
+                tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+
                 conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
 
                 if (tongDaThanhToan > tongSauKhuyenMai) {
                     tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
+                } else {
+                    tienHoanTra = 0;
                 }
             }
         }
@@ -686,7 +725,20 @@ public class InvoicesPanel extends JPanel {
         tFooter.add(makeTText(CurrencyUtils.formatVND(tongTruocGiam), true), "alignx right");
 
         tFooter.add(makeTText("Khuyến mãi", false), "alignx left");
-        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienKhuyenMaiHienThi), true), "alignx right");
+        tFooter.add(makeTText("-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi), true), "alignx right");
+
+        if (tienKhuyenMaiHangHienThi > 0) {
+            String percentText = formatPercent(tyLeGiamHangThanhVien);
+
+            tFooter.add(
+                    makeTText("Khuyến mãi hạng " + tenHangThanhVien + " (" + percentText + ")", false),
+                    "alignx left"
+            );
+            tFooter.add(
+                    makeTText("-" + CurrencyUtils.formatVND(tienKhuyenMaiHangHienThi), true),
+                    "alignx right"
+            );
+        }
 
         tFooter.add(makeTText("Tổng hóa đơn", false), "alignx left");
         tFooter.add(makeTText(CurrencyUtils.formatVND(tongSauKhuyenMai), true), "alignx right");
@@ -940,5 +992,84 @@ public class InvoicesPanel extends JPanel {
         }
 
         return total;
+    }
+
+    private double getMembershipDiscountRate(Customer kh) {
+        if (kh == null || kh.getHangKH() == null) {
+            return 0;
+        }
+
+        String hang = kh.getHangKH().trim();
+
+        return switch (hang) {
+            case "Bac" -> 0.05;
+            case "Vang" -> 0.10;
+            case "KimCuong" -> 0.15;
+            default -> 0.0;
+        };
+    }
+
+    private String getMembershipRankName(Customer kh) {
+        if (kh == null || kh.getHangKH() == null) {
+            return "Đồng";
+        }
+
+        String hang = kh.getHangKH().trim();
+
+        return switch (hang) {
+            case "Bac" -> "Bạc";
+            case "Vang" -> "Vàng";
+            case "KimCuong" -> "Kim cương";
+            default -> "Đồng";
+        };
+    }
+
+    private String formatPercent(double rate) {
+        double percent = rate * 100;
+
+        if (percent == (long) percent) {
+            return ((long) percent) + "%";
+        }
+
+        return percent + "%";
+    }
+
+    /**
+     * Vì HoaDon hiện chỉ lưu tổng khuyến mãi trong tienKhuyenMai,
+     * hàm này tách ngược ra phần khuyến mãi theo mã.
+     *
+     * Công thức lúc tính:
+     * totalDiscount = promotionDiscount + (amountBeforeDiscount - promotionDiscount) * membershipRate
+     *
+     * Suy ra:
+     * promotionDiscount = (totalDiscount - amountBeforeDiscount * membershipRate) / (1 - membershipRate)
+     */
+    private double calculatePromotionOnlyDiscount(double amountBeforeDiscount,
+                                                  double totalDiscount,
+                                                  double membershipRate) {
+        totalDiscount = Math.max(0, totalDiscount);
+        amountBeforeDiscount = Math.max(0, amountBeforeDiscount);
+        membershipRate = Math.max(0, membershipRate);
+
+        if (totalDiscount <= 0) {
+            return 0;
+        }
+
+        if (membershipRate <= 0) {
+            return totalDiscount;
+        }
+
+        if (membershipRate >= 1) {
+            return 0;
+        }
+
+        double promotionDiscount =
+                (totalDiscount - amountBeforeDiscount * membershipRate) / (1 - membershipRate);
+
+        if (Double.isNaN(promotionDiscount) || Double.isInfinite(promotionDiscount)) {
+            return 0;
+        }
+
+        return Math.max(0, Math.min(promotionDiscount, totalDiscount));
     }
 }

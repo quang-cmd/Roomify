@@ -144,7 +144,7 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new MigLayout("wrap 1,insets 16,gap 4", "[grow,fill]", "[]push[]"));
+        JPanel sidebar = new JPanel(new MigLayout("wrap 1,insets 16,gap 4,hidemode 3", "[grow,fill]", "[]"));
         sidebar.setPreferredSize(new Dimension(240, 1));
         sidebar.setBackground(ThemeColors.PREMIUM_SIDEBAR_BG);
         // Right edge separator (gives the light sidebar a clean delimiter)
@@ -263,6 +263,16 @@ public class AppFrame extends JFrame {
         item.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (!Permission.canAccess(route)) {
+                    JOptionPane.showMessageDialog(
+                            AppFrame.this,
+                            "Bạn không có quyền truy cập chức năng này!",
+                            "Không có quyền",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+
                 activateRoute(route);
             }
             @Override
@@ -547,6 +557,16 @@ public class AppFrame extends JFrame {
     }
 
     public void navigateToCheckoutWithRoom(String roomID) {
+        if (!Permission.canAccess("checkout")) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Bạn không có quyền truy cập chức năng Trả phòng!",
+                    "Không có quyền",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
         if (checkoutPanel != null) {
             checkoutPanel.prefillAndSearchRoom(roomID);
             activateRoute("checkout");
@@ -558,8 +578,8 @@ public class AppFrame extends JFrame {
     }
 
     private void showMainApp() {
+        prepareAppForCurrentUser();
         rootCards.show(rootPanel, "app");
-        activateRoute(currentRoute);
     }
 
     private void logout() {
@@ -575,16 +595,16 @@ public class AppFrame extends JFrame {
             return;
         }
 
+        Session.clear();
         currentRoute = "booking";
         pendingCardName = null;
         rootCards.show(rootPanel, "auth");
     }
 
     private void showShiftTransition() {
-        updateCurrentUserInfo();
-        boolean isManager = kqlhotel.gui.Session.currentAccount != null
-            && "QuanLy".equals(kqlhotel.gui.Session.currentAccount.getRole());
-        if (isManager) {
+        prepareAppForCurrentUser();
+
+        if (Permission.isQuanLy()) {
             showTransition("app", "Đăng nhập thành công", "Đang vào giao diện chính...");
         } else {
             showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
@@ -592,7 +612,8 @@ public class AppFrame extends JFrame {
     }
 
     private void showAppTransition() {
-        showTransition("app", "X\u00e1c nh\u1eadn ca th\u00e0nh c\u00f4ng", "\u0110ang v\u00e0o giao di\u1ec7n ch\u00ednh...");
+        prepareAppForCurrentUser();
+        showTransition("app", "Xác nhận ca thành công", "Đang vào giao diện chính...");
     }
 
     private void showTransition(String nextCard, String title, String message) {
@@ -658,9 +679,26 @@ public class AppFrame extends JFrame {
     }
 
     private void activateRoute(String route) {
+        // Lúc AppFrame mới khởi tạo, user chưa đăng nhập nên Session.currentAccount = null.
+        // Chỉ kiểm tra quyền sau khi đã đăng nhập.
+        if (Session.currentAccount != null && !Permission.canAccess(route)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Bạn không có quyền truy cập chức năng này!",
+                    "Không có quyền",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            String fallbackRoute = Permission.getDefaultRoute();
+            if (!route.equals(fallbackRoute)) {
+                activateRoute(fallbackRoute);
+            }
+            return;
+        }
+
         currentRoute = route;
         screenCards.show(screenPanel, route);
-        
+
         // Auto-refresh room management data when entering the tab
         if (route.equals("room-management")) {
             refreshRoomManagementData();
@@ -669,33 +707,36 @@ public class AppFrame extends JFrame {
         // Update page title with Vietnamese text
         Map<String, String> vnTitles = new java.util.HashMap<>();
         vnTitles.put("dashboard", "Dashboard");
-        vnTitles.put("booking", "\u0110\u1eb7t ph\u00f2ng");
-        vnTitles.put("check-in", "Nh\u1eadn ph\u00f2ng");
-        vnTitles.put("checkout", "Tr\u1ea3 ph\u00f2ng");
-        vnTitles.put("swap-room", "\u0110\u1ed5i ph\u00f2ng");
-        vnTitles.put("cancel-room", "H\u1ee7y ph\u00f2ng");
-        vnTitles.put("room-management", "Qu\u1ea3n l\u00fd ph\u00f2ng");
-        vnTitles.put("staff", "Nh\u00e2n s\u1ef1");
-        vnTitles.put("customers", "Kh\u00e1ch h\u00e0ng");
-        vnTitles.put("services", "D\u1ecbch v\u1ee5");
-        vnTitles.put("promotions", "Khuy\u1ebfn m\u00e3i");
-        vnTitles.put("invoices", "H\u00f3a \u0111\u01a1n");
-        vnTitles.put("statistics", "Th\u1ed1ng k\u00ea");
+        vnTitles.put("booking", "Đặt phòng");
+        vnTitles.put("check-in", "Nhận phòng");
+        vnTitles.put("checkout", "Trả phòng");
+        vnTitles.put("swap-room", "Đổi phòng");
+        vnTitles.put("cancel-room", "Hủy phòng");
+        vnTitles.put("room-management", "Quản lý phòng");
+        vnTitles.put("staff", "Nhân sự");
+        vnTitles.put("customers", "Khách hàng");
+        vnTitles.put("services", "Dịch vụ");
+        vnTitles.put("promotions", "Khuyến mãi");
+        vnTitles.put("invoices", "Hóa đơn");
+        vnTitles.put("statistics", "Thống kê");
+
         pageTitleLabel.setText(vnTitles.getOrDefault(route, "KQL HOTEL"));
         pageSubtitleLabel.setText(pageSubtitles.getOrDefault(route, ""));
 
         for (Map.Entry<String, JPanel> entry : menuItems.entrySet()) {
             boolean active = entry.getKey().equals(route);
             JPanel panel = entry.getValue();
+
             if (panel instanceof SidebarMenuItem) {
                 ((SidebarMenuItem) panel).setActive(active);
                 ((SidebarMenuItem) panel).setHovered(false);
             }
+
             JLabel lbl = menuTextLabels.get(entry.getKey());
             if (lbl != null) {
-                // Light sidebar: active item -> white text on navy pill;
-                // inactive -> dark gray on white.
-                lbl.setForeground(active ? ThemeColors.PREMIUM_SIDEBAR_ACTIVE_TEXT : ThemeColors.PREMIUM_SIDEBAR_TEXT);
+                lbl.setForeground(active
+                        ? ThemeColors.PREMIUM_SIDEBAR_ACTIVE_TEXT
+                        : ThemeColors.PREMIUM_SIDEBAR_TEXT);
                 lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, active ? 14f : 13.5f));
             }
         }
@@ -734,5 +775,26 @@ public class AppFrame extends JFrame {
         if (userRoleLabel != null) {
             userRoleLabel.setText(roleText);
         }
+    }
+
+    private void applyMenuPermissions() {
+        for (Map.Entry<String, JPanel> entry : menuItems.entrySet()) {
+            String route = entry.getKey();
+            JPanel item = entry.getValue();
+
+            boolean allowed = Permission.canAccess(route);
+            item.setVisible(allowed);
+        }
+
+        revalidate();
+        repaint();
+    }
+
+    private void prepareAppForCurrentUser() {
+        updateCurrentUserInfo();
+        applyMenuPermissions();
+
+        currentRoute = Permission.getDefaultRoute();
+        activateRoute(currentRoute);
     }
 }
