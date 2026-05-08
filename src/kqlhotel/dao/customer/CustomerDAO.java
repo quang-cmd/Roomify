@@ -55,7 +55,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             pstmt.setString(1, customer.getMaKH());
             pstmt.setString(2, customer.getHoTenKH());
             pstmt.setBoolean(3, customer.isGioiTinh());
-            pstmt.setTimestamp(4, Timestamp.valueOf(customer.getNgaySinh()));
+            pstmt.setTimestamp(4, customer.getNgaySinh() != null ? Timestamp.valueOf(customer.getNgaySinh()) : null);
             pstmt.setString(5, customer.getEmail());
             pstmt.setString(6, customer.getSdt());
             pstmt.setString(7, customer.getCCCD());
@@ -79,7 +79,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, customer.getHoTenKH());
             pstmt.setBoolean(2, customer.isGioiTinh());
-            pstmt.setTimestamp(3, Timestamp.valueOf(customer.getNgaySinh()));
+            pstmt.setTimestamp(3, customer.getNgaySinh() != null ? Timestamp.valueOf(customer.getNgaySinh()) : null);
             pstmt.setString(4, customer.getEmail());
             pstmt.setString(5, customer.getSdt());
             pstmt.setString(6, customer.getCCCD());
@@ -111,7 +111,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
 
     private Customer mapResultSetToCustomer(ResultSet rs) throws SQLException {
         Customer customer = new Customer();
-        customer.setMaKH(rs.getString("maKH"));
+        customer.setMaKH(rs.getString("maKH") != null ? rs.getString("maKH").trim() : null);
         customer.setHoTenKH(rs.getString("hoTenKH"));
         customer.setGioiTinh(rs.getBoolean("gioiTinh"));
         Timestamp ns = rs.getTimestamp("ngaySinh");
@@ -124,6 +124,7 @@ public class CustomerDAO implements DAO_Interface<Customer> {
         customer.setQuocTich(rs.getString("quocTich"));
         customer.setDiaChi(rs.getString("diaChi"));
         customer.setHangKH(rs.getString("hangKH"));
+        customer.setDiemTichLuy(rs.getInt("diemTichLuy"));
         return customer;
     }
 

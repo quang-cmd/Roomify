@@ -39,4 +39,8 @@ public class ServiceBUS {
     public boolean updateStatus(String maDV, String trangThai) {
         return serviceDAO.updateStatus(maDV, trangThai);
     }
+
+    public String getNextId() {
+        return serviceDAO.getNextId();
+    }
 }

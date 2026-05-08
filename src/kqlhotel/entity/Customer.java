@@ -36,12 +36,6 @@ public class Customer {
     
     public LocalDateTime getNgaySinh() { return ngaySinh; }
     public void setNgaySinh(LocalDateTime ngaySinh) { this.ngaySinh = ngaySinh; }
-    public Date getNgaySinhDate() {
-        return ngaySinh == null ? null : Date.from(ngaySinh.atZone(ZoneId.systemDefault()).toInstant());
-    }
-    public void setNgaySinhDate(Date date) {
-        if (date != null) this.ngaySinh = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-    }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -64,12 +58,15 @@ public class Customer {
     public void setTongChiTieu(double tongChiTieu) { this.tongChiTieu = tongChiTieu; }
     public LocalDateTime getNgayDatGanNhat() { return ngayDatGanNhat; }
     public void setNgayDatGanNhat(LocalDateTime ngayDatGanNhat) { this.ngayDatGanNhat = ngayDatGanNhat; }
+    
     public Date getNgayDatGanNhatDate() {
         return ngayDatGanNhat == null ? null : Date.from(ngayDatGanNhat.atZone(ZoneId.systemDefault()).toInstant());
     }
+
     public void setNgayDatGanNhatDate(Date date) {
-        if (date != null) this.ngayDatGanNhat = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        this.ngayDatGanNhat = date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
+
     public boolean isDangHoatDong() { return dangHoatDong; }
     public void setDangHoatDong(boolean dangHoatDong) { this.dangHoatDong = dangHoatDong; }
 }
