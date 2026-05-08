@@ -147,6 +147,9 @@ public class CancelRoomPanel extends JPanel {
         add(body, "grow");
 
         setState("RESULT");
+
+        // Tự động hủy các phòng đặt cọc 30% quá 1 ngày check-in mà chưa nhận phòng
+        autoExpireOverdueDepositBookings();
     }
 
     private void updateSearchResults() {
@@ -273,6 +276,7 @@ public class CancelRoomPanel extends JPanel {
             txtNgayNhan.setText("");
             updateSearchResults();
             setState("RESULT");
+            autoExpireOverdueDepositBookings();
         });
 
         JPanel btnRow = new JPanel(new MigLayout("insets 0, gap 10", "[grow,fill][grow,fill]", "[]"));
@@ -973,6 +977,93 @@ public class CancelRoomPanel extends JPanel {
         } finally {
             if (con != null) try { con.close(); } catch (Exception ignore) {}
         }
+    }
+
+    /**
+     * Tự động hủy các booking đặt cọc 30% (chưa thanh toán toàn bộ)
+     * mà đã quá 1 ngày kể từ giờ check-in dự kiến mà khách chưa đến nhận phòng.
+     * Áp dụng phạt 100% tiền cọc theo chính sách.
+     * Chạy trên background thread để không block giao diện.
+     */
+    private void autoExpireOverdueDepositBookings() {
+        new javax.swing.SwingWorker<java.util.List<String[]>, Void>() {
+            @Override
+            protected java.util.List<String[]> doInBackground() {
+                // Tìm các booking: chưa check-in, tienCoc > 0, quá 1 ngày từ ngayNhanDuKien
+                String findSql =
+                    "SELECT dp.maDatPhong, hd.maHD, dp.tienCoc " +
+                    "FROM DatPhong dp " +
+                    "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
+                    "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
+                    "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                    "  AND dp.tienCoc > 0 " +
+                    "  AND NOT EXISTS ( " +
+                    "      SELECT 1 FROM ChiTietHoaDon cthd " +
+                    "      WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong " +
+                    "        AND cthd.ngayNhanPhong IS NOT NULL " +
+                    "  ) " +
+                    "  AND ctdp.ngayNhanDuKien < DATEADD(day, -1, GETDATE()) " +
+                    "GROUP BY dp.maDatPhong, hd.maHD, dp.tienCoc";
+
+                java.util.List<String[]> toCancel = new ArrayList<>();
+                try (Connection con = ConnectDB.getConnection();
+                     PreparedStatement pst = con.prepareStatement(findSql);
+                     ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        toCancel.add(new String[]{
+                            rs.getString("maDatPhong"),
+                            rs.getString("maHD"),
+                            String.valueOf(rs.getDouble("tienCoc"))
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return toCancel;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<String[]> toCancel = get();
+                    if (toCancel == null || toCancel.isEmpty()) return;
+
+                    int cancelCount = 0;
+                    StringBuilder cancelledList = new StringBuilder();
+                    for (String[] row : toCancel) {
+                        String maDatPhong = row[0];
+                        String maHD       = row[1];
+                        double tienCoc    = Double.parseDouble(row[2]);
+                        // Phạt 100% cọc khi quá ngày check-in
+                        boolean ok = cancelBookingInDB(maDatPhong, maHD, 0, tienCoc);
+                        if (ok) {
+                            cancelCount++;
+                            cancelledList.append("  • ").append(maDatPhong)
+                                         .append(" (HD: ").append(maHD).append(")\n");
+                        }
+                    }
+
+                    if (cancelCount > 0) {
+                        updateSearchResults();
+                        // Cập nhật RoomManagementPanel nếu có
+                        java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(CancelRoomPanel.this);
+                        if (win instanceof kqlhotel.gui.AppFrame) {
+                            ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
+                        }
+                        String msg = cancelCount + " đặt phòng đã bị hủy tự động do quá 1 ngày check-in:\n"
+                            + cancelledList
+                            + "\nPhạt 100% tiền cọc theo chính sách.";
+                        JOptionPane.showMessageDialog(
+                            CancelRoomPanel.this, msg,
+                            "Hủy phòng tự động",
+                            JOptionPane.WARNING_MESSAGE
+                        );
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
     }
 
     private String getNextMaTT(Connection con) throws Exception {
