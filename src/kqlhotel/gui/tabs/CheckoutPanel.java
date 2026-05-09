@@ -26,13 +26,17 @@ import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.Session;
 import kqlhotel.utils.CurrencyUtils;
-import kqlhotel.utils.PDFInvoiceGenerator;
 import net.miginfocom.swing.MigLayout;
+import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.entity.InvoiceDetail;
+import kqlhotel.entity.ServiceDetail;
+import java.util.stream.Collectors;
 
 public class CheckoutPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
 
     private final CheckoutBUS checkoutBUS = new CheckoutBUS();
+    private final InvoicesBUS invoicesBUS = new InvoicesBUS();
     private final CardLayout mainCards = new CardLayout();
     private final JPanel contentPanel = new JPanel(mainCards);
 
@@ -81,8 +85,6 @@ public class CheckoutPanel extends JPanel {
     private List<String> currentRoomCodes = new java.util.ArrayList<>();
 
     private String nextRoomStatus = "Trong";
-    private boolean isSaveInvoice = true;
-    private boolean isPrintInvoice = false;
     private Invoice currentHoaDon;
 
     public CheckoutPanel() {
@@ -549,7 +551,7 @@ public class CheckoutPanel extends JPanel {
         detailRankDiscountTitleLabel.setVisible(false);
         detailRankDiscountLabel.setVisible(false);
 
-        JLabel penalty = new JLabel("Tiền phạt trả trễ");
+        JLabel penalty = new JLabel("Phí trả sớm / phạt trả trễ");
         penalty.setForeground(new Color(110, 125, 145));
         costBox.add(penalty, "gapy 4 0");
 
@@ -619,38 +621,6 @@ public class CheckoutPanel extends JPanel {
         sBox.add(sEmpty, "h 38!");
         sBox.add(sMaint, "h 38!");
         leftPanel.add(sBox);
-
-        JPanel actBox = new JPanel(new MigLayout("insets 0,gap 10", "[grow,fill][grow,fill]", "[]"));
-        actBox.setOpaque(false);
-
-        PrimaryButton saveBtn = new PrimaryButton("Lưu hóa đơn");
-        PrimaryButton printBtn = new PrimaryButton("In hóa đơn");
-
-        printBtn.addActionListener(e -> {
-            isPrintInvoice = !isPrintInvoice;
-            if (isPrintInvoice) {
-                printBtn.setBackground(new Color(40, 167, 69));
-                printBtn.setForeground(Color.WHITE);
-                printBtn.setBorder(BorderFactory.createEmptyBorder());
-            } else {
-                printBtn.setBackground(new Color(245, 248, 252));
-                printBtn.setForeground(new Color(50, 70, 90));
-                printBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
-            }
-        });
-
-        saveBtn.setBackground(new Color(40, 167, 69));
-        saveBtn.setForeground(Color.WHITE);
-        saveBtn.setBorder(BorderFactory.createEmptyBorder());
-        isSaveInvoice = true;
-
-        printBtn.setBackground(new Color(245, 248, 252));
-        printBtn.setForeground(new Color(50, 70, 90));
-        printBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 225), 2));
-        isPrintInvoice = false;
-
-        actBox.add(saveBtn, "h 40!");
-        actBox.add(printBtn, "h 40!");
 
         PrimaryButton submitBtn = new PrimaryButton("Xác nhận thanh toán & trả phòng");
         submitBtn.setBackground(ThemeColors.SUCCESS);
@@ -738,17 +708,15 @@ public class CheckoutPanel extends JPanel {
 
                 refreshInvoicePreview();
 
-                if (isPrintInvoice) {
-                    PDFInvoiceGenerator.exportInvoice(currentHoaDon, new java.util.ArrayList<>(), new java.util.ArrayList<>());
-                }
-
                 String message = "Trả phòng thành công!";
                 if (addedPoints > 0) {
                     message += "\nĐã cộng " + addedPoints + " điểm tích lũy cho khách hàng.";
                 }
 
                 JOptionPane.showMessageDialog(this, message, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                
+
+                showInvoicePrintPreviewAfterCheckout();
+
                 // Refresh RoomManagementPanel data
                 java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
                 if (win instanceof kqlhotel.gui.AppFrame) {
@@ -769,8 +737,7 @@ public class CheckoutPanel extends JPanel {
             }
         });
 
-        leftPanel.add(actBox, "gapy 10 0");
-        leftPanel.add(submitBtn, "h 42!, gapy 8 0");
+        leftPanel.add(submitBtn, "h 42!, gapy 10 0");
 
         RoundedPanel rightPanel = new RoundedPanel(0, PAGE_BG, PAGE_BG, 0f);
         rightPanel.setLayout(new MigLayout("wrap 1,insets 0", "[grow,fill]", "[]"));
@@ -1061,7 +1028,11 @@ public class CheckoutPanel extends JPanel {
                 checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, null);
 
         double amountBeforeDiscount =
-                totals.roomFee + totals.serviceFee + totals.surcharge + totals.tax;
+                totals.roomFee
+                        + totals.serviceFee
+                        + totals.surcharge
+                        + totals.earlyCheckoutPenalty
+                        + totals.tax;
 
         String bestDisplay = null;
         double bestEffectiveDiscount = 0;
@@ -1188,5 +1159,37 @@ public class CheckoutPanel extends JPanel {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    private void showInvoicePrintPreviewAfterCheckout() {
+        if (currentHoaDon == null || currentHoaDon.getMaHD() == null || currentHoaDon.getMaHD().isBlank()) {
+            return;
+        }
+
+        java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(this);
+
+        java.util.List<String> selectedRoomCodesSnapshot =
+                new java.util.ArrayList<>(currentRoomCodes);
+
+        java.util.List<InvoiceDetail> allRooms =
+                invoicesBUS.getRoomDetails(currentHoaDon.getMaHD());
+
+        java.util.List<InvoiceDetail> paidCurrentRooms = allRooms.stream()
+                .filter(ct -> selectedRoomCodesSnapshot.contains(ct.getMaPhong()))
+                .filter(ct -> ct.getNgayTraThucTe() != null)
+                .collect(Collectors.toList());
+
+        java.util.List<ServiceDetail> services =
+                invoicesBUS.getServiceDetails(currentHoaDon.getMaHD());
+
+        new kqlhotel.gui.dialog.InvoicePreviewDialog(
+                owner,
+                currentHoaDon,
+                invoicesBUS.getCustomerInfo(currentHoaDon.getMaKhachHang()),
+                invoicesBUS.getStaffName(currentHoaDon.getMaNhanVien()),
+                paidCurrentRooms,
+                services,
+                invoicesBUS
+        ).setVisible(true);
     }
 }

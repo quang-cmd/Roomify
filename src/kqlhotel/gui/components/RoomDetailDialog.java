@@ -522,26 +522,57 @@ public class RoomDetailDialog extends JDialog {
     }
 
     private void refreshServiceList() {
-        if (serviceListPanel == null) return;
+        if (serviceListPanel == null) {
+            return;
+        }
+
         serviceListPanel.removeAll();
+
         if (invoice != null) {
             ServiceDetailDAO dao = new ServiceDetailDAO();
             List<ServiceDetail> list = dao.getByInvoice(invoice.getMaHD());
+
+            double svcTotal = 0;
+
             for (ServiceDetail sd : list) {
-                String tenDV = (sd.getGhiChu() != null && !sd.getGhiChu().isEmpty()) ? sd.getGhiChu() : sd.getMaDV();
-                String sub = sd.getSoLuong() + " × " + formatMoney((long)sd.getDonGia());
-                serviceListPanel.add(createInvoiceItem("star.png", "🔧", tenDV, sub, formatMoney((long)sd.getThanhTien()), sd.getMaCTDV(), serviceListPanel));
+                if (!isServiceForRoom(sd, roomNo)) {
+                    continue;
+                }
+
+                String tenDV = getServiceDisplayName(sd);
+                String sub = sd.getSoLuong() + " × " + formatMoney((long) sd.getDonGia());
+
+                serviceListPanel.add(createInvoiceItem(
+                        "star.png",
+                        "🔧",
+                        tenDV,
+                        sub,
+                        formatMoney((long) sd.getThanhTien()),
+                        sd.getMaCTDV(),
+                        serviceListPanel
+                ));
                 serviceListPanel.add(createSeparator());
+
+                svcTotal += Math.max(0, sd.getThanhTien());
             }
-            // Cập nhật label tổng
-            double svcTotal = list.stream().mapToDouble(ServiceDetail::getThanhTien).sum();
-            long roomAmt = (long)invoice.getTienPhong();
-            long vatAmt = (long)((roomAmt + svcTotal) * 0.1);
-            long grandAmt = roomAmt + (long)svcTotal + vatAmt;
-            if (lblTotalServices != null) lblTotalServices.setText(formatMoney((long)svcTotal));
-            if (lblVat != null) lblVat.setText(formatMoney(vatAmt));
-            if (lblGrandTotal != null) lblGrandTotal.setText(formatMoney(grandAmt));
+
+            long roomAmt = (long) invoice.getTienPhong();
+            long vatAmt = (long) ((roomAmt + svcTotal) * 0.1);
+            long grandAmt = roomAmt + (long) svcTotal + vatAmt;
+
+            if (lblTotalServices != null) {
+                lblTotalServices.setText(formatMoney((long) svcTotal));
+            }
+
+            if (lblVat != null) {
+                lblVat.setText(formatMoney(vatAmt));
+            }
+
+            if (lblGrandTotal != null) {
+                lblGrandTotal.setText(formatMoney(grandAmt));
+            }
         }
+
         serviceListPanel.revalidate();
         serviceListPanel.repaint();
     }
@@ -697,7 +728,9 @@ public class RoomDetailDialog extends JDialog {
             sd.setSoLuong(qty[0]);
             sd.setDonGia(s.getDonGia());
             sd.setThanhTien(s.getDonGia() * qty[0]);
-            sd.setGhiChu(s.getTenDV());
+
+            // Không sửa database: dùng ghiChu để đánh dấu dịch vụ thuộc phòng nào
+            sd.setGhiChu("ROOM:" + roomNo + "|" + s.getTenDV());
             if (new ServiceDetailDAO().insert(sd)) {
                 combo.setSelectedIndex(0); qty[0] = 1;
                 detailPnl.setVisible(false);
@@ -859,5 +892,53 @@ public class RoomDetailDialog extends JDialog {
             }
         } catch (Exception e) {}
         return null;
+    }
+
+    private boolean isServiceForRoom(ServiceDetail sd, String maPhong) {
+        if (sd == null || maPhong == null || maPhong.isBlank()) {
+            return false;
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu == null || ghiChu.isBlank()) {
+            return false;
+        }
+
+        if (!ghiChu.startsWith("ROOM:")) {
+            return false;
+        }
+
+        int pipeIndex = ghiChu.indexOf("|");
+
+        if (pipeIndex <= 5) {
+            return false;
+        }
+
+        String serviceRoom = ghiChu.substring(5, pipeIndex).trim();
+
+        return maPhong.equals(serviceRoom);
+    }
+
+    private String getServiceDisplayName(ServiceDetail sd) {
+        if (sd == null) {
+            return "";
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu != null && ghiChu.startsWith("ROOM:")) {
+            int pipeIndex = ghiChu.indexOf("|");
+
+            if (pipeIndex >= 0 && pipeIndex < ghiChu.length() - 1) {
+                return ghiChu.substring(pipeIndex + 1);
+            }
+        }
+
+        if (ghiChu != null && !ghiChu.isBlank()) {
+            return ghiChu;
+        }
+
+        return sd.getMaDV();
     }
 }
