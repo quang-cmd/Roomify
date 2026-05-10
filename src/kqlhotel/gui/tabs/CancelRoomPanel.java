@@ -64,7 +64,8 @@ public class CancelRoomPanel extends JPanel {
         String tenKhach;
         String sdt;
         LocalDateTime ngayNhanDuKien;
-        double tienCoc;
+        double tienCoc;      // Tổng tiền cọc của cả booking
+        double tienCocPhong; // Tiền cọc chia theo tỷ lệ riêng phòng này
         String maHD;
         boolean isFullyPaid;
     }
@@ -371,8 +372,10 @@ public class CancelRoomPanel extends JPanel {
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> {
             if (selectedBooking != null) {
-                double refund = Math.max(0, selectedBooking.tienCoc - computedPenalty);
-                boolean success = cancelBookingInDB(selectedBooking.maDatPhong, selectedBooking.maHD, refund, selectedBooking.tienCoc);
+                double refund = Math.max(0, selectedBooking.tienCocPhong - computedPenalty);
+                boolean success = cancelBookingInDB(
+                    selectedBooking.maDatPhong, selectedBooking.maHD,
+                    selectedBooking.maPhong, refund, selectedBooking.tienCocPhong);
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Hủy phòng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 
@@ -400,7 +403,8 @@ public class CancelRoomPanel extends JPanel {
             if (selectedBooking == null) return;
             try {
                 LocalDateTime cancelTime = LocalDateTime.parse(txtTime.getText().trim(), dtf);
-                calculateCancellationFee(selectedBooking.ngayNhanDuKien, cancelTime, selectedBooking.tienCoc, selectedBooking.isFullyPaid);
+                // Dùng tiền cọc đã chia theo tỷ lệ phòng này
+                calculateCancellationFee(selectedBooking.ngayNhanDuKien, cancelTime, selectedBooking.tienCocPhong, selectedBooking.isFullyPaid);
             } catch (DateTimeParseException ex) {
                 polSub.setText("Định dạng ngày không hợp lệ. Vui lòng nhập: dd/MM/yyyy HH:mm");
                 polEnd.setText("");
@@ -865,8 +869,12 @@ public class CancelRoomPanel extends JPanel {
 
     private List<BookingDTO> fetchBookingsFromDB() {
         List<BookingDTO> list = new ArrayList<>();
+        // Thêm giá trị từng phòng (donGiaDat * soNgay) và tổng booking để tính tỷ lệ cọc
         String sql = "SELECT dp.maDatPhong, ctdp.maPhong, lp.tenLoaiPhong, p.tang, " +
                 "kh.hoTenKH, kh.sdt, ctdp.ngayNhanDuKien, dp.tienCoc, hd.maHD, " +
+                "ctdp.donGiaDat * DATEDIFF(day, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien) AS giaPhong, " +
+                "(SELECT ISNULL(SUM(c2.donGiaDat * DATEDIFF(day, c2.ngayNhanDuKien, c2.ngayTraDuKien)), 1) " +
+                "   FROM ChiTietDatPhong c2 WHERE c2.maDatPhong = dp.maDatPhong) AS tongGiaBooking, " +
                 "(CASE WHEN hd.tongTienThanhToan > 0 AND hd.tongTienThanhToan <= (SELECT ISNULL(SUM(soTienTT), 0) FROM ThanhToan WHERE maHD = hd.maHD AND trangThaiTT = 'ThanhToanThanhCong') THEN 1 ELSE 0 END) as isFullyPaid " +
                 "FROM DatPhong dp " +
                 "JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong " +
@@ -892,6 +900,12 @@ public class CancelRoomPanel extends JPanel {
                 b.tienCoc = rs.getDouble("tienCoc");
                 b.maHD = rs.getString("maHD");
                 b.isFullyPaid = rs.getInt("isFullyPaid") == 1;
+
+                // Tính tiền cọc theo tỷ lệ giá của riêng phòng này
+                double giaPhong   = rs.getDouble("giaPhong");
+                double tongGia    = rs.getDouble("tongGiaBooking");
+                b.tienCocPhong = (tongGia > 0) ? b.tienCoc * (giaPhong / tongGia) : b.tienCoc;
+
                 list.add(b);
             }
         } catch (Exception e) {
@@ -900,71 +914,123 @@ public class CancelRoomPanel extends JPanel {
         return list;
     }
 
-    private boolean cancelBookingInDB(String maDatPhong, String maHD, double tienHoan, double tienCoc) {
+
+    /**
+     * Hủy 1 phòng cụ thể (maPhong) khỏi booking.
+     * - Nếu còn phòng khác trong booking: chỉ xóa phòng này, recalculate invoice.
+     * - Nếu là phòng cuối cùng: hủy toàn bộ invoice.
+     */
+    private boolean cancelBookingInDB(String maDatPhong, String maHD,
+                                      String maPhong,
+                                      double tienHoan, double tienCocPhong) {
         Connection con = null;
         try {
             con = ConnectDB.getConnection();
             con.setAutoCommit(false);
 
-            double refund = Math.max(0, tienHoan);
-            double penalty = Math.max(0, tienCoc - refund);
+            double refund  = Math.max(0, tienHoan);
+            double penalty = Math.max(0, tienCocPhong - refund);
 
-            // 1. Cập nhật HoaDon: đánh dấu đã hủy, chỉ giữ phí phạt, xóa khuyến mãi, cập nhật ngày thanh toán (ngày hủy)
-            String updateHoaDon = "UPDATE HoaDon SET trangThai = 'DaHuy', ngayThanhToan = ?, tienPhong = 0, tienThue = 0, tienKhuyenMai = 0, tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?";
-            try (PreparedStatement pst1 = con.prepareStatement(updateHoaDon)) {
-                pst1.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
-                pst1.setDouble(2, penalty);
-                pst1.setDouble(3, penalty);
-                pst1.setString(4, maHD);
-                pst1.executeUpdate();
+            // 1. Xóa phòng này khỏi ChiTietDatPhong
+            try (PreparedStatement pst = con.prepareStatement(
+                    "DELETE FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?")) {
+                pst.setString(1, maDatPhong);
+                pst.setString(2, maPhong);
+                pst.executeUpdate();
             }
 
-            // 2. Cập nhật ChiTietHoaDon: xóa tiền phòng, lưu phí phạt vào cột mới
-            String updateCTHD = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0, phiPhat = ? WHERE maHD = ?";
-            try (PreparedStatement pstCTHD = con.prepareStatement(updateCTHD)) {
-                // Chia đều phí phạt cho các phòng trong hóa đơn hoặc để ở 1 phòng? 
-                // Ở đây ta để tổng phí phạt vào các dòng chi tiết (tùy nghiệp vụ, thường là chia đều hoặc gán vào phòng đầu tiên)
-                // Để đơn giản và khớp với InvoicesPanel (sum), ta nên chia đều hoặc gán 1 lần.
-                // Ở đây gán vào tất cả các dòng thì sum(phiPhat) sẽ sai. 
-                // Tôi sẽ dùng lệnh update để chỉ gán vào 1 phòng duy nhất của hóa đơn đó.
-                String sqlUpdateOne = "UPDATE ChiTietHoaDon SET thanhTien = 0, phuThu = 0, phiPhat = 0 WHERE maHD = ?; " +
-                        "UPDATE TOP (1) ChiTietHoaDon SET phiPhat = ? WHERE maHD = ?";
-                try (PreparedStatement psOne = con.prepareStatement(sqlUpdateOne)) {
-                    psOne.setString(1, maHD);
-                    psOne.setDouble(2, penalty);
-                    psOne.setString(3, maHD);
-                    psOne.executeUpdate();
+            // 2. Trả riêng phòng này về trạng thái Trống
+            try (PreparedStatement pst = con.prepareStatement(
+                    "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong = ?")) {
+                pst.setString(1, maPhong);
+                pst.executeUpdate();
+            }
+
+            // 3. Kiểm tra còn bao nhiêu phòng trong booking
+            int remainingRooms = 0;
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT COUNT(*) FROM ChiTietDatPhong WHERE maDatPhong = ?")) {
+                pst.setString(1, maDatPhong);
+                ResultSet rs = pst.executeQuery();
+                if (rs.next()) remainingRooms = rs.getInt(1);
+            }
+
+            if (remainingRooms == 0) {
+                // === Phòng cuối cùng: hủy toàn bộ invoice ===
+                try (PreparedStatement pst = con.prepareStatement(
+                        "UPDATE HoaDon SET trangThai = 'DaHuy', ngayThanhToan = ?," +
+                        " tienPhong = 0, tienThue = 0, tienKhuyenMai = 0," +
+                        " tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?")) {
+                    pst.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+                    pst.setDouble(2, penalty);
+                    pst.setDouble(3, penalty);
+                    pst.setString(4, maHD);
+                    pst.executeUpdate();
+                }
+                // Xóa toàn bộ dịch vụ
+                try (PreparedStatement pst = con.prepareStatement(
+                        "DELETE FROM ChiTietDichVu WHERE maHD = ?")) {
+                    pst.setString(1, maHD);
+                    pst.executeUpdate();
+                }
+            } else {
+                // === Còn phòng khác: chỉ recalculate tổng invoice ===
+                // Tính lại tienPhong từ các phòng còn lại
+                double newTienPhong = 0;
+                try (PreparedStatement pst = con.prepareStatement(
+                        "SELECT ISNULL(SUM(thanhTien), 0) FROM ChiTietHoaDon WHERE maHD = ?")) {
+                    pst.setString(1, maHD);
+                    ResultSet rs = pst.executeQuery();
+                    if (rs.next()) newTienPhong = rs.getDouble(1);
+                }
+                // Cộng thêm giá phòng chưa check-in từ ChiTietDatPhong còn lại
+                try (PreparedStatement pst = con.prepareStatement(
+                        "SELECT ISNULL(SUM(donGiaDat *" +
+                        " DATEDIFF(day, ngayNhanDuKien, ngayTraDuKien)), 0)" +
+                        " FROM ChiTietDatPhong WHERE maDatPhong = ?")) {
+                    pst.setString(1, maDatPhong);
+                    ResultSet rs = pst.executeQuery();
+                    if (rs.next()) newTienPhong += rs.getDouble(1);
+                }
+                double newTienDV = 0;
+                try (PreparedStatement pst = con.prepareStatement(
+                        "SELECT ISNULL(SUM(thanhTien), 0) FROM ChiTietDichVu WHERE maHD = ?")) {
+                    pst.setString(1, maHD);
+                    ResultSet rs = pst.executeQuery();
+                    if (rs.next()) newTienDV = rs.getDouble(1);
+                }
+                double newThue  = (newTienPhong + newTienDV) * 0.10;
+                double newTotal = newTienPhong + newTienDV + newThue;
+
+                try (PreparedStatement pst = con.prepareStatement(
+                        "UPDATE HoaDon SET tienPhong = ?, tienDichVu = ?," +
+                        " tienThue = ?, tongTienThanhToan = ? WHERE maHD = ?")) {
+                    pst.setDouble(1, newTienPhong);
+                    pst.setDouble(2, newTienDV);
+                    pst.setDouble(3, newThue);
+                    pst.setDouble(4, newTotal);
+                    pst.setString(5, maHD);
+                    pst.executeUpdate();
                 }
             }
 
-            // 3. Xóa dịch vụ
-            String deleteCTDV = "DELETE FROM ChiTietDichVu WHERE maHD = ?";
-            try (PreparedStatement pstCTDV = con.prepareStatement(deleteCTDV)) {
-                pstCTDV.setString(1, maHD);
-                pstCTDV.executeUpdate();
-            }
-
-            // 4. Trả phòng về trạng thái Trống
-            String updatePhong = "UPDATE Phong SET trangThaiPhong = 'Trong' WHERE maPhong IN (SELECT maPhong FROM ChiTietDatPhong WHERE maDatPhong = ?)";
-            try (PreparedStatement pstP = con.prepareStatement(updatePhong)) {
-                pstP.setString(1, maDatPhong);
-                pstP.executeUpdate();
-            }
-
-            // 5. Ghi nhận hoàn tiền (nếu có)
+            // 4. Ghi nhận hoàn tiền cọc (theo phần phòng này)
             if (refund > 0) {
                 String newMaTT = getNextMaTT(con);
-                String insertTT = "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maNV) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                try (PreparedStatement pst2 = con.prepareStatement(insertTT)) {
-                    pst2.setString(1, newMaTT);
-                    pst2.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-                    pst2.setDouble(3, refund);
-                    pst2.setString(4, "Hoàn tiền cọc do hủy phòng");
-                    pst2.setString(5, "TienMat");
-                    pst2.setString(6, "DaHuy");
-                    pst2.setString(7, maHD);
-                    pst2.setString(8, "NV001");
-                    pst2.executeUpdate();
+                try (PreparedStatement pst = con.prepareStatement(
+                        "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu," +
+                        " phuongThucTT, trangThaiTT, maHD, maNV)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    pst.setString(1, newMaTT);
+                    pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+                    pst.setDouble(3, refund);
+                    pst.setString(4, "Hoàn cọc hủy phòng " + maPhong
+                                     + (remainingRooms > 0 ? " (còn " + remainingRooms + " phòng)" : " (hủy toàn bộ)"));
+                    pst.setString(5, "TienMat");
+                    pst.setString(6, "DaHuy");
+                    pst.setString(7, maHD);
+                    pst.setString(8, "NV001");
+                    pst.executeUpdate();
                 }
             }
 
@@ -989,9 +1055,12 @@ public class CancelRoomPanel extends JPanel {
         new javax.swing.SwingWorker<java.util.List<String[]>, Void>() {
             @Override
             protected java.util.List<String[]> doInBackground() {
-                // Tìm các booking: chưa check-in, tienCoc > 0, quá 1 ngày từ ngayNhanDuKien
+                // Tìm các phòng chưa check-in, tienCoc > 0, quá 1 ngày từ ngayNhanDuKien
                 String findSql =
-                    "SELECT dp.maDatPhong, hd.maHD, dp.tienCoc " +
+                    "SELECT dp.maDatPhong, hd.maHD, dp.tienCoc, ctdp.maPhong, " +
+                    "ctdp.donGiaDat * DATEDIFF(day, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien) AS giaPhong, " +
+                    "(SELECT ISNULL(SUM(c2.donGiaDat * DATEDIFF(day, c2.ngayNhanDuKien, c2.ngayTraDuKien)), 1) " +
+                    "   FROM ChiTietDatPhong c2 WHERE c2.maDatPhong = dp.maDatPhong) AS tongGiaBooking " +
                     "FROM DatPhong dp " +
                     "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
                     "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
@@ -1002,18 +1071,23 @@ public class CancelRoomPanel extends JPanel {
                     "      WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong " +
                     "        AND cthd.ngayNhanPhong IS NOT NULL " +
                     "  ) " +
-                    "  AND ctdp.ngayNhanDuKien < DATEADD(day, -1, GETDATE()) " +
-                    "GROUP BY dp.maDatPhong, hd.maHD, dp.tienCoc";
+                    "  AND ctdp.ngayNhanDuKien < DATEADD(day, -1, GETDATE())";
 
                 java.util.List<String[]> toCancel = new ArrayList<>();
                 try (Connection con = ConnectDB.getConnection();
                      PreparedStatement pst = con.prepareStatement(findSql);
                      ResultSet rs = pst.executeQuery()) {
                     while (rs.next()) {
+                        double tienCoc = rs.getDouble("tienCoc");
+                        double giaPhong = rs.getDouble("giaPhong");
+                        double tongGia = rs.getDouble("tongGiaBooking");
+                        double tienCocPhong = (tongGia > 0) ? tienCoc * (giaPhong / tongGia) : tienCoc;
+                        
                         toCancel.add(new String[]{
                             rs.getString("maDatPhong"),
                             rs.getString("maHD"),
-                            String.valueOf(rs.getDouble("tienCoc"))
+                            rs.getString("maPhong"),
+                            String.valueOf(tienCocPhong)
                         });
                     }
                 } catch (Exception e) {
@@ -1033,12 +1107,13 @@ public class CancelRoomPanel extends JPanel {
                     for (String[] row : toCancel) {
                         String maDatPhong = row[0];
                         String maHD       = row[1];
-                        double tienCoc    = Double.parseDouble(row[2]);
+                        String maPhong    = row[2];
+                        double tienCocPhong = Double.parseDouble(row[3]);
                         // Phạt 100% cọc khi quá ngày check-in
-                        boolean ok = cancelBookingInDB(maDatPhong, maHD, 0, tienCoc);
+                        boolean ok = cancelBookingInDB(maDatPhong, maHD, maPhong, 0, tienCocPhong);
                         if (ok) {
                             cancelCount++;
-                            cancelledList.append("  • ").append(maDatPhong)
+                            cancelledList.append("  • ").append(maDatPhong).append(" - ").append(maPhong)
                                          .append(" (HD: ").append(maHD).append(")\n");
                         }
                     }
@@ -1050,7 +1125,7 @@ public class CancelRoomPanel extends JPanel {
                         if (win instanceof kqlhotel.gui.AppFrame) {
                             ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
                         }
-                        String msg = cancelCount + " đặt phòng đã bị hủy tự động do quá 1 ngày check-in:\n"
+                        String msg = cancelCount + " phòng đã bị hủy tự động do quá 1 ngày check-in:\n"
                             + cancelledList
                             + "\nPhạt 100% tiền cọc theo chính sách.";
                         JOptionPane.showMessageDialog(
