@@ -1,7 +1,6 @@
 package kqlhotel.gui.tabs;
 
 import java.awt.BorderLayout;
-import javax.swing.SwingUtilities;
 import java.awt.Color;
 import java.util.Arrays;
 import javax.swing.JOptionPane;
@@ -14,21 +13,13 @@ import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.utils.IconLoader;
-import kqlhotel.gui.Session;
 import javax.swing.ImageIcon;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.service.EmailService;
-import javax.swing.JCheckBox;
-import javax.swing.JPanel;
 
 public class LoginPanel extends LoginBackgroundPanel {
     private final Runnable onLoginSuccess;
-
-    private AppTextField usernameField;
-    private JPasswordField passwordField;
-    private JCheckBox showPasswordCheck;
-    private char defaultEchoChar;
 
     public LoginPanel(Runnable onLoginSuccess) {
         this.onLoginSuccess = onLoginSuccess;
@@ -59,7 +50,7 @@ public class LoginPanel extends LoginBackgroundPanel {
         userLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
         userLb.setFont(userLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
 
-        usernameField = new AppTextField();
+        AppTextField usernameField = new AppTextField();
         usernameField.putClientProperty("JTextField.placeholderText", "Nhập tên đăng nhập");
         usernameField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
         usernameField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
@@ -68,25 +59,10 @@ public class LoginPanel extends LoginBackgroundPanel {
         passLb.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
         passLb.setFont(passLb.getFont().deriveFont(java.awt.Font.BOLD, 12f));
 
-        passwordField = new JPasswordField();
+        JPasswordField passwordField = new JPasswordField();
         passwordField.putClientProperty("JTextField.placeholderText", "Nhập mật khẩu");
         passwordField.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
         passwordField.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
-
-        defaultEchoChar = passwordField.getEchoChar();
-
-        showPasswordCheck = new JCheckBox("Hiện mật khẩu");
-        showPasswordCheck.setOpaque(false);
-        showPasswordCheck.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
-        showPasswordCheck.setFont(showPasswordCheck.getFont().deriveFont(java.awt.Font.PLAIN, 12f));
-
-        showPasswordCheck.addActionListener(e -> {
-            if (showPasswordCheck.isSelected()) {
-                passwordField.setEchoChar((char) 0);
-            } else {
-                passwordField.setEchoChar(defaultEchoChar);
-            }
-        });
 
         PrimaryButton loginButton = new PrimaryButton("Đăng nhập");
         loginButton.setBackground(ThemeColors.PREMIUM_PRIMARY);
@@ -119,6 +95,13 @@ public class LoginPanel extends LoginBackgroundPanel {
         passwordField.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
         loginButton.addActionListener(e -> attemptLogin(usernameField.getText(), passwordField.getPassword()));
 
+        RoundedPanel demo = new RoundedPanel(12, ThemeColors.PREMIUM_ACCENT_SOFT, ThemeColors.withAlpha(ThemeColors.PREMIUM_ACCENT, 80), 1f);
+        demo.setLayout(new BorderLayout());
+        JLabel demoText = new JLabel("Tài khoản demo: admin / mật khẩu: admin123");
+        demoText.setForeground(ThemeColors.PREMIUM_ACCENT_DARK);
+        demoText.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        demo.add(demoText, BorderLayout.CENTER);
+
         if (logoIcon != null) {
             card.add(logoLabel, "alignx center,gapy 8 0");
         } else {
@@ -133,9 +116,9 @@ public class LoginPanel extends LoginBackgroundPanel {
         card.add(usernameField, "h 40");
         card.add(passLb, "gapy 6 0");
         card.add(passwordField, "h 40");
-        card.add(showPasswordCheck, "gapy 0 4");
         card.add(loginButton, "h 44,gapy 8 2");
         card.add(forgotPassword, "alignx center,gapy 0 8");
+        card.add(demo, "gapy 8");
 
         add(card, "w 420!,h 540!,alignx center,aligny center");
 
@@ -208,32 +191,6 @@ public class LoginPanel extends LoginBackgroundPanel {
 
             Arrays.fill(passwordValue, '\0');
 
-// Tạo Account từ tài khoản đăng nhập
-            kqlhotel.entity.Account acc = new kqlhotel.entity.Account(
-                    rs.getString("tenDangNhap"),
-                    rs.getString("matKhau"),
-                    rs.getString("vaiTro"),
-                    rs.getString("trangThaiTK")
-            );
-
-            // Tìm nhân viên theo tenDangNhap
-            kqlhotel.entity.Staff foundStaff = null;
-            kqlhotel.bus.staff.StaffBUS staffBUS = new kqlhotel.bus.staff.StaffBUS();
-
-            for (kqlhotel.entity.Staff s : staffBUS.getAll()) {
-                if (s.getAccount() != null
-                        && s.getAccount().getUsername() != null
-                        && s.getAccount().getUsername().equals(acc.getUsername())) {
-                    foundStaff = s;
-                    break;
-                }
-            }
-
-            // Lưu user đang đăng nhập
-            Session.currentAccount = acc;
-            Session.currentStaff = foundStaff;
-
-            // Chuyển màn hình
             if (onLoginSuccess != null) {
                 onLoginSuccess.run();
             }
@@ -327,26 +284,5 @@ public class LoginPanel extends LoginBackgroundPanel {
     private String generateOtp() {
         int otp = 100000 + new java.util.Random().nextInt(900000);
         return String.valueOf(otp);
-    }
-
-    public void resetForm() {
-        if (usernameField != null) {
-            usernameField.setText("");
-        }
-
-        if (passwordField != null) {
-            passwordField.setText("");
-            passwordField.setEchoChar(defaultEchoChar);
-        }
-
-        if (showPasswordCheck != null) {
-            showPasswordCheck.setSelected(false);
-        }
-
-        SwingUtilities.invokeLater(() -> {
-            if (usernameField != null) {
-                usernameField.requestFocusInWindow();
-            }
-        });
     }
 }

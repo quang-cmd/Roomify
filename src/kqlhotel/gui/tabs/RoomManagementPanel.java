@@ -187,35 +187,35 @@ public class RoomManagementPanel extends JPanel {
         btn.setFont(btn.getFont().deriveFont(13f));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        String text = "<html>" + label + " <span style='color:" 
-                    + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
-                    + badgeText + "&nbsp;</span></html>";
+
+        String text = "<html>" + label + " <span style='color:"
+                + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;"
+                + badgeText + "&nbsp;</span></html>";
         btn.setText(text);
         if (active) {
             btn.setBackground(new Color(18, 35, 67));
             btn.setForeground(Color.WHITE);
             btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                    BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
+                    BorderFactory.createEmptyBorder(6, 16, 6, 16)
             ));
         } else {
             btn.setBackground(Color.WHITE);
             btn.setForeground(new Color(100, 120, 150));
             btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                    BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                    BorderFactory.createEmptyBorder(6, 16, 6, 16)
             ));
         }
-        
+
         btn.addActionListener(e -> applyFilter(label));
-        
+
         return btn;
     }
 
     public void reloadData() {
         phongList = phongBUS.getAllRooms();
-        
+
         long total = phongList.size();
         long tr = phongBUS.countByStatus(phongList, "Trong");
         long dsd = phongBUS.countByStatus(phongList, "DangSuDung");
@@ -253,24 +253,24 @@ public class RoomManagementPanel extends JPanel {
                 String label = (String) btn.getClientProperty("filterLabel");
                 String badge = (String) btn.getClientProperty("filterBadge");
                 boolean active = label.equals(filter);
-                
-                String text = "<html>" + label + " <span style='color:" 
-                            + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
-                            + badge + "&nbsp;</span></html>";
+
+                String text = "<html>" + label + " <span style='color:"
+                        + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;"
+                        + badge + "&nbsp;</span></html>";
                 btn.setText(text);
                 if (active) {
                     btn.setBackground(new Color(18, 35, 67));
                     btn.setForeground(Color.WHITE);
                     btn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
-                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                            BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
+                            BorderFactory.createEmptyBorder(6, 16, 6, 16)
                     ));
                 } else {
                     btn.setBackground(Color.WHITE);
                     btn.setForeground(new Color(100, 120, 150));
                     btn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
+                            BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
+                            BorderFactory.createEmptyBorder(6, 16, 6, 16)
                     ));
                 }
             }
@@ -353,7 +353,7 @@ public class RoomManagementPanel extends JPanel {
         // Info
         JPanel infoRow = new JPanel(new MigLayout("insets 0,gap 12", "[][]", "[]"));
         infoRow.setOpaque(false);
-        
+
         Invoice activeInv = null;
         Customer activeCust = null;
         if (guiStatus.equals("Đang sử dụng")) {
@@ -364,9 +364,9 @@ public class RoomManagementPanel extends JPanel {
                 activeCust = custDAO.getById(activeInv.getMaKhachHang());
             }
         }
-        
+
         String occupantStr = (activeCust != null) ? activeCust.getHoTenKH() : (lp.getSucChuaToiDa() + " khách");
-        
+
         JLabel lblGuest = new JLabel(" " + occupantStr);
         try {
             java.net.URL url = getClass().getResource("/kqlhotel/resources/icons/client.png");
@@ -423,10 +423,10 @@ public class RoomManagementPanel extends JPanel {
             btnKhachHoaDon.setFocusPainted(false);
             btnKhachHoaDon.setCursor(new Cursor(Cursor.HAND_CURSOR));
             btnKhachHoaDon.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(41, 121, 255), 1, true),
-                BorderFactory.createEmptyBorder(8, 0, 8, 0)
+                    BorderFactory.createLineBorder(new Color(41, 121, 255), 1, true),
+                    BorderFactory.createEmptyBorder(8, 0, 8, 0)
             ));
-            
+
             btnKhachHoaDon.addActionListener(e -> {
                 Window owner = SwingUtilities.getWindowAncestor(RoomManagementPanel.this);
                 Runnable onCheckout = () -> {
@@ -438,7 +438,7 @@ public class RoomManagementPanel extends JPanel {
                     }
                 };
                 kqlhotel.gui.components.RoomDetailDialog dialog = new kqlhotel.gui.components.RoomDetailDialog(
-                    owner, p, finalInv, finalCust, onCheckout
+                        owner, p, finalInv, finalCust, onCheckout
                 );
                 dialog.setVisible(true);
             });

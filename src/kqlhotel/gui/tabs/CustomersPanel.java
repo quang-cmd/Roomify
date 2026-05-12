@@ -325,7 +325,7 @@ public class CustomersPanel extends JPanel {
         meta.setOpaque(false);
         meta.add(createRankBadge(customer.getHangKH()));
         meta.add(Box.createHorizontalStrut(8));
-        
+
         JLabel pointsLabel = new JLabel(customer.getDiemTichLuy() + " điểm");
         pointsLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         pointsLabel.setForeground(new Color(245, 158, 11)); // Amber color
