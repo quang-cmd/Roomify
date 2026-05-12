@@ -307,8 +307,11 @@ public class RoomDetailDialog extends JDialog {
         String soKhach = (invoice != null) ? (invoice.getSoLuongNguoi() + " người") : "N/A";
         long totalRoomK = (invoice != null) ? (long)invoice.getTienPhong() : parseMoney(roomPrice);
 
+        // Lấy ngày trả phòng dự kiến từ DB
+        String expectedCheckout = getExpectedCheckoutDate(invoice, roomNo);
+
         pnlBooking.add(createIconLabelDataTextOnly("Nhận phòng", checkIn, new Color(40, 160, 80), new Color(40, 120, 70)));
-        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", "Chưa trả", new Color(40, 160, 80), new Color(40, 120, 70)));
+        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", expectedCheckout, new Color(40, 160, 80), new Color(40, 120, 70)));
         pnlBooking.add(createIconLabelDataTextOnly("Số khách", soKhach, new Color(40, 160, 80), new Color(40, 120, 70)));
         pnlBooking.add(createIconLabelDataTextOnly("Tiền phòng", formatMoney(totalRoomK), new Color(40, 160, 80), new Color(40, 120, 70)));
 
@@ -861,6 +864,50 @@ public class RoomDetailDialog extends JDialog {
         footer.add(btnFooterRight, "right, w 100!, h 36!");
 
         return footer;
+    }
+
+    /**
+     * Lấy ngày trả phòng dự kiến từ bảng ChiTietDatPhong.
+     * Ưu tiên ngayTraDuKien từ booking, fallback về ngayTraPhong từ ChiTietHoaDon.
+     */
+    private String getExpectedCheckoutDate(kqlhotel.entity.Invoice invoice, String maPhong) {
+        if (invoice == null) return "N/A";
+
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        // Thử lấy từ ChiTietDatPhong qua maDatPhong
+        if (invoice.getMaDatPhong() != null && !invoice.getMaDatPhong().isBlank()) {
+            try {
+                java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+                String sql = "SELECT ngayTraDuKien FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
+                java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, invoice.getMaDatPhong());
+                ps.setString(2, maPhong);
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next() && rs.getTimestamp("ngayTraDuKien") != null) {
+                    return rs.getTimestamp("ngayTraDuKien").toLocalDateTime().format(dtf);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Fallback: lấy từ ChiTietHoaDon (ngayTraPhong)
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            String sql = "SELECT ngayTraPhong FROM ChiTietHoaDon WHERE maHD = ? AND maPhong = ?";
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, invoice.getMaHD());
+            ps.setString(2, maPhong);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next() && rs.getTimestamp("ngayTraPhong") != null) {
+                return rs.getTimestamp("ngayTraPhong").toLocalDateTime().format(dtf);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "Chưa xác định";
     }
 
     private long parseMoney(String moneyStr) {
