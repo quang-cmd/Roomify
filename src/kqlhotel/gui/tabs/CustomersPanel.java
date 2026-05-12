@@ -321,11 +321,11 @@ public class CustomersPanel extends JPanel {
         name.setFont(new Font("Segoe UI", Font.BOLD, 18));
         name.setForeground(new Color(15, 23, 42));
 
-        JPanel meta = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        JPanel meta = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         meta.setOpaque(false);
         meta.add(createRankBadge(customer.getHangKH()));
         meta.add(Box.createHorizontalStrut(8));
-
+        
         JLabel pointsLabel = new JLabel(customer.getDiemTichLuy() + " điểm");
         pointsLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         pointsLabel.setForeground(new Color(245, 158, 11)); // Amber color
@@ -342,7 +342,7 @@ public class CustomersPanel extends JPanel {
         left.add(avatar, BorderLayout.WEST);
         left.add(text, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
 
         JButton editButton = createPrimaryButton("Sửa thông tin", "edit.png");
