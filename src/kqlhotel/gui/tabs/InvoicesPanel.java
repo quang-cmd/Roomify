@@ -666,7 +666,7 @@ public class InvoicesPanel extends JPanel {
 
             if (penalty > 0) {
                 tablePanel.add(createTRow(
-                        "Phạt trả trễ " + ct.getMaPhong(),
+                        getCheckoutFeeLabel(ct) + " " + ct.getMaPhong(),
                         "",
                         "",
                         "",
@@ -678,11 +678,11 @@ public class InvoicesPanel extends JPanel {
         }
 
         for (ServiceDetail ct : serviceDetails) {
+            String serviceRoomText = getServiceRoomText(ct);
+            String serviceName = getServiceDisplayName(ct);
+
             tablePanel.add(createTRow(
-                    "Dịch vụ: " + ct.getMaDV()
-                            + (invoicesBUS.getServiceName(ct.getMaDV()).isBlank()
-                            ? ""
-                            : " - " + invoicesBUS.getServiceName(ct.getMaDV())),
+                    "Dịch vụ " + serviceRoomText + ": " + serviceName,
                     "SL: " + ct.getSoLuong(),
                     "",
                     CurrencyUtils.formatVND(ct.getDonGia()),
@@ -706,7 +706,7 @@ public class InvoicesPanel extends JPanel {
         tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhuThu), true), "alignx right");
 
         if (tongPhiPhat > 0) {
-            tFooter.add(makeTText("Tiền phạt trả trễ", false), "alignx left");
+            tFooter.add(makeTText("Phí/phạt trả phòng", false), "alignx left");
             tFooter.add(makeTText(CurrencyUtils.formatVND(tongPhiPhat), true), "alignx right");
         }
 
@@ -1071,5 +1071,67 @@ public class InvoicesPanel extends JPanel {
         }
 
         return Math.max(0, Math.min(promotionDiscount, totalDiscount));
+    }
+
+    private String getServiceRoomText(ServiceDetail sd) {
+        if (sd == null || sd.getGhiChu() == null) {
+            return "chung";
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (!ghiChu.startsWith("ROOM:")) {
+            return "chung";
+        }
+
+        int pipeIndex = ghiChu.indexOf("|");
+
+        if (pipeIndex <= 5) {
+            return "chung";
+        }
+
+        String room = ghiChu.substring(5, pipeIndex).trim();
+
+        return "phòng " + room;
+    }
+
+    private String getServiceDisplayName(ServiceDetail sd) {
+        if (sd == null) {
+            return "";
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu != null && ghiChu.startsWith("ROOM:")) {
+            int pipeIndex = ghiChu.indexOf("|");
+
+            if (pipeIndex >= 0 && pipeIndex < ghiChu.length() - 1) {
+                return ghiChu.substring(pipeIndex + 1);
+            }
+        }
+
+        String tenDV = invoicesBUS.getServiceName(sd.getMaDV());
+
+        if (tenDV != null && !tenDV.isBlank()) {
+            return sd.getMaDV() + " - " + tenDV;
+        }
+
+        if (ghiChu != null && !ghiChu.isBlank()) {
+            return ghiChu;
+        }
+
+        return sd.getMaDV();
+    }
+
+    private String getCheckoutFeeLabel(InvoiceDetail ct) {
+        if (ct == null || ct.getNgayTraThucTe() == null || ct.getNgayTraPhong() == null) {
+            return "Phí/phạt trả phòng";
+        }
+
+        if (ct.getNgayTraThucTe().toLocalDate().isBefore(ct.getNgayTraPhong().toLocalDate())) {
+            return "Phí trả phòng sớm";
+        }
+
+        return "Phạt trả trễ";
     }
 }
