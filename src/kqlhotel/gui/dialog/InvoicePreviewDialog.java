@@ -239,28 +239,41 @@ public class InvoicePreviewDialog extends JDialog {
 
         double donGiaPhong = 0;
         double tienPhong = 0;
+        double phuThuHienThi = 0;
+        double phiPhatHienThi = 0;
 
         if (!laHoaDonHuy) {
-            tienPhong = Math.max(0, room.getThanhTien());
+            phuThuHienThi = Math.max(0, room.getPhuThu());
+            phiPhatHienThi = Math.max(0, room.getPhiPhat());
+
+            tienPhong = Math.max(
+                    0,
+                    room.getThanhTien() - phuThuHienThi - phiPhatHienThi
+            );
+
             donGiaPhong = room.getSoDem() > 0 ? tienPhong / room.getSoDem() : tienPhong;
         }
 
-// Tiền phòng riêng của phòng hiện tại
         double tongTienPhongHienThi = laHoaDonHuy ? 0 : Math.max(0, tienPhong);
 
-// Hiện tại ServiceDetail chưa tách theo mã phòng,
-// nên không lấy toàn bộ dịch vụ của hóa đơn để in lặp cho từng phòng.
-        double tongTienDichVuHienThi = 0;
+        List<ServiceDetail> roomServices = getServicesForRoom(room.getMaPhong());
 
-// VAT riêng của phòng hiện tại
+        double tongTienDichVuHienThi = laHoaDonHuy
+                ? 0
+                : roomServices.stream()
+                  .mapToDouble(ServiceDetail::getThanhTien)
+                  .sum();
+
+        double tongTinhThueHienThi = tongTienPhongHienThi
+                + phuThuHienThi
+                + phiPhatHienThi
+                + tongTienDichVuHienThi;
+
         double tienThueHienThi = laHoaDonHuy
                 ? 0
-                : (tongTienPhongHienThi + tongTienDichVuHienThi) * 0.10;
+                : tongTinhThueHienThi * 0.10;
 
-// Tổng trước giảm riêng phòng hiện tại
-        double tongTruocGiamHienThi = tongTienPhongHienThi
-                + tongTienDichVuHienThi
-                + tienThueHienThi;
+        double tongTruocGiamHienThi = tongTinhThueHienThi + tienThueHienThi;
 
         double tyLeGiamHangThanhVien = laHoaDonHuy ? 0 : getMembershipDiscountRate(kh);
         String tenHangThanhVien = laHoaDonHuy ? "Đồng" : getMembershipRankName(kh);
@@ -327,13 +340,27 @@ public class InvoicePreviewDialog extends JDialog {
         panel.add(line("Ngày trả thực tế", ngayTraThucTeText));
         panel.add(line("Số đêm", soDemText));
         panel.add(line("Đơn giá phòng", CurrencyUtils.formatVND(donGiaPhong)));
-        panel.add(line("Tiền phòng", CurrencyUtils.formatVND(tienPhong)));
+        if (phuThuHienThi > 0) {
+            panel.add(line("Phụ thu", CurrencyUtils.formatVND(phuThuHienThi)));
+        }
+
+        if (phiPhatHienThi > 0) {
+            panel.add(line(getCheckoutFeeLabel(room), CurrencyUtils.formatVND(phiPhatHienThi)));
+        }
 
         panel.add(sectionTitle("DỊCH VỤ PHÁT SINH"));
+
         if (laHoaDonHuy) {
             panel.add(line("Dịch vụ", "Đã hủy"));
-        } else {
+        } else if (roomServices.isEmpty()) {
             panel.add(line("Dịch vụ", "Không có"));
+        } else {
+            for (ServiceDetail sd : roomServices) {
+                panel.add(line(
+                        getServiceDisplayName(sd) + " x" + sd.getSoLuong(),
+                        CurrencyUtils.formatVND(sd.getThanhTien())
+                ));
+            }
         }
 
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
@@ -530,5 +557,81 @@ public class InvoicePreviewDialog extends JDialog {
         }
 
         return Math.max(0, Math.min(promotionDiscount, totalDiscount));
+    }
+
+    private List<ServiceDetail> getServicesForRoom(String maPhong) {
+        List<ServiceDetail> result = new ArrayList<>();
+
+        if (maPhong == null || maPhong.isBlank()) {
+            return result;
+        }
+
+        for (ServiceDetail sd : services) {
+            if (isServiceForRoom(sd, maPhong)) {
+                result.add(sd);
+            }
+        }
+
+        return result;
+    }
+
+    private boolean isServiceForRoom(ServiceDetail sd, String maPhong) {
+        if (sd == null || maPhong == null || maPhong.isBlank()) {
+            return false;
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu == null || ghiChu.isBlank()) {
+            return false;
+        }
+
+        if (!ghiChu.startsWith("ROOM:")) {
+            return false;
+        }
+
+        int pipeIndex = ghiChu.indexOf("|");
+
+        if (pipeIndex <= 5) {
+            return false;
+        }
+
+        String serviceRoom = ghiChu.substring(5, pipeIndex).trim();
+
+        return maPhong.equals(serviceRoom);
+    }
+
+    private String getServiceDisplayName(ServiceDetail sd) {
+        if (sd == null) {
+            return "";
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu != null && ghiChu.startsWith("ROOM:")) {
+            int pipeIndex = ghiChu.indexOf("|");
+
+            if (pipeIndex >= 0 && pipeIndex < ghiChu.length() - 1) {
+                return ghiChu.substring(pipeIndex + 1);
+            }
+        }
+
+        if (ghiChu != null && !ghiChu.isBlank()) {
+            return ghiChu;
+        }
+
+        return sd.getMaDV();
+    }
+
+    private String getCheckoutFeeLabel(InvoiceDetail room) {
+        if (room == null || room.getNgayTraThucTe() == null || room.getNgayTraPhong() == null) {
+            return "Phí/phạt trả phòng";
+        }
+
+        if (room.getNgayTraThucTe().toLocalDate().isBefore(room.getNgayTraPhong().toLocalDate())) {
+            return "Phí trả phòng sớm";
+        }
+
+        return "Phạt trả trễ";
     }
 }

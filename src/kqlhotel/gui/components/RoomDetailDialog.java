@@ -307,8 +307,11 @@ public class RoomDetailDialog extends JDialog {
         String soKhach = (invoice != null) ? (invoice.getSoLuongNguoi() + " người") : "N/A";
         long totalRoomK = (invoice != null) ? (long)invoice.getTienPhong() : parseMoney(roomPrice);
 
+        // Lấy ngày trả phòng dự kiến từ DB
+        String expectedCheckout = getExpectedCheckoutDate(invoice, roomNo);
+
         pnlBooking.add(createIconLabelDataTextOnly("Nhận phòng", checkIn, new Color(40, 160, 80), new Color(40, 120, 70)));
-        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", "Chưa trả", new Color(40, 160, 80), new Color(40, 120, 70)));
+        pnlBooking.add(createIconLabelDataTextOnly("Trả phòng", expectedCheckout, new Color(40, 160, 80), new Color(40, 120, 70)));
         pnlBooking.add(createIconLabelDataTextOnly("Số khách", soKhach, new Color(40, 160, 80), new Color(40, 120, 70)));
         pnlBooking.add(createIconLabelDataTextOnly("Tiền phòng", formatMoney(totalRoomK), new Color(40, 160, 80), new Color(40, 120, 70)));
 
@@ -522,26 +525,57 @@ public class RoomDetailDialog extends JDialog {
     }
 
     private void refreshServiceList() {
-        if (serviceListPanel == null) return;
+        if (serviceListPanel == null) {
+            return;
+        }
+
         serviceListPanel.removeAll();
+
         if (invoice != null) {
             ServiceDetailDAO dao = new ServiceDetailDAO();
             List<ServiceDetail> list = dao.getByInvoice(invoice.getMaHD());
+
+            double svcTotal = 0;
+
             for (ServiceDetail sd : list) {
-                String tenDV = (sd.getGhiChu() != null && !sd.getGhiChu().isEmpty()) ? sd.getGhiChu() : sd.getMaDV();
-                String sub = sd.getSoLuong() + " × " + formatMoney((long)sd.getDonGia());
-                serviceListPanel.add(createInvoiceItem("star.png", "🔧", tenDV, sub, formatMoney((long)sd.getThanhTien()), sd.getMaCTDV(), serviceListPanel));
+                if (!isServiceForRoom(sd, roomNo)) {
+                    continue;
+                }
+
+                String tenDV = getServiceDisplayName(sd);
+                String sub = sd.getSoLuong() + " × " + formatMoney((long) sd.getDonGia());
+
+                serviceListPanel.add(createInvoiceItem(
+                        "star.png",
+                        "🔧",
+                        tenDV,
+                        sub,
+                        formatMoney((long) sd.getThanhTien()),
+                        sd.getMaCTDV(),
+                        serviceListPanel
+                ));
                 serviceListPanel.add(createSeparator());
+
+                svcTotal += Math.max(0, sd.getThanhTien());
             }
-            // Cập nhật label tổng
-            double svcTotal = list.stream().mapToDouble(ServiceDetail::getThanhTien).sum();
-            long roomAmt = (long)invoice.getTienPhong();
-            long vatAmt = (long)((roomAmt + svcTotal) * 0.1);
-            long grandAmt = roomAmt + (long)svcTotal + vatAmt;
-            if (lblTotalServices != null) lblTotalServices.setText(formatMoney((long)svcTotal));
-            if (lblVat != null) lblVat.setText(formatMoney(vatAmt));
-            if (lblGrandTotal != null) lblGrandTotal.setText(formatMoney(grandAmt));
+
+            long roomAmt = (long) invoice.getTienPhong();
+            long vatAmt = (long) ((roomAmt + svcTotal) * 0.1);
+            long grandAmt = roomAmt + (long) svcTotal + vatAmt;
+
+            if (lblTotalServices != null) {
+                lblTotalServices.setText(formatMoney((long) svcTotal));
+            }
+
+            if (lblVat != null) {
+                lblVat.setText(formatMoney(vatAmt));
+            }
+
+            if (lblGrandTotal != null) {
+                lblGrandTotal.setText(formatMoney(grandAmt));
+            }
         }
+
         serviceListPanel.revalidate();
         serviceListPanel.repaint();
     }
@@ -697,7 +731,9 @@ public class RoomDetailDialog extends JDialog {
             sd.setSoLuong(qty[0]);
             sd.setDonGia(s.getDonGia());
             sd.setThanhTien(s.getDonGia() * qty[0]);
-            sd.setGhiChu(s.getTenDV());
+
+            // Không sửa database: dùng ghiChu để đánh dấu dịch vụ thuộc phòng nào
+            sd.setGhiChu("ROOM:" + roomNo + "|" + s.getTenDV());
             if (new ServiceDetailDAO().insert(sd)) {
                 combo.setSelectedIndex(0); qty[0] = 1;
                 detailPnl.setVisible(false);
@@ -830,6 +866,50 @@ public class RoomDetailDialog extends JDialog {
         return footer;
     }
 
+    /**
+     * Lấy ngày trả phòng dự kiến từ bảng ChiTietDatPhong.
+     * Ưu tiên ngayTraDuKien từ booking, fallback về ngayTraPhong từ ChiTietHoaDon.
+     */
+    private String getExpectedCheckoutDate(kqlhotel.entity.Invoice invoice, String maPhong) {
+        if (invoice == null) return "N/A";
+
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        // Thử lấy từ ChiTietDatPhong qua maDatPhong
+        if (invoice.getMaDatPhong() != null && !invoice.getMaDatPhong().isBlank()) {
+            try {
+                java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+                String sql = "SELECT ngayTraDuKien FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?";
+                java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, invoice.getMaDatPhong());
+                ps.setString(2, maPhong);
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next() && rs.getTimestamp("ngayTraDuKien") != null) {
+                    return rs.getTimestamp("ngayTraDuKien").toLocalDateTime().format(dtf);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Fallback: lấy từ ChiTietHoaDon (ngayTraPhong)
+        try {
+            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            String sql = "SELECT ngayTraPhong FROM ChiTietHoaDon WHERE maHD = ? AND maPhong = ?";
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, invoice.getMaHD());
+            ps.setString(2, maPhong);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next() && rs.getTimestamp("ngayTraPhong") != null) {
+                return rs.getTimestamp("ngayTraPhong").toLocalDateTime().format(dtf);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "Chưa xác định";
+    }
+
     private long parseMoney(String moneyStr) {
         try {
             return Long.parseLong(moneyStr.replaceAll("[^0-9]", ""));
@@ -859,5 +939,53 @@ public class RoomDetailDialog extends JDialog {
             }
         } catch (Exception e) {}
         return null;
+    }
+
+    private boolean isServiceForRoom(ServiceDetail sd, String maPhong) {
+        if (sd == null || maPhong == null || maPhong.isBlank()) {
+            return false;
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu == null || ghiChu.isBlank()) {
+            return false;
+        }
+
+        if (!ghiChu.startsWith("ROOM:")) {
+            return false;
+        }
+
+        int pipeIndex = ghiChu.indexOf("|");
+
+        if (pipeIndex <= 5) {
+            return false;
+        }
+
+        String serviceRoom = ghiChu.substring(5, pipeIndex).trim();
+
+        return maPhong.equals(serviceRoom);
+    }
+
+    private String getServiceDisplayName(ServiceDetail sd) {
+        if (sd == null) {
+            return "";
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu != null && ghiChu.startsWith("ROOM:")) {
+            int pipeIndex = ghiChu.indexOf("|");
+
+            if (pipeIndex >= 0 && pipeIndex < ghiChu.length() - 1) {
+                return ghiChu.substring(pipeIndex + 1);
+            }
+        }
+
+        if (ghiChu != null && !ghiChu.isBlank()) {
+            return ghiChu;
+        }
+
+        return sd.getMaDV();
     }
 }

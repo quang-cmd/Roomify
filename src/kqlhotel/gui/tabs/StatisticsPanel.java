@@ -384,6 +384,10 @@ public class StatisticsPanel extends JPanel {
         return row;
     }
 
+    public void refresh() {
+        loadData();
+    }
+
     // ============================== DATA LOADING ==============================
     private void loadData() {
         try {

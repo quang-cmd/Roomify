@@ -20,14 +20,13 @@ public class EditRoomDialog extends JDialog {
     private JTextField tfRoomId;
     private JTextField tfFloor;
     private JComboBox<RoomTypeWrapper> cbRoomType;
-    private JTextField tfDeposit;
     private JComboBox<String> cbStatus;
     private JLabel lblPrice, lblArea, lblCapacity;
     private JLabel lblError;
     private List<RoomType> roomTypeList;
 
     public EditRoomDialog(Window owner, Phong currentRoom, PhongBUS roomBUS, Runnable onSuccess) {
-        super(owner, "Edit Room", ModalityType.APPLICATION_MODAL);
+        super(owner, "Chỉnh sửa phòng", ModalityType.APPLICATION_MODAL);
         this.roomBUS = roomBUS;
         this.currentRoom = currentRoom;
         this.onSuccess = onSuccess;
@@ -63,7 +62,6 @@ public class EditRoomDialog extends JDialog {
     private void populateData() {
         tfRoomId.setText(currentRoom.getRoomId());
         tfFloor.setText(String.valueOf(currentRoom.getFloor()));
-        tfDeposit.setText(String.valueOf(currentRoom.getDeposit() != null ? currentRoom.getDeposit().longValue() : 0));
 
         for (int i = 0; i < cbRoomType.getItemCount(); i++) {
             if (cbRoomType.getItemAt(i).roomType.getRoomTypeId().equals(currentRoom.getRoomType().getRoomTypeId())) {
@@ -80,9 +78,9 @@ public class EditRoomDialog extends JDialog {
         RoomTypeWrapper wrapper = (RoomTypeWrapper) cbRoomType.getSelectedItem();
         if (wrapper != null) {
             RoomType rt = wrapper.roomType;
-            lblPrice.setText(String.format("%,.0f USD/night", rt.getPrice()));
+            lblPrice.setText(String.format("%,.0f VNĐ/đêm", rt.getPrice()));
             lblArea.setText(rt.getArea() + " m²");
-            lblCapacity.setText(rt.getMaxCapacity() + " guests");
+            lblCapacity.setText(rt.getMaxCapacity() + " khách");
         }
     }
 
@@ -99,7 +97,7 @@ public class EditRoomDialog extends JDialog {
         };
         header.setOpaque(false);
 
-        JLabel title = new JLabel("Edit Room " + currentRoom.getRoomId());
+        JLabel title = new JLabel("Chỉnh sửa phòng " + currentRoom.getRoomId());
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(Color.WHITE);
 
@@ -128,8 +126,8 @@ public class EditRoomDialog extends JDialog {
         JPanel form = new JPanel(new MigLayout("wrap 2, insets 24 28 8 28, gap 14 12", "[grow,fill][grow,fill]", "[]"));
         form.setOpaque(false);
 
-        form.add(label("Room ID (Read-only)", false));
-        form.add(label("Floor", true));
+        form.add(label("Mã phòng (Chỉ đọc)", false));
+        form.add(label("Tầng", true));
         tfRoomId = styledField();
         tfRoomId.setEditable(false);
         tfRoomId.setForeground(Color.GRAY);
@@ -137,7 +135,7 @@ public class EditRoomDialog extends JDialog {
         form.add(tfRoomId, "h 38!");
         form.add(tfFloor, "h 38!");
 
-        form.add(label("Room Type", true), "span 2");
+        form.add(label("Loại phòng", true), "span 2");
         cbRoomType = new JComboBox<>();
         form.add(cbRoomType, "span 2, h 38!");
 
@@ -145,23 +143,20 @@ public class EditRoomDialog extends JDialog {
         infoArea.setBackground(new Color(248, 250, 252));
         infoArea.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
 
-        lblPrice = infoLabel("0 USD");
+        lblPrice = infoLabel("0 VNĐ");
         lblArea = infoLabel("0 m²");
-        lblCapacity = infoLabel("0 guests");
+        lblCapacity = infoLabel("0 khách");
 
-        infoArea.add(infoItem("Price:", lblPrice));
-        infoArea.add(infoItem("Area:", lblArea));
-        infoArea.add(infoItem("Capacity:", lblCapacity));
+        infoArea.add(infoItem("Giá:", lblPrice));
+        infoArea.add(infoItem("Diện tích:", lblArea));
+        infoArea.add(infoItem("Sức chứa:", lblCapacity));
         form.add(infoArea, "span 2, growx");
 
-        form.add(label("Deposit (USD)", false));
-        form.add(label("Status", true));
+        form.add(label("Trạng thái", true), "span 2");
 
-        tfDeposit = styledField();
-        cbStatus = new JComboBox<>(new String[]{"Vacant", "Occupied", "Maintenance"});
+        cbStatus = new JComboBox<>(new String[]{"Trống", "Đang sử dụng", "Bảo trì"});
 
-        form.add(tfDeposit, "h 38!");
-        form.add(cbStatus, "h 38!");
+        form.add(cbStatus, "span 2, h 38!");
 
         return form;
     }
@@ -181,7 +176,7 @@ public class EditRoomDialog extends JDialog {
         footer.setOpaque(false);
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
 
-        JButton btnCancel = new JButton("Cancel");
+        JButton btnCancel = new JButton("Hủy");
         btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnCancel.setForeground(new Color(100, 116, 139));
         btnCancel.setBackground(Color.WHITE);
@@ -193,7 +188,7 @@ public class EditRoomDialog extends JDialog {
         ));
         btnCancel.addActionListener(e -> dispose());
 
-        PrimaryButton btnConfirm = new PrimaryButton("Save Changes");
+        PrimaryButton btnConfirm = new PrimaryButton("Lưu thay đổi");
         btnConfirm.setBackground(new Color(15, 23, 42));
         btnConfirm.setForeground(Color.WHITE);
         btnConfirm.addActionListener(e -> onConfirm());
@@ -210,7 +205,7 @@ public class EditRoomDialog extends JDialog {
         RoomTypeWrapper wrapper = (RoomTypeWrapper) cbRoomType.getSelectedItem();
 
         if (id.isEmpty() || floorStr.isEmpty() || wrapper == null) {
-            lblError.setText("⚠ Please fill in all required fields.");
+            lblError.setText("⚠ Vui lòng điền đầy đủ các trường bắt buộc.");
             return;
         }
 
@@ -218,32 +213,21 @@ public class EditRoomDialog extends JDialog {
         try {
             floor = Integer.parseInt(floorStr);
         } catch (NumberFormatException e) {
-            lblError.setText("⚠ Floor must be an integer.");
+            lblError.setText("⚠ Tầng phải là số nguyên.");
             return;
-        }
-
-        Double deposit = 0.0;
-        String depositStr = tfDeposit.getText().trim();
-        if (!depositStr.isEmpty()) {
-            try {
-                deposit = Double.parseDouble(depositStr);
-            } catch (NumberFormatException e) {
-                lblError.setText("⚠ Invalid deposit amount.");
-                return;
-            }
         }
 
         String guiStatus = (String) cbStatus.getSelectedItem();
         String dbStatus = roomBUS.mapGuiStatusToDbStatus(guiStatus);
 
         RoomType rt = wrapper.roomType;
-        Room r = new Room(id, deposit, rt, floor, dbStatus);
+        Room r = new Room(id, 0.0, rt, floor, dbStatus);
 
         if (roomBUS.updateRoom(r)) {
             if (onSuccess != null) onSuccess.run();
             dispose();
         } else {
-            lblError.setText("⚠ Update failed.");
+            lblError.setText("⚠ Cập nhật thất bại.");
         }
     }
 

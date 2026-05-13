@@ -6,6 +6,7 @@ import kqlhotel.dao.invoice.ServiceDetailDAO;
 import kqlhotel.dao.promotion.PromotionDAO;
 import kqlhotel.dao.room.RoomDAO;
 import kqlhotel.dao.room.RoomTypeDAO;
+import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.Promotion;
@@ -280,9 +281,13 @@ public class CheckoutBUS {
         List<ServiceDetail> services = serviceDetailDAO.getByInvoice(hd.getMaHD());
         double serviceFee = 0;
 
+        boolean hasRoomFilter = roomCodes != null && !roomCodes.isEmpty();
+
         if (services != null) {
             for (ServiceDetail sd : services) {
-                serviceFee += sd.getThanhTien();
+                if (!hasRoomFilter || isServiceForRooms(sd, roomCodes)) {
+                    serviceFee += Math.max(0, sd.getThanhTien());
+                }
             }
         }
 
@@ -409,9 +414,43 @@ public class CheckoutBUS {
         if (actualIn == null) actualIn = LocalDateTime.now();
         if (actualOut == null) actualOut = LocalDateTime.now();
 
-        int actualNights = ct.getSoDem();
+        int actualNights = (int) ChronoUnit.DAYS.between(
+                actualIn.toLocalDate(),
+                actualOut.toLocalDate()
+        );
+
         if (actualNights < 1) {
             actualNights = 1;
+        }
+
+        /*
+         * Nhận phòng quá sớm:
+         * Nếu nhận trước ngày dự kiến thì số ngày ở thực tế đã bao gồm rồi.
+         * Nếu cùng ngày nhưng trước 5h sáng thì cộng thêm 1 đêm.
+         */
+        if (expectedIn != null && actualIn.isBefore(expectedIn)) {
+            if (actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())
+                    && actualIn.getHour() < 5) {
+                actualNights += 1;
+            }
+        }
+
+        /*
+         * Trả phòng trễ:
+         * Nếu trả trễ khác ngày thì số ngày thực tế đã bao gồm rồi.
+         * Nếu cùng ngày nhưng trễ hơn 6 tiếng thì cộng thêm 1 đêm.
+         */
+        if (expectedOut != null && actualOut.isAfter(expectedOut)
+                && actualOut.toLocalDate().isEqual(expectedOut.toLocalDate())) {
+
+            int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
+            int actualMinutesOfDay = actualOut.getHour() * 60 + actualOut.getMinute();
+
+            int lateMinutesInDay = actualMinutesOfDay - expectedMinutes;
+
+            if (lateMinutesInDay > 6 * 60) {
+                actualNights += 1;
+            }
         }
 
         if (expectedOut != null && actualOut != null && actualOut.isAfter(expectedOut)) {
@@ -466,8 +505,11 @@ public class CheckoutBUS {
         double taxableRoomFee = roomFee;
 
         double lateCheckoutPenalty = calculateLateCheckoutPenalty(expectedOut, actualOut, pricePerNight);
+        double earlyCheckoutPenalty = calculateEarlyCheckoutPenalty(expectedOut, actualOut, pricePerNight);
 
-        return new RoomCharge(actualNights, roomFee, surcharge, taxableRoomFee, lateCheckoutPenalty);
+        double checkoutPenalty = lateCheckoutPenalty + earlyCheckoutPenalty;
+
+        return new RoomCharge(actualNights, roomFee, surcharge, taxableRoomFee, checkoutPenalty);
     }
 
     private double getBookingRoomPrice(String maDatPhong, String maPhong) {
@@ -563,27 +605,29 @@ public class CheckoutBUS {
             return 0;
         }
 
+        // Nếu trả trễ khác ngày, số đêm thực tế đã tự tăng theo ngày rồi,
+        // không phạt thêm 50% nữa.
+        if (!actualOut.toLocalDate().isEqual(expectedOut.toLocalDate())) {
+            return 0;
+        }
+
         int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
         int actualMinutes = actualOut.getHour() * 60 + actualOut.getMinute();
 
         int lateMinutesInDay = actualMinutes - expectedMinutes;
 
-        // Trả trước hoặc đúng giờ trong ngày cuối
         if (lateMinutesInDay <= 0) {
             return 0;
         }
 
-        // Trễ từ 1 tiếng trở xuống: không phạt
         if (lateMinutesInDay <= 60) {
             return 0;
         }
 
-        // Trễ hơn 6 tiếng: đã cộng thêm 1 đêm ở calculateRoomCharge()
         if (lateMinutesInDay > 6 * 60) {
             return 0;
         }
 
-        // Trễ hơn 1 tiếng và trong vòng 6 tiếng: phạt 50% giá 1 đêm
         return pricePerNight * 0.50;
     }
 
@@ -826,7 +870,24 @@ public class CheckoutBUS {
             return true;
         }
 
+        if (method == null || method.isBlank()) {
+            method = "TienMat";
+        }
+
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+
+        String maPC = new ShiftBUS().getOpenShiftIdByStaff(maNV);
+
+        // Trả phòng phải thuộc ca đang mở của nhân viên hiện tại.
+        // Nếu không có ca mở thì không cho lưu thanh toán.
+        if (maPC == null || maPC.isBlank()) {
+            return false;
+        }
+
         String sqlMax = "SELECT MAX(maTT) AS maxMaTT FROM ThanhToan";
+
         String sqlInsert = """
         INSERT INTO ThanhToan
         (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV)
@@ -837,10 +898,12 @@ public class CheckoutBUS {
             java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
 
             String newMaTT = "TT001";
+
             try (java.sql.PreparedStatement ps = con.prepareStatement(sqlMax);
                  java.sql.ResultSet rs = ps.executeQuery()) {
+
                 if (rs.next() && rs.getString("maxMaTT") != null) {
-                    String max = rs.getString("maxMaTT"); // VD: TT055
+                    String max = rs.getString("maxMaTT");
                     int num = Integer.parseInt(max.substring(2)) + 1;
                     newMaTT = String.format("TT%03d", num);
                 }
@@ -854,7 +917,7 @@ public class CheckoutBUS {
                 ps.setString(5, method);
                 ps.setString(6, "ThanhToanThanhCong");
                 ps.setString(7, hd.getMaHD());
-                ps.setString(8, "PC005");
+                ps.setString(8, maPC);
                 ps.setString(9, maNV);
 
                 return ps.executeUpdate() > 0;
@@ -937,6 +1000,52 @@ public class CheckoutBUS {
             return ps.executeUpdate() > 0 ? points : 0;
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    private boolean isServiceForRooms(ServiceDetail sd, List<String> roomCodes) {
+        if (sd == null) {
+            return false;
+        }
+
+        if (roomCodes == null || roomCodes.isEmpty()) {
+            return true;
+        }
+
+        String ghiChu = sd.getGhiChu();
+
+        if (ghiChu == null || ghiChu.isBlank()) {
+            return false;
+        }
+
+        if (!ghiChu.startsWith("ROOM:")) {
+            return false;
+        }
+
+        int pipeIndex = ghiChu.indexOf("|");
+
+        if (pipeIndex <= 5) {
+            return false;
+        }
+
+        String serviceRoom = ghiChu.substring(5, pipeIndex).trim();
+
+        return roomCodes.contains(serviceRoom);
+    }
+
+    private double calculateEarlyCheckoutPenalty(LocalDateTime expectedOut,
+                                                 LocalDateTime actualOut,
+                                                 double pricePerNight) {
+        if (expectedOut == null || actualOut == null || pricePerNight <= 0) {
+            return 0;
+        }
+
+        // Chỉ tính phí trả phòng sớm nếu khách trả trước NGÀY trả dự kiến.
+        // Ví dụ dự kiến trả 09/05 nhưng thực tế trả 07/05.
+        if (actualOut.toLocalDate().isBefore(expectedOut.toLocalDate())) {
+            return pricePerNight;
         }
 
         return 0;
