@@ -10,7 +10,8 @@ public class CreateBookingCommand {
 
     private final LocalDate checkInDate;
     private final LocalDate checkOutDate;
-    private final int totalGuests;
+    private final int adults;
+    private final int children;
     private final List<GuestInfoDto> guestInfos;
     private final List<RoomOptionDto> selectedRooms;
     private final long totalAmount;
@@ -21,17 +22,19 @@ public class CreateBookingCommand {
     public CreateBookingCommand(
         LocalDate checkInDate,
         LocalDate checkOutDate,
-        int totalGuests,
+        int adults,
+        int children,
         List<GuestInfoDto> guestInfos,
         List<RoomOptionDto> selectedRooms
     ) {
-        this(checkInDate, checkOutDate, totalGuests, guestInfos, selectedRooms, 0L, 1.0, "TienMat", "");
+        this(checkInDate, checkOutDate, adults, children, guestInfos, selectedRooms, 0L, 1.0, "TienMat", "");
     }
 
     public CreateBookingCommand(
         LocalDate checkInDate,
         LocalDate checkOutDate,
-        int totalGuests,
+        int adults,
+        int children,
         List<GuestInfoDto> guestInfos,
         List<RoomOptionDto> selectedRooms,
         long totalAmount,
@@ -41,7 +44,8 @@ public class CreateBookingCommand {
     ) {
         this.checkInDate = checkInDate;
         this.checkOutDate = checkOutDate;
-        this.totalGuests = totalGuests;
+        this.adults = adults;
+        this.children = children;
         this.guestInfos = guestInfos;
         this.selectedRooms = selectedRooms;
         this.totalAmount = totalAmount;
@@ -82,8 +86,12 @@ public class CreateBookingCommand {
         return checkOutDate;
     }
 
-    public int getTotalGuests() {
-        return totalGuests;
+    public int getAdults() {
+        return adults;
+    }
+
+    public int getChildren() {
+        return children;
     }
 
     public List<GuestInfoDto> getGuestInfos() {

@@ -5,5 +5,6 @@ import java.util.List;
 import kqlhotel.entity.RoomEntity;
 
 public interface RoomDao {
-    List<RoomEntity> findAvailableRooms(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int guests);
+    List<String> findAllRoomTypes();
+    List<RoomEntity> findAvailableRooms(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int adults);
 }

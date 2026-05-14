@@ -12,5 +12,6 @@ public interface CheckInDAO {
     String getInvoiceIdByBooking(String maDatPhong) throws Exception;
     boolean hasInvoiceDetails(String maHD) throws Exception;
     List<Object[]> getReservedRooms(String maDatPhong) throws Exception;
+    String getInvoiceStatus(String maHD) throws Exception;
     void executeCheckInTransaction(String maHD, List<RoomCheckInCommand> rooms, BigDecimal totalRoom) throws Exception;
 }

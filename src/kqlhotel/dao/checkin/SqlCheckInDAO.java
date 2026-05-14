@@ -151,6 +151,20 @@ public class SqlCheckInDAO implements CheckInDAO {
     }
 
     @Override
+    public String getInvoiceStatus(String maHD) throws Exception {
+        Connection con = openConnection();
+        if (con == null) throw new SQLException("Không thể kết nối CSDL.");
+        String sql = "SELECT trangThai FROM HoaDon WHERE maHD = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("trangThai");
+            }
+        }
+        return null;
+    }
+
+    @Override
     public List<Object[]> getReservedRooms(String maDatPhong) throws Exception {
         Connection con = openConnection();
         if (con == null) throw new SQLException("Không thể kết nối CSDL.");

@@ -14,8 +14,23 @@ import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.RoomEntity;
 
 public class RoomDaoSqlServer implements RoomDao {
+    @Override
+    public List<String> findAllRoomTypes() {
+        List<String> types = new ArrayList<>();
+        String sql = "SELECT tenLoaiPhong FROM LoaiPhong ORDER BY tenLoaiPhong";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             java.sql.Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                types.add(rs.getString("tenLoaiPhong"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return types;
+    }
     private static final String SQL_FIND_AVAILABLE =
-        "SELECT lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi, " +
+        "SELECT lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.soTreEmToiDa, lp.tienNghi, " +
         "SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) AS soPhongTrong, " +
         "COUNT(DISTINCT p.maPhong) AS tongSoPhong " +
         "FROM LoaiPhong lp " +
@@ -24,12 +39,12 @@ public class RoomDaoSqlServer implements RoomDao {
         "AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien " +
         "AND EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDatPhong = ctdp.maDatPhong AND hd.trangThai = 'ChuaThanhToan') " +
         "WHERE (? = 1 OR lp.tenLoaiPhong LIKE ?) " +
-        "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.tienNghi " +
+        "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa, lp.soTreEmToiDa, lp.tienNghi " +
         "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 " +
         "ORDER BY lp.giaPhong ASC";
 
     @Override
-    public List<RoomEntity> findAvailableRooms(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int guests) {
+    public List<RoomEntity> findAvailableRooms(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int adults) {
         if (checkInDate == null || checkOutDate == null) {
             return Collections.emptyList();
         }
@@ -55,6 +70,7 @@ public class RoomDaoSqlServer implements RoomDao {
                     row.setRoomType(rs.getString("tenLoaiPhong"));
                     row.setNightlyPrice(rs.getLong("giaPhong"));
                     row.setMaxGuests(rs.getInt("sucChuaToiDa"));
+                    row.setMaxChildren(rs.getInt("soTreEmToiDa"));
                     row.setAvailableRooms(rs.getInt("soPhongTrong"));
                     row.setTotalRooms(rs.getInt("tongSoPhong"));
                     row.setAmenities(splitAmenities(rs.getString("tienNghi")));

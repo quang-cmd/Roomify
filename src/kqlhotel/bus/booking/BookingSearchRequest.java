@@ -6,13 +6,15 @@ public class BookingSearchRequest {
     private final String roomType;
     private final LocalDate checkInDate;
     private final LocalDate checkOutDate;
-    private final int guests;
+    private final int adults;
+    private final int children;
 
-    public BookingSearchRequest(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int guests) {
+    public BookingSearchRequest(String roomType, LocalDate checkInDate, LocalDate checkOutDate, int adults, int children) {
         this.roomType = roomType;
         this.checkInDate = checkInDate;
         this.checkOutDate = checkOutDate;
-        this.guests = guests;
+        this.adults = adults;
+        this.children = children;
     }
 
     public String getRoomType() {
@@ -27,7 +29,11 @@ public class BookingSearchRequest {
         return checkOutDate;
     }
 
-    public int getGuests() {
-        return guests;
+    public int getAdults() {
+        return adults;
+    }
+
+    public int getChildren() {
+        return children;
     }
 }

@@ -48,6 +48,15 @@ public class SqlCheckInService implements CheckInService {
                 return CheckInResult.fail("Chưa có hóa đơn cho booking này.");
             }
 
+            // Validate trạng thái hóa đơn
+            String trangThai = checkInDAO.getInvoiceStatus(maHD);
+            if ("DaHuy".equals(trangThai)) {
+                return CheckInResult.fail("Booking này đã bị hủy (Hóa đơn: " + maHD + "). Không thể nhận phòng.");
+            }
+            if (trangThai == null) {
+                return CheckInResult.fail("Không tìm thấy hóa đơn hợp lệ cho booking này.");
+            }
+
             if (checkInDAO.hasInvoiceDetails(maHD)) {
                 return CheckInResult.fail("Booking này đã nhận phòng trước đó.");
             }
