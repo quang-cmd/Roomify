@@ -7,6 +7,7 @@ public class RoomEntity {
     private String roomType;
     private long nightlyPrice;
     private int maxGuests;
+    private int maxChildren;
     private int availableRooms;
     private int totalRooms;
     private List<String> amenities;
@@ -41,6 +42,14 @@ public class RoomEntity {
 
     public void setMaxGuests(int maxGuests) {
         this.maxGuests = maxGuests;
+    }
+
+    public int getMaxChildren() {
+        return maxChildren;
+    }
+
+    public void setMaxChildren(int maxChildren) {
+        this.maxChildren = maxChildren;
     }
 
     public int getAvailableRooms() {

@@ -63,7 +63,16 @@ public class CheckInPanel extends BackgroundPanel {
         // Default: arrivals expected today
         LocalDate today = LocalDate.now();
         fromPicker.setSelectedDate(today);
+        fromPicker.setMinDate(today);
         toPicker.setSelectedDate(today);
+        toPicker.setMinDate(today);
+
+        fromPicker.addDateChangeListener(() -> {
+            LocalDate from = fromPicker.getSelectedDate();
+            if (from != null) {
+                toPicker.setMinDate(from);
+            }
+        });
         reload();
     }
 
@@ -105,7 +114,9 @@ public class CheckInPanel extends BackgroundPanel {
         PrimaryButton refreshBtn = new PrimaryButton("Hôm nay");
         refreshBtn.addActionListener(e -> {
             LocalDate today = LocalDate.now();
+            fromPicker.setMinDate(today);
             fromPicker.setSelectedDate(today);
+            toPicker.setMinDate(today);
             toPicker.setSelectedDate(today);
             keywordField.setText("");
             reload();

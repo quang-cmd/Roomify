@@ -58,6 +58,7 @@ public class AppFrame extends JFrame {
     private CheckoutPanel checkoutPanel;
     private ShiftOpeningPanel shiftPanel;
     private LoginPanel loginPanel;
+    private CancelRoomPanel cancelRoomPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -78,6 +79,9 @@ public class AppFrame extends JFrame {
         transitionTimer = new Timer(700, e -> {
             if (pendingCardName != null) {
                 rootCards.show(rootPanel, pendingCardName);
+                if (pendingCardName.equals("app") && cancelRoomPanel != null) {
+                    cancelRoomPanel.autoExpireOverdueDepositBookings();
+                }
                 pendingCardName = null;
             }
         });
@@ -111,7 +115,8 @@ public class AppFrame extends JFrame {
         checkoutPanel = new CheckoutPanel();
         screenPanel.add(checkoutPanel, "checkout");
 
-        screenPanel.add(new CancelRoomPanel(), "cancel-room");
+        cancelRoomPanel = new CancelRoomPanel();
+        screenPanel.add(cancelRoomPanel, "cancel-room");
 
         roomManagementPanel = new RoomManagementPanel();
         screenPanel.add(roomManagementPanel, "room-management");
@@ -364,6 +369,7 @@ public class AppFrame extends JFrame {
             case "promotions": return "promotions.png";
             case "invoices": return "invoices.png";
             case "statistics": return "statistics.png";
+            case "dashboard": return "dashboard.png";
             default: return null;
         }
     }
@@ -424,74 +430,7 @@ public class AppFrame extends JFrame {
         JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][][][]", "[]"));
         panel.setOpaque(false);
 
-        // Notification bell with badge
-        JPanel bellWrap = new JPanel(null);
-        bellWrap.setOpaque(false);
-        bellWrap.setPreferredSize(new Dimension(40, 36));
 
-        JPanel bellCircle = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(ThemeColors.SURFACE_HOVER);
-                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        bellCircle.setOpaque(false);
-        bellCircle.setLayout(new BorderLayout());
-        bellCircle.setBounds(2, 2, 34, 34);
-        
-        JLabel bellLbl = new JLabel();
-        ImageIcon bellPNG = loadMenuIcon("bell.png", 18, 18);
-        if (bellPNG != null) {
-            bellLbl.setIcon(bellPNG);
-        } else {
-            bellLbl.setText("\u25CE");
-            bellLbl.setForeground(ThemeColors.TEXT_SECONDARY);
-            bellLbl.setFont(bellLbl.getFont().deriveFont(16f));
-            bellLbl.setHorizontalAlignment(SwingConstants.CENTER);
-        }
-        bellCircle.add(bellLbl);
-
-        // Red badge "2"
-        JPanel badge = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(ThemeColors.DANGER);
-                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        badge.setOpaque(false);
-        badge.setLayout(null);
-        badge.setBounds(24, 0, 16, 16);
-        JLabel badgeLbl = new JLabel("2", SwingConstants.CENTER);
-        badgeLbl.setForeground(Color.WHITE);
-        badgeLbl.setFont(badgeLbl.getFont().deriveFont(Font.BOLD, 9f));
-        badgeLbl.setBounds(0, 0, 16, 16);
-        badgeLbl.setVerticalAlignment(SwingConstants.CENTER);
-        badge.add(badgeLbl);
-
-        bellWrap.add(badge);
-        bellWrap.add(bellCircle);
-        bellWrap.setComponentZOrder(badge, 0);
-
-        // Separator
-        JPanel sep = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                g.setColor(ThemeColors.BORDER_SOFT);
-                g.drawLine(0, 4, 0, getHeight() - 4);
-            }
-        };
-        sep.setOpaque(false);
-        sep.setPreferredSize(new Dimension(1, 30));
 
         // User info
         JPanel userArea = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill]", "[]"));
@@ -543,8 +482,7 @@ public class AppFrame extends JFrame {
         logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t kh\u1ecfi h\u1ec7 th\u1ed1ng");
         logoutBtn.addActionListener(e -> logout());
 
-        panel.add(bellWrap, "w 36!,h 36!,aligny center");
-        panel.add(sep, "aligny center");
+
         panel.add(userArea, "aligny center");
         panel.add(closeShiftBtn, "aligny center,gapleft 8");
         panel.add(logoutBtn, "aligny center,gapleft 4");

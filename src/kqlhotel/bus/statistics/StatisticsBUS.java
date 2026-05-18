@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import kqlhotel.dao.statistics.StatisticsDAO;
+import kqlhotel.entity.statistics.ExpenseRecord;
 import kqlhotel.entity.statistics.HotelKpiPoint;
 import kqlhotel.entity.statistics.KpiSummary;
 import kqlhotel.entity.statistics.OccupancyPoint;
@@ -32,10 +33,11 @@ public class StatisticsBUS {
         LocalDateTime end = LocalDateTime.now();
         LocalDateTime start = end.minusDays(daysBack);
         double revenue   = dao.getRevenue(start, end);
+        double expenses = dao.getManualExpenses(start, end) + dao.getSalaryExpenses(start.toLocalDate(), end.toLocalDate());
         int totalRooms   = dao.countTotalRooms();
         int occupied     = dao.countOccupiedRooms();
         int totalBookings = dao.countBookings(start, end);
-        return new KpiSummary(revenue, totalRooms, occupied, totalBookings);
+        return new KpiSummary(revenue, expenses, totalRooms, occupied, totalBookings);
     }
 
     public List<RevenuePoint> loadMonthlyRevenue() {
@@ -68,6 +70,14 @@ public class StatisticsBUS {
     /** Toàn bộ booking gần đây cho dialog "Xem tất cả" (cap 1000 trong DAO). */
     public List<RecentBooking> loadAllRecentBookings() {
         return dao.getAllRecentBookings();
+    }
+
+    public int loadUpcomingCheckInRooms(LocalDate date) {
+        return dao.countUpcomingCheckInRooms(date);
+    }
+
+    public int loadUpcomingCheckInBookings(LocalDate date) {
+        return dao.countUpcomingCheckInBookings(date);
     }
 
     /**
@@ -134,10 +144,35 @@ public class StatisticsBUS {
 
     public KpiSummary loadKpis(LocalDate start, LocalDate end) {
         double revenue = dao.getRevenue(start.atStartOfDay(), end.plusDays(1).atStartOfDay());
+        double expenses = loadExpenses(start, end);
         int totalRooms = dao.countTotalRooms();
         int occupied = dao.countOccupiedRooms();
         int totalBookings = dao.countBookings(start.atStartOfDay(), end.plusDays(1).atStartOfDay());
-        return new KpiSummary(revenue, totalRooms, occupied, totalBookings);
+        return new KpiSummary(revenue, expenses, totalRooms, occupied, totalBookings);
+    }
+
+    public double loadExpenses(LocalDate start, LocalDate end) {
+        return loadManualExpenses(start, end) + dao.getSalaryExpenses(start, end);
+    }
+
+    public double loadManualExpenses(LocalDate start, LocalDate end) {
+        return dao.getManualExpenses(start.atStartOfDay(), end.plusDays(1).atStartOfDay());
+    }
+
+    public double loadSalaryExpenses(LocalDate start, LocalDate end) {
+        return dao.getSalaryExpenses(start, end);
+    }
+
+    public List<ExpenseRecord> loadExpenses() {
+        return dao.getExpenses();
+    }
+
+    public boolean addExpense(String type, String name, double amount, LocalDate date, String note) {
+        return dao.addExpense(type, name, amount, date.atStartOfDay(), note);
+    }
+
+    public boolean deleteExpense(int id) {
+        return dao.deleteExpense(id);
     }
 
     public double loadAdr(LocalDate start, LocalDate end) {
@@ -154,12 +189,26 @@ public class StatisticsBUS {
 
     public List<RevenuePoint> loadRevenueByRange(LocalDate start, LocalDate end) {
         long days = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+        List<RevenuePoint> points;
+        java.util.Map<String, Double> expenses;
+        
         if (days <= 30) {
-            return dao.getDailyRevenue(start, end);
+            points = dao.getDailyRevenue(start, end);
+            expenses = dao.getDailyManualExpenses(start, end);
         } else {
             // Nếu > 30 ngày, group theo tháng
-            return dao.getMonthlyRevenue((int) (days / 30) + 1);
+            points = dao.getMonthlyRevenue(start, end);
+            expenses = dao.getMonthlyManualExpenses(start, end);
         }
+
+        double totalSalary = dao.getSalaryExpenses(start, end);
+        double salaryPerPoint = points.isEmpty() ? 0 : totalSalary / points.size();
+
+        for (RevenuePoint p : points) {
+            double manual = expenses.getOrDefault(p.getLabel(), 0.0);
+            p.setProfit(p.getRevenue() - manual - salaryPerPoint);
+        }
+        return points;
     }
 
     public List<OccupancyPoint> loadOccupancyTrend(LocalDate start, LocalDate end) {

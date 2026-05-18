@@ -32,6 +32,11 @@ public class SqlBookingService implements BookingService {
     }
 
     @Override
+    public List<String> getRoomTypes() {
+        return roomDao.findAllRoomTypes();
+    }
+
+    @Override
     public List<RoomOptionDto> searchAvailableRooms(BookingSearchRequest request) {
         if (request == null || request.getCheckInDate() == null || request.getCheckOutDate() == null) {
             return Collections.emptyList();
@@ -41,7 +46,7 @@ public class SqlBookingService implements BookingService {
             request.getRoomType(),
             request.getCheckInDate(),
             request.getCheckOutDate(),
-            request.getGuests()
+            request.getAdults()
         );
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
@@ -54,6 +59,7 @@ public class SqlBookingService implements BookingService {
                 row.getRoomType(),
                 row.getNightlyPrice(),
                 row.getMaxGuests(),
+                row.getMaxChildren(),
                 status,
                 row.getAvailableRooms(),
                 row.getAmenities()
@@ -78,6 +84,7 @@ public class SqlBookingService implements BookingService {
         }
 
         long totalAmount = roomTotalPerNight * nights;
+
         return new BookingSelectionSummary(selectedRooms.size(), nights, totalAmount);
     }
 
@@ -96,6 +103,25 @@ public class SqlBookingService implements BookingService {
             || !command.getCheckOutDate().isAfter(command.getCheckInDate())) {
             return fail("Ngay nhan/tra phong khong hop le.");
         }
+
+        int adults = command.getAdults();
+        int children = command.getChildren();
+        int sumAdultCapacity = 0;
+        int sumChildrenCapacity = 0;
+        int numberOfRooms = command.getSelectedRooms().size();
+        for (RoomOptionDto option : command.getSelectedRooms()) {
+             sumAdultCapacity += option.getMaxGuests();
+             sumChildrenCapacity += option.getMaxChildren();
+        }
+        
+        if (children > sumChildrenCapacity) {
+             return fail("Số lượng trẻ em (" + children + ") vượt quá quy định tối đa (" + sumChildrenCapacity + " bé/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
+        }
+        
+        if (adults > sumAdultCapacity) {
+             return fail("Số lượng người lớn (" + adults + ") vượt quá quy định tối đa (" + sumAdultCapacity + " người/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
+        }
+
         double ratio = command.getPaymentRatio();
         if (Double.isNaN(ratio) || Double.isInfinite(ratio) || ratio <= 0 || ratio > 1.0) {
             return fail("Ti le thanh toan khong hop le (phai trong khoang 0 < ratio <= 1).");
@@ -158,7 +184,9 @@ public class SqlBookingService implements BookingService {
             long tienPhong = command.getTotalAmount();
             if (tienPhong <= 0) {
                 long perNight = 0;
-                for (RoomOptionDto r : command.getSelectedRooms()) perNight += r.getNightlyPrice();
+                for (RoomOptionDto r : command.getSelectedRooms()) {
+                    perNight += r.getNightlyPrice();
+                }
                 tienPhong = perNight * nights;
             }
             long tongTien = tienPhong; // no service / promo / tax for now
@@ -181,7 +209,8 @@ public class SqlBookingService implements BookingService {
 
             // 5. Insert ChiTietDatPhong for each allocated room (composite PK, no maCTDP column)
             int numRooms = allocatedRoomIds.size();
-            int guestsPerRoom = Math.max(1, (int) Math.ceil((double) command.getTotalGuests() / numRooms));
+            int totalPeople = command.getAdults() + command.getChildren();
+            int guestsPerRoom = Math.max(1, (int) Math.ceil((double) totalPeople / numRooms));
 
             String insertCtdp = "INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?)";
             for (int i = 0; i < allocatedRoomIds.size(); i++) {
@@ -193,7 +222,7 @@ public class SqlBookingService implements BookingService {
                     ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
                     ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
                     ps.setBigDecimal(5, java.math.BigDecimal.valueOf(unitPrice));
-                    ps.setInt(6, Math.min(guestsPerRoom, Math.max(1, command.getTotalGuests())));
+                    ps.setInt(6, Math.min(guestsPerRoom, Math.max(1, totalPeople)));
                     ps.setString(7, "");
                     ps.executeUpdate();
                 }
@@ -212,7 +241,7 @@ public class SqlBookingService implements BookingService {
                     ps.setNull(3, java.sql.Types.TIMESTAMP);
                 }
                 ps.setString(4, command.isFullyPaid() ? "Thanh toan 100% khi dat phong" : "Dat coc 30% khi dat phong");
-                ps.setInt(5, Math.max(1, command.getTotalGuests()));
+                ps.setInt(5, Math.max(1, totalPeople));
                 ps.setBigDecimal(6, java.math.BigDecimal.valueOf(tienPhong));
                 ps.setBigDecimal(7, java.math.BigDecimal.valueOf(tongTien));
                 ps.setString(8, leadCustomerId);

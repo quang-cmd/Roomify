@@ -19,16 +19,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javax.swing.BorderFactory;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import kqlhotel.bus.statistics.StatisticsBUS;
+import kqlhotel.entity.statistics.ExpenseRecord;
 import kqlhotel.entity.statistics.HotelKpiPoint;
 import kqlhotel.entity.statistics.KpiSummary;
 import kqlhotel.entity.statistics.OccupancyPoint;
@@ -63,6 +66,10 @@ public class StatisticsPanel extends JPanel {
     // KPI labels — cập nhật bởi loadData()
     // 4 KPI chuẩn ngành khách sạn: Doanh thu, ADR, RevPAR, TrevPAR
     private final JLabel kpiRevenueValue = new JLabel("--");
+    private final JLabel kpiExpenseValue = new JLabel("--");
+    private final JLabel kpiExpenseSub   = new JLabel("Chờ dữ liệu");
+    private final JLabel kpiProfitValue  = new JLabel("--");
+    private final JLabel kpiProfitSub    = new JLabel("Chờ dữ liệu");
     private final JLabel kpiRevenueSub   = new JLabel("Chờ dữ liệu");
     private final JLabel kpiAdrValue     = new JLabel("--");
     private final JLabel kpiAdrSub       = new JLabel("Chờ dữ liệu");
@@ -95,7 +102,7 @@ public class StatisticsPanel extends JPanel {
 
     // ============================== HEADER ==============================
     private JPanel createTopHeader() {
-        JPanel top = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][][][][][]", "[]"));
+        JPanel top = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[grow,fill][][][][][][]", "[]"));
         top.setOpaque(false);
 
         JLabel leftHint = new JLabel("Bộ lọc báo cáo");
@@ -130,11 +137,17 @@ public class StatisticsPanel extends JPanel {
             );
         });
 
+        PrimaryButton expenseBtn = new PrimaryButton("Quản lý Chi phí");
+        expenseBtn.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
+        expenseBtn.setForeground(ThemeColors.PREMIUM_TEXT_SECONDARY);
+        expenseBtn.addActionListener(e -> showExpenseManagerDialog());
+
         top.add(leftHint, "growx,pushx,aligny center");
         top.add(fromLabel, "aligny center");
         top.add(fromDatePicker, "w 120!,h 32!");
         top.add(toLabel, "aligny center");
         top.add(toDatePicker, "w 120!,h 32!");
+        top.add(expenseBtn, "h 38!");
         top.add(exportBtn, "h 38!");
 
         return top;
@@ -147,9 +160,9 @@ public class StatisticsPanel extends JPanel {
         row.setOpaque(false);
 
         row.add(kpiCard("Doanh thu", kpiRevenueValue, kpiRevenueSub));
+        row.add(kpiCard("Chi phí",   kpiExpenseValue, kpiExpenseSub));
+        row.add(kpiCard("Lợi nhuận", kpiProfitValue,  kpiProfitSub));
         row.add(kpiCard("ADR",       kpiAdrValue,     kpiAdrSub));
-        row.add(kpiCard("RevPAR",    kpiRevparValue,  kpiRevparSub));
-        row.add(kpiCard("TrevPAR",   kpiTrevparValue, kpiTrevparSub));
 
         return row;
     }
@@ -290,6 +303,130 @@ public class StatisticsPanel extends JPanel {
     }
 
     /** Mở dialog modal với JTable + JScrollPane nội bộ để browse toàn bộ booking. */
+    private void showExpenseManagerDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog dlg = new JDialog(owner instanceof Frame ? (Frame) owner : null, "Quản lý Chi phí", true);
+        dlg.setSize(1100, 600);
+        dlg.setMinimumSize(new java.awt.Dimension(1000, 560));
+        dlg.setLocationRelativeTo(owner);
+        dlg.setLayout(new MigLayout("insets 14,gap 10,fill", "[grow,fill]", "[][grow,fill][]"));
+
+        String[] cols = {"ID", "Loại", "Tên chi phí", "Số tiền", "Ngày", "Ghi chú"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        table.setRowHeight(28);
+        table.setAutoCreateRowSorter(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setFocusable(false);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new java.awt.Dimension(0, 0));
+        table.getTableHeader().setFont(table.getTableHeader().getFont().deriveFont(Font.BOLD, 13f));
+        reloadExpenseTable(model);
+
+        JLabel title = new JLabel("Danh sách chi phí nhập tay");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setForeground(new Color(14, 30, 62));
+        dlg.add(title, "wrap");
+        dlg.add(new JScrollPane(table), "grow,wrap");
+
+        JPanel form = new JPanel(new MigLayout("insets 0,gap 8,fillx", "[][150!][][grow,fill][][130!][][110!][]", "[]"));
+        form.setOpaque(false);
+        JComboBox<String> typeCombo = new JComboBox<>(new String[] {"Điện nước", "Vật tư", "Khác"});
+        JTextField nameField = new JTextField();
+        JTextField amountField = new JTextField();
+        DatePicker datePicker = new DatePicker();
+        datePicker.setSelectedDate(LocalDate.now());
+        JTextField noteField = new JTextField();
+        Runnable clearTableSelection = () -> table.clearSelection();
+        typeCombo.addActionListener(e -> clearTableSelection.run());
+        nameField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) { clearTableSelection.run(); }
+        });
+        amountField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) { clearTableSelection.run(); }
+        });
+        noteField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) { clearTableSelection.run(); }
+        });
+        datePicker.addDateChangeListener(clearTableSelection);
+
+        PrimaryButton addBtn = new PrimaryButton("Thêm");
+        addBtn.setBackground(ThemeColors.PREMIUM_PRIMARY);
+        addBtn.setForeground(Color.WHITE);
+        PrimaryButton deleteBtn = new PrimaryButton("Xóa");
+        deleteBtn.setBackground(new Color(239, 68, 68));
+        deleteBtn.setForeground(Color.WHITE);
+
+        form.add(new JLabel("Loại"));
+        form.add(typeCombo, "h 34!");
+        form.add(new JLabel("Tên"));
+        form.add(nameField, "h 34!");
+        form.add(new JLabel("Số tiền"));
+        form.add(amountField, "h 34!");
+        form.add(new JLabel("Ngày"));
+        form.add(datePicker, "h 34!");
+        form.add(addBtn, "h 34!,wrap");
+        form.add(new JLabel("Ghi chú"));
+        form.add(noteField, "span 7,growx,h 34!");
+        form.add(deleteBtn, "h 34!");
+        dlg.add(form, "growx");
+
+        addBtn.addActionListener(e -> {
+            String name = nameField.getText().trim();
+            double amount = parseMoneyInput(amountField.getText());
+            if (name.isEmpty() || amount <= 0 || datePicker.getSelectedDate() == null) {
+                JOptionPane.showMessageDialog(dlg, "Vui lòng nhập tên, số tiền > 0 và ngày chi.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            boolean ok = bus.addExpense((String) typeCombo.getSelectedItem(), name, amount, datePicker.getSelectedDate(), noteField.getText().trim());
+            if (!ok) {
+                JOptionPane.showMessageDialog(dlg, "Không thêm được chi phí. Kiểm tra bảng ChiPhi trong CSDL.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            nameField.setText("");
+            amountField.setText("");
+            noteField.setText("");
+            reloadExpenseTable(model);
+            loadData();
+        });
+
+        deleteBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(dlg, "Chọn một dòng chi phí cần xóa.", "Chưa chọn dòng", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int modelRow = table.convertRowIndexToModel(row);
+            int id = ((Number) model.getValueAt(modelRow, 0)).intValue();
+            boolean ok = bus.deleteExpense(id);
+            if (!ok) {
+                JOptionPane.showMessageDialog(dlg, "Không xóa được chi phí.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            reloadExpenseTable(model);
+            loadData();
+        });
+
+        dlg.setVisible(true);
+    }
+
+    private void reloadExpenseTable(DefaultTableModel model) {
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        model.setRowCount(0);
+        for (ExpenseRecord item : bus.loadExpenses()) {
+            model.addRow(new Object[] {
+                item.getId(),
+                item.getType(),
+                item.getName(),
+                formatVnd(item.getAmount()),
+                item.getDate() == null ? "" : item.getDate().format(df),
+                item.getNote() == null ? "" : item.getNote()
+            });
+        }
+    }
+
     private void showAllRecentBookingsDialog() {
         Window owner = SwingUtilities.getWindowAncestor(this);
         JDialog dlg = new JDialog(owner instanceof Frame ? (Frame) owner : null,
@@ -400,6 +537,12 @@ public class StatisticsPanel extends JPanel {
             KpiSummary kpi = bus.loadKpis(startDate, endDate);
 
             kpiRevenueValue.setText(formatVnd(kpi.getRevenue()));
+            double manualExpenses = bus.loadManualExpenses(startDate, endDate);
+            double salaryExpenses = bus.loadSalaryExpenses(startDate, endDate);
+            kpiExpenseValue.setText(formatVnd(kpi.getExpenses()));
+            kpiExpenseSub.setText("Lương: " + formatVnd(salaryExpenses) + " | Khác: " + formatVnd(manualExpenses));
+            kpiProfitValue.setText(formatVnd(kpi.getProfit()));
+            kpiProfitSub.setText("Biên lợi nhuận: " + formatPercent(kpi.getRevenue() == 0 ? 0 : kpi.getProfit() / kpi.getRevenue()));
             kpiRevenueSub.setText("Trong " + rangeLabel);
 
             kpiAdrValue.setText(formatVnd(bus.loadAdr(startDate, endDate)));
@@ -466,6 +609,25 @@ public class StatisticsPanel extends JPanel {
         if (v >= 1_000_000_000) return String.format("%.2f tỷ", v / 1_000_000_000.0);
         if (v >= 1_000_000)     return String.format("%.1f tr", v / 1_000_000.0);
         return moneyFormat.format(v) + " đ";
+    }
+
+    private String formatPercent(double value) {
+        return String.format(Locale.forLanguageTag("vi-VN"), "%.1f%%", value * 100);
+    }
+
+    private double parseMoneyInput(String raw) {
+        if (raw == null) {
+            return 0;
+        }
+        String cleaned = raw.replaceAll("[^0-9]", "");
+        if (cleaned.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Double.parseDouble(cleaned);
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     // ============================== INNER CHART CLASSES ==============================

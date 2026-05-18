@@ -9,18 +9,28 @@ package kqlhotel.entity.statistics;
  */
 public class KpiSummary {
     private final double revenue;
+    private final double expenses;
+    private final double profit;
     private final int totalRooms;
     private final int occupiedRooms;
     private final int totalBookings;
 
     public KpiSummary(double revenue, int totalRooms, int occupiedRooms, int totalBookings) {
+        this(revenue, 0, totalRooms, occupiedRooms, totalBookings);
+    }
+
+    public KpiSummary(double revenue, double expenses, int totalRooms, int occupiedRooms, int totalBookings) {
         this.revenue = revenue;
+        this.expenses = expenses;
+        this.profit = revenue - expenses;
         this.totalRooms = totalRooms;
         this.occupiedRooms = occupiedRooms;
         this.totalBookings = totalBookings;
     }
 
     public double getRevenue()       { return revenue; }
+    public double getExpenses()      { return expenses; }
+    public double getProfit()        { return profit; }
     public int    getTotalRooms()    { return totalRooms; }
     public int    getOccupiedRooms() { return occupiedRooms; }
     public int    getTotalBookings() { return totalBookings; }

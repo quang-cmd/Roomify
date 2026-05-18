@@ -20,6 +20,7 @@ public class DatePicker extends JPanel {
     
     private final JLabel lblMonthYear;
     private final JPanel daysPanel;
+    private LocalDate minDate;
 
     public DatePicker() {
         setLayout(new BorderLayout());
@@ -114,6 +115,13 @@ public class DatePicker extends JPanel {
         updateCalendar();
     }
     
+    public void setMinDate(LocalDate minDate) {
+        this.minDate = minDate;
+        if (selectedDate != null && minDate != null && selectedDate.isBefore(minDate)) {
+            setSelectedDate(minDate);
+        }
+    }
+
     private void updateCalendar() {
         lblMonthYear.setText(currentMonth.getMonthValue() + "/" + currentMonth.getYear());
         daysPanel.removeAll();
@@ -134,35 +142,43 @@ public class DatePicker extends JPanel {
             LocalDate thisDate = currentMonth.atDay(day);
             JLabel l = new JLabel(String.valueOf(day), SwingConstants.CENTER);
             l.setOpaque(true);
-            l.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            
-            if (thisDate.equals(selectedDate)) {
-                l.setBackground(ThemeColors.ACCENT);
-                l.setForeground(Color.WHITE);
-            } else {
+
+            boolean disabled = (minDate != null && thisDate.isBefore(minDate));
+
+            if (disabled) {
+                l.setForeground(new Color(200, 200, 200));
                 l.setBackground(Color.WHITE);
-                l.setForeground(new Color(50, 65, 80));
+                l.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            } else {
+                l.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                if (thisDate.equals(selectedDate)) {
+                    l.setBackground(ThemeColors.ACCENT);
+                    l.setForeground(Color.WHITE);
+                } else {
+                    l.setBackground(Color.WHITE);
+                    l.setForeground(new Color(50, 65, 80));
+                }
+                
+                l.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        selectedDate = thisDate;
+                        textDateField.setText(selectedDate.format(dtf));
+                        popupMenu.setVisible(false);
+                        notifyDateChanged();
+                    }
+                    
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        if (!thisDate.equals(selectedDate)) l.setBackground(new Color(240, 245, 250));
+                    }
+                    
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        if (!thisDate.equals(selectedDate)) l.setBackground(Color.WHITE);
+                    }
+                });
             }
-            
-            l.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    selectedDate = thisDate;
-                    textDateField.setText(selectedDate.format(dtf));
-                    popupMenu.setVisible(false);
-                    notifyDateChanged();
-                }
-                
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    if (!thisDate.equals(selectedDate)) l.setBackground(new Color(240, 245, 250));
-                }
-                
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    if (!thisDate.equals(selectedDate)) l.setBackground(Color.WHITE);
-                }
-            });
             daysPanel.add(l);
         }
         

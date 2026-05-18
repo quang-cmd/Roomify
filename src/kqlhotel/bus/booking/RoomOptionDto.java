@@ -6,14 +6,16 @@ public class RoomOptionDto {
     private final String roomType;
     private final long nightlyPrice;
     private final int maxGuests;
+    private final int maxChildren;
     private final String status;
     private final int availableRooms;
     private final List<String> amenities;
 
-    public RoomOptionDto(String roomType, long nightlyPrice, int maxGuests, String status, int availableRooms, List<String> amenities) {
+    public RoomOptionDto(String roomType, long nightlyPrice, int maxGuests, int maxChildren, String status, int availableRooms, List<String> amenities) {
         this.roomType = roomType;
         this.nightlyPrice = nightlyPrice;
         this.maxGuests = maxGuests;
+        this.maxChildren = maxChildren;
         this.status = status;
         this.availableRooms = availableRooms;
         this.amenities = amenities;
@@ -29,6 +31,10 @@ public class RoomOptionDto {
 
     public int getMaxGuests() {
         return maxGuests;
+    }
+
+    public int getMaxChildren() {
+        return maxChildren;
     }
 
     public String getStatus() {
