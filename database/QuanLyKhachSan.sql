@@ -17,6 +17,7 @@ IF OBJECT_ID('dbo.Phong', 'U')          IS NOT NULL DROP TABLE dbo.Phong;
 IF OBJECT_ID('dbo.LoaiPhong', 'U')      IS NOT NULL DROP TABLE dbo.LoaiPhong;
 IF OBJECT_ID('dbo.KhuyenMai', 'U')      IS NOT NULL DROP TABLE dbo.KhuyenMai;
 IF OBJECT_ID('dbo.DichVu', 'U')         IS NOT NULL DROP TABLE dbo.DichVu;
+IF OBJECT_ID('dbo.ChiPhi', 'U')         IS NOT NULL DROP TABLE dbo.ChiPhi;
 IF OBJECT_ID('dbo.CaLam', 'U')          IS NOT NULL DROP TABLE dbo.CaLam;
 IF OBJECT_ID('dbo.KhachHang', 'U')      IS NOT NULL DROP TABLE dbo.KhachHang;
 IF OBJECT_ID('dbo.NhanVien', 'U')       IS NOT NULL DROP TABLE dbo.NhanVien;
@@ -87,6 +88,16 @@ CREATE TABLE PhanCongCa (
 );
 GO
 
+CREATE TABLE ChiPhi (
+    maChiPhi   INT IDENTITY(1,1) PRIMARY KEY,
+    loaiChiPhi NVARCHAR(50)      NOT NULL,
+    tenChiPhi  NVARCHAR(255)     NOT NULL,
+    soTien     DECIMAL(18,0)     NOT NULL CHECK (soTien >= 0),
+    ngayChi    DATETIME2         NOT NULL,
+    ghiChu     NVARCHAR(500)     NULL
+);
+GO
+
 -- =====================================================================
 -- 3. Loai phong / Phong
 -- =====================================================================
@@ -96,6 +107,7 @@ CREATE TABLE LoaiPhong (
     soLuongPhong INT            NOT NULL CHECK (soLuongPhong >= 0),
     giaPhong     DECIMAL(18,2)  NOT NULL CHECK (giaPhong >= 0),
     sucChuaToiDa INT            NOT NULL CHECK (sucChuaToiDa > 0),
+    soTreEmTD    INT            NOT NULL DEFAULT 0 CHECK (soTreEmTD >= 0),
     dienTich     DECIMAL(10,2)  NOT NULL CHECK (dienTich > 0),
     moTa         NVARCHAR(255)  NULL,
     tienNghi     NVARCHAR(255)  NULL
@@ -264,6 +276,8 @@ CREATE INDEX IX_CTHD_ngayNhan        ON ChiTietHoaDon(ngayNhanPhong);
 CREATE INDEX IX_CTDV_maHD            ON ChiTietDichVu(maHD);
 CREATE INDEX IX_ThanhToan_maHD       ON ThanhToan(maHD);
 CREATE INDEX IX_ThanhToan_maPC       ON ThanhToan(maPC);
+CREATE INDEX IX_ChiPhi_ngayChi       ON ChiPhi(ngayChi);
+CREATE INDEX IX_ChiPhi_loaiChiPhi    ON ChiPhi(loaiChiPhi);
 
 -- Filtered unique index: email phai unique khi co gia tri, nhung cho phep nhieu NULL
 CREATE UNIQUE INDEX UX_KhachHang_email ON KhachHang(email) WHERE email IS NOT NULL;
@@ -318,13 +332,13 @@ INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES
 GO
 
 -- ----- LoaiPhong (6 loai) + Phong (12 phong) -----
-INSERT INTO LoaiPhong (maLoaiPhong, tenLoaiPhong, soLuongPhong, giaPhong, sucChuaToiDa, dienTich, moTa, tienNghi) VALUES
-('LP001', N'Standard',  2,  500000.00, 2, 22.00, N'Phong tieu chuan 1 giuong doi',          N'Wifi, May lanh, TV'),
-('LP002', N'Superior',  2,  750000.00, 2, 26.00, N'Phong superior co cua so',                N'Wifi, May lanh, TV, Minibar'),
-('LP003', N'Deluxe',    2, 1000000.00, 3, 32.00, N'Phong deluxe huong thanh pho',            N'Wifi, May lanh, TV, Minibar, Bon tam'),
-('LP004', N'Family',    2, 1500000.00, 4, 42.00, N'Phong gia dinh 2 giuong',                 N'Wifi, May lanh, TV, Minibar, Bon tam, Bep nho'),
-('LP005', N'Suite',     2, 2200000.00, 4, 55.00, N'Suite cao cap voi phong khach rieng',     N'Wifi, May lanh, TV, Minibar, Bon tam, Phong khach'),
-('LP006', N'VIP',       2, 3500000.00, 6, 80.00, N'Phong VIP huong bien, view dep nhat',     N'Full tien nghi, Bon tam jacuzzi, Sky bar');
+INSERT INTO LoaiPhong (maLoaiPhong, tenLoaiPhong, soLuongPhong, giaPhong, sucChuaToiDa, soTreEmTD, dienTich, moTa, tienNghi) VALUES
+('LP001', N'Standard',  2,  500000.00, 2, 1, 22.00, N'Phong tieu chuan 1 giuong doi',          N'Wifi, May lanh, TV'),
+('LP002', N'Superior',  2,  750000.00, 2, 1, 26.00, N'Phong superior co cua so',                N'Wifi, May lanh, TV, Minibar'),
+('LP003', N'Deluxe',    2, 1000000.00, 3, 1, 32.00, N'Phong deluxe huong thanh pho',            N'Wifi, May lanh, TV, Minibar, Bon tam'),
+('LP004', N'Family',    2, 1500000.00, 4, 2, 42.00, N'Phong gia dinh 2 giuong',                 N'Wifi, May lanh, TV, Minibar, Bon tam, Bep nho'),
+('LP005', N'Suite',     2, 2200000.00, 4, 2, 55.00, N'Suite cao cap voi phong khach rieng',     N'Wifi, May lanh, TV, Minibar, Bon tam, Phong khach'),
+('LP006', N'VIP',       2, 3500000.00, 6, 3, 80.00, N'Phong VIP huong bien, view dep nhat',     N'Full tien nghi, Bon tam jacuzzi, Sky bar');
 GO
 
 INSERT INTO Phong (maPhong, maLoaiPhong, tang, trangThaiPhong) VALUES
@@ -499,6 +513,15 @@ INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT
 ('TT013', '2026-04-19 13:25', 1683000.00, N'Thanh toan 100%',      'TienMat',     'ThanhToanThanhCong', 'HD010', NULL,    'NV002');
 GO
 
+-- ----- ChiPhi -----
+INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu) VALUES
+(N'Dien nuoc', N'Tien dien thang 4',       3200000, '2026-04-25 09:00', N'Thanh toan hoa don dien'),
+(N'Dien nuoc', N'Tien nuoc thang 4',       1150000, '2026-04-25 09:10', N'Thanh toan hoa don nuoc'),
+(N'Vat tu',    N'Mua khan tam va ga giuong', 2800000, '2026-04-18 15:30', N'Bo sung vat tu phong'),
+(N'Vat tu',    N'Mua do dung ve sinh',      950000, '2026-04-20 10:00', N'Nuoc lau san, xa phong, tui rac'),
+(N'Khac',      N'Sua may lanh phong P104', 1800000, '2026-04-22 14:00', N'Bao tri phong dang sua chua');
+GO
+
 -- =====================================================================
 -- 10. KIEM TRA NHANH (chay sau khi import)
 -- =====================================================================
@@ -514,6 +537,7 @@ UNION ALL SELECT 'DichVu',           COUNT(*) FROM DichVu
 UNION ALL SELECT 'KhuyenMai',        COUNT(*) FROM KhuyenMai
 UNION ALL SELECT 'DatPhong',         COUNT(*) FROM DatPhong
 UNION ALL SELECT 'ChiTietDatPhong',  COUNT(*) FROM ChiTietDatPhong
+UNION ALL SELECT 'ChiPhi',           COUNT(*) FROM ChiPhi
 UNION ALL SELECT 'HoaDon',           COUNT(*) FROM HoaDon
 UNION ALL SELECT 'ChiTietHoaDon',    COUNT(*) FROM ChiTietHoaDon
 UNION ALL SELECT 'ChiTietDichVu',    COUNT(*) FROM ChiTietDichVu

@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.entity.statistics.ExpenseRecord;
 import kqlhotel.entity.statistics.HotelKpiPoint;
 import kqlhotel.entity.statistics.OccupancyPoint;
 import kqlhotel.entity.statistics.RecentBooking;
@@ -72,6 +73,149 @@ public class StatisticsDAO {
         return 0;
     }
 
+    public int countUpcomingCheckInRooms(LocalDate date) {
+        String sql =
+            "SELECT COUNT(*) " +
+            "FROM ChiTietDatPhong ctdp " +
+            "JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
+            "  AND hd.trangThai = 'ChuaThanhToan'";
+        return countDateRangeQuery(sql, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+    }
+
+    public int countUpcomingCheckInBookings(LocalDate date) {
+        String sql =
+            "SELECT COUNT(DISTINCT ctdp.maDatPhong) " +
+            "FROM ChiTietDatPhong ctdp " +
+            "JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
+            "  AND hd.trangThai = 'ChuaThanhToan'";
+        return countDateRangeQuery(sql, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+    }
+
+    private int countDateRangeQuery(String sql, LocalDateTime start, LocalDateTime end) {
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start));
+            ps.setTimestamp(2, Timestamp.valueOf(end));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.countDateRangeQuery: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public double getManualExpenses(LocalDateTime start, LocalDateTime end) {
+        if (!chiPhiTableExists()) {
+            return 0;
+        }
+        String sql =
+            "SELECT COALESCE(SUM(soTien), 0) AS total " +
+            "FROM ChiPhi " +
+            "WHERE ngayChi >= ? AND ngayChi < ?";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start));
+            ps.setTimestamp(2, Timestamp.valueOf(end));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble("total");
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getManualExpenses: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public double getSalaryExpenses(LocalDate start, LocalDate end) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+        if (days <= 0) {
+            return 0;
+        }
+        String sql =
+            "SELECT COALESCE(SUM(luong), 0) AS monthlySalary " +
+            "FROM NhanVien nv " +
+            "JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap " +
+            "WHERE tk.trangThaiTK = 'DangHoatDong'";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                return (rs.getDouble("monthlySalary") / 30.0) * days;
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getSalaryExpenses: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public List<ExpenseRecord> getExpenses() {
+        List<ExpenseRecord> list = new ArrayList<>();
+        if (!chiPhiTableExists()) {
+            return list;
+        }
+        String sql =
+            "SELECT maChiPhi, loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu " +
+            "FROM ChiPhi ORDER BY maChiPhi ASC";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                Timestamp ts = rs.getTimestamp("ngayChi");
+                list.add(new ExpenseRecord(
+                    rs.getInt("maChiPhi"),
+                    rs.getString("loaiChiPhi"),
+                    rs.getString("tenChiPhi"),
+                    rs.getDouble("soTien"),
+                    ts == null ? null : ts.toLocalDateTime(),
+                    rs.getString("ghiChu")
+                ));
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getExpenses: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public boolean addExpense(String type, String name, double amount, LocalDateTime date, String note) {
+        if (!chiPhiTableExists()) {
+            return false;
+        }
+        String sql = "INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu) VALUES (?, ?, ?, ?, ?)";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, type);
+            ps.setString(2, name);
+            ps.setBigDecimal(3, java.math.BigDecimal.valueOf(amount));
+            ps.setTimestamp(4, Timestamp.valueOf(date));
+            ps.setString(5, note);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.addExpense: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deleteExpense(int id) {
+        if (!chiPhiTableExists()) {
+            return false;
+        }
+        String sql = "DELETE FROM ChiPhi WHERE maChiPhi = ?";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.deleteExpense: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean chiPhiTableExists() {
+        return countQuery("SELECT CASE WHEN OBJECT_ID('dbo.ChiPhi', 'U') IS NULL THEN 0 ELSE 1 END") == 1;
+    }
+
     private int countQuery(String sql) {
         try (Connection con = ConnectDB.getInstance().getConnection();
              Statement st = con.createStatement();
@@ -129,6 +273,51 @@ public class StatisticsDAO {
     }
 
     /**
+     * Doanh thu theo tháng trong khoảng [start, end].
+     */
+    public List<RevenuePoint> getMonthlyRevenue(LocalDate start, LocalDate end) {
+        Map<String, Double> buckets = new LinkedHashMap<>();
+        LocalDate cur = start.withDayOfMonth(1);
+        LocalDate endCur = end.withDayOfMonth(1);
+        while (!cur.isAfter(endCur)) {
+            buckets.put(String.format("%02d/%02d", cur.getMonthValue(), cur.getYear() % 100), 0.0);
+            cur = cur.plusMonths(1);
+        }
+
+        LocalDateTime startBound = start.atStartOfDay();
+        LocalDateTime endBound   = end.plusDays(1).atStartOfDay();
+
+        String sql =
+            "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
+            "       SUM(tongTienThanhToan) AS total " +
+            "FROM HoaDon " +
+            "WHERE " + REVENUE_COND + " " +
+            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
+            "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(startBound));
+            ps.setTimestamp(2, Timestamp.valueOf(endBound));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String key = String.format("%02d/%02d", rs.getInt("mo"), rs.getInt("yr") % 100);
+                    if (buckets.containsKey(key)) {
+                        buckets.put(key, rs.getDouble("total"));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getMonthlyRevenue(start, end): " + e.getMessage());
+        }
+
+        List<RevenuePoint> result = new ArrayList<>(buckets.size());
+        for (Map.Entry<String, Double> e : buckets.entrySet()) {
+            result.add(new RevenuePoint(e.getKey(), e.getValue()));
+        }
+        return result;
+    }
+
+    /**
      * Doanh thu theo ngày trong khoảng [start, end].
      * Ngày không có dữ liệu vẫn xuất hiện với revenue = 0.
      */
@@ -169,6 +358,59 @@ public class StatisticsDAO {
             result.add(new RevenuePoint(e.getKey(), e.getValue()));
         }
         return result;
+    }
+
+    public Map<String, Double> getDailyManualExpenses(LocalDate start, LocalDate end) {
+        Map<String, Double> buckets = new LinkedHashMap<>();
+        if (!chiPhiTableExists()) return buckets;
+
+        String sql =
+            "SELECT CAST(ngayChi AS DATE) AS dt, SUM(soTien) AS total " +
+            "FROM ChiPhi " +
+            "WHERE ngayChi >= ? AND ngayChi < ? " +
+            "GROUP BY CAST(ngayChi AS DATE)";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate dt = rs.getDate("dt").toLocalDate();
+                    String key = String.format("%02d/%02d", dt.getDayOfMonth(), dt.getMonthValue());
+                    buckets.put(key, rs.getDouble("total"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getDailyManualExpenses: " + e.getMessage());
+        }
+        return buckets;
+    }
+
+    public Map<String, Double> getMonthlyManualExpenses(LocalDate start, LocalDate end) {
+        Map<String, Double> buckets = new LinkedHashMap<>();
+        if (!chiPhiTableExists()) return buckets;
+
+        String sql =
+            "SELECT YEAR(ngayChi) AS yr, MONTH(ngayChi) AS mo, SUM(soTien) AS total " +
+            "FROM ChiPhi " +
+            "WHERE ngayChi >= ? AND ngayChi < ? " +
+            "GROUP BY YEAR(ngayChi), MONTH(ngayChi)";
+
+        try (Connection con = ConnectDB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String key = String.format("%02d/%02d", rs.getInt("mo"), rs.getInt("yr") % 100);
+                    buckets.put(key, rs.getDouble("total"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("StatisticsDAO.getMonthlyManualExpenses: " + e.getMessage());
+        }
+        return buckets;
     }
 
     public List<RoomTypeShare> getRoomTypeDistribution() {

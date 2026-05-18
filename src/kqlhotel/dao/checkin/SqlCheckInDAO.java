@@ -170,10 +170,10 @@ public class SqlCheckInDAO implements CheckInDAO {
         if (con == null) throw new SQLException("Không thể kết nối CSDL.");
         List<Object[]> list = new ArrayList<>();
         String sql =
-                "SELECT maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat " +
-                        "FROM ChiTietDatPhong " +
-                        "WHERE maDatPhong = ? " +
-                        "ORDER BY maPhong";
+                "SELECT c.maPhong, c.ngayNhanDuKien, c.ngayTraDuKien, c.donGiaDat, p.trangThaiPhong " +
+                        "FROM ChiTietDatPhong c JOIN Phong p ON c.maPhong = p.maPhong " +
+                        "WHERE c.maDatPhong = ? " +
+                        "ORDER BY c.maPhong";
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maDatPhong);
@@ -183,7 +183,8 @@ public class SqlCheckInDAO implements CheckInDAO {
                             rs.getString("maPhong"),
                             rs.getTimestamp("ngayNhanDuKien"),
                             rs.getTimestamp("ngayTraDuKien"),
-                            rs.getBigDecimal("donGiaDat")
+                            rs.getBigDecimal("donGiaDat"),
+                            rs.getString("trangThaiPhong")
                     });
                 }
             }

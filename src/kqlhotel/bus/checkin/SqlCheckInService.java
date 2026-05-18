@@ -78,6 +78,15 @@ public class SqlCheckInService implements CheckInService {
                     "Chưa đến ngày nhận phòng. Ngày nhận phòng dự kiến: "
                     + earliest.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".");
             }
+
+            // Validate: phòng phải ở trạng thái trống
+            for (Object[] row : reservedRooms) {
+                String maPhong = (String) row[0];
+                String trangThaiPhong = row.length > 4 ? (String) row[4] : "Trong"; // Fallback in case of mock/old data
+                if (!"Trong".equals(trangThaiPhong)) {
+                    return CheckInResult.fail("Phòng " + maPhong + " hiện không trống (Trạng thái: " + trangThaiPhong + "). Vui lòng đợi khách cũ trả phòng hoặc đổi phòng.");
+                }
+            }
             
             BigDecimal totalRoom = BigDecimal.ZERO;
             List<RoomCheckInCommand> commands = new ArrayList<>();
@@ -130,7 +139,7 @@ public class SqlCheckInService implements CheckInService {
             return BigDecimal.ZERO;
         }
         if (time.isBefore(EARLY_CHECKIN_START)) {
-            return BigDecimal.ZERO;
+            return nightlyRate;
         }
         if (!time.isBefore(EARLY_CHECKIN_50)) {
             return nightlyRate.multiply(BigDecimal.valueOf(0.3));
