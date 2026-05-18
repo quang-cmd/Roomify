@@ -21,7 +21,8 @@ public class SqlCustomerDirectoryService implements CustomerDirectoryService {
                 return Optional.of(new GuestInfoDto(
                         customer.getHoTenKH(),
                         customer.getSdt(),
-                        customer.getCCCD()
+                        customer.getCCCD(),
+                        customer.getEmail()
                 ));
             }
         }

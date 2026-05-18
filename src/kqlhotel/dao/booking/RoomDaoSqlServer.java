@@ -15,6 +15,9 @@ import kqlhotel.dao.ConnectDB;
 import kqlhotel.entity.RoomEntity;
 
 public class RoomDaoSqlServer implements RoomDao {
+    private static final int CHECK_IN_HOUR = 14;
+    private static final int CHECK_OUT_HOUR = 12;
+
     @Override
     public List<String> findAllRoomTypes() {
         List<String> types = new ArrayList<>();
@@ -46,8 +49,8 @@ public class RoomDaoSqlServer implements RoomDao {
         List<RoomEntity> result = new ArrayList<>();
 
         try (PreparedStatement statement = connection.prepareStatement(buildFindAvailableSql(connection))) {
-            statement.setTimestamp(1, Timestamp.valueOf(checkInDate.atStartOfDay()));
-            statement.setTimestamp(2, Timestamp.valueOf(checkOutDate.atStartOfDay()));
+            statement.setTimestamp(1, Timestamp.valueOf(checkInDate.atTime(CHECK_IN_HOUR, 0)));
+            statement.setTimestamp(2, Timestamp.valueOf(checkOutDate.atTime(CHECK_OUT_HOUR, 0)));
             statement.setInt(3, allRoomTypes ? 1 : 0);
             statement.setString(4, roomTypePattern);
 
@@ -84,7 +87,7 @@ public class RoomDaoSqlServer implements RoomDao {
             + "JOIN Phong p ON p.maLoaiPhong = lp.maLoaiPhong "
             + "LEFT JOIN ChiTietDatPhong ctdp ON ctdp.maPhong = p.maPhong "
             + "AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien "
-            + "AND EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDatPhong = ctdp.maDatPhong AND hd.trangThai = 'ChuaThanhToan') "
+            + "AND EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDatPhong = ctdp.maDatPhong AND hd.trangThai <> 'DaHuy') "
             + "WHERE (? = 1 OR lp.tenLoaiPhong LIKE ?) "
             + "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa" + maxChildrenGroupBy + ", lp.tienNghi "
             + "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 "

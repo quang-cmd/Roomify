@@ -13,6 +13,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import kqlhotel.gui.utils.IconLoader;
@@ -24,22 +25,27 @@ import javax.swing.SwingConstants;
 public class RoomCard extends JPanel {
     private final RoomCardData data;
     private final boolean selected;
-    private final Consumer<RoomCardData> onToggle;
+    private final int selectedCount;
+    private final Consumer<RoomCardData> onAdd;
+    private final Consumer<RoomCardData> onRemove;
 
-    public RoomCard(RoomCardData data, boolean selected, Consumer<RoomCardData> onToggle) {
+    public RoomCard(RoomCardData data, boolean selected, int selectedCount,
+                    Consumer<RoomCardData> onAdd, Consumer<RoomCardData> onRemove) {
         this.data = data;
         this.selected = selected;
-        this.onToggle = onToggle;
+        this.selectedCount = selectedCount;
+        this.onAdd = onAdd;
+        this.onRemove = onRemove;
 
         setOpaque(false);
-        setLayout(new MigLayout("insets 14 16,gap 6,wrap 1", "[grow,fill]", "[][][grow,fill][]"));
+        setLayout(new MigLayout("insets 14 16,gap 5,wrap 1", "[grow,fill]", "[][][][grow,fill][]"));
         setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 
         initComponents();
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                onToggle.accept(RoomCard.this.data);
+                onAdd.accept(RoomCard.this.data);
             }
         });
     }
@@ -80,6 +86,10 @@ public class RoomCard extends JPanel {
         progressRow.add(progressBar, "growx,h 8!");
         progressRow.add(percentLbl, "aligny center");
 
+        JLabel hintLbl = new JLabel(data.capacityHint == null ? "" : data.capacityHint);
+        hintLbl.setForeground(data.capacityEnough ? new Color(220, 244, 255) : new Color(255, 225, 225));
+        hintLbl.setFont(hintLbl.getFont().deriveFont(Font.BOLD, 12f));
+
         JPanel amenitiesRow = new JPanel(new MigLayout("insets 0,gap 14", "[pref!][pref!][pref!][grow,fill]", "[]"));
         amenitiesRow.setOpaque(false);
         int added = 0;
@@ -97,30 +107,64 @@ public class RoomCard extends JPanel {
             added++;
         }
 
-        String pickText = selected ? "Đã chọn" : "+ Thêm phòng";
-        PrimaryButton pickButton = new PrimaryButton(pickText);
-        pickButton.setFont(pickButton.getFont().deriveFont(Font.BOLD, 13f));
-        pickButton.setFocusPainted(false);
-
+        JPanel actionRow = new JPanel(new MigLayout("insets 0,gap 8", "[grow,fill]", "[]"));
+        actionRow.setOpaque(false);
         if (selected) {
-            ImageIcon checkIcon = IconLoader.loadIcon("check.png", 16, 16);
-            if (checkIcon != null) {
-                pickButton.setIcon(checkIcon);
-                pickButton.setIconTextGap(8);
-            }
-            pickButton.setBackground(new Color(255, 255, 255, 235));
-            pickButton.setForeground(ThemeColors.PREMIUM_PRIMARY);
+            JPanel quantityControl = new JPanel(new MigLayout("insets 0,gap 0", "[56!][grow,fill][56!]", "[]")) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new Color(255, 255, 255, 225));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            quantityControl.setOpaque(false);
+
+            JButton removeButton = new JButton("-");
+            removeButton.setFont(removeButton.getFont().deriveFont(Font.BOLD, 18f));
+            removeButton.setFocusPainted(false);
+            removeButton.setForeground(ThemeColors.PREMIUM_PRIMARY);
+            removeButton.setOpaque(false);
+            removeButton.setContentAreaFilled(false);
+            removeButton.setBorderPainted(false);
+            removeButton.addActionListener(e -> onRemove.accept(data));
+
+            JLabel countLabel = new JLabel(String.valueOf(selectedCount), SwingConstants.CENTER);
+            countLabel.setOpaque(false);
+            countLabel.setForeground(ThemeColors.PREMIUM_PRIMARY);
+            countLabel.setFont(countLabel.getFont().deriveFont(Font.BOLD, 16f));
+
+            JButton addButton = new JButton("+");
+            addButton.setFont(addButton.getFont().deriveFont(Font.BOLD, 18f));
+            addButton.setFocusPainted(false);
+            addButton.setForeground(ThemeColors.PREMIUM_PRIMARY);
+            addButton.setOpaque(false);
+            addButton.setContentAreaFilled(false);
+            addButton.setBorderPainted(false);
+            addButton.addActionListener(e -> onAdd.accept(data));
+            quantityControl.add(removeButton, "h 42");
+            quantityControl.add(countLabel, "h 42");
+            quantityControl.add(addButton, "h 42");
+            actionRow.add(quantityControl, "growx");
         } else {
+            PrimaryButton pickButton = new PrimaryButton("+ Thêm phòng");
+            pickButton.setFont(pickButton.getFont().deriveFont(Font.BOLD, 13f));
+            pickButton.setFocusPainted(false);
             pickButton.setBackground(new Color(255, 255, 255, 225));
             pickButton.setForeground(data.tone);
+            pickButton.addActionListener(e -> onAdd.accept(data));
+            actionRow.add(pickButton, "h 42");
         }
-        pickButton.addActionListener(e -> onToggle.accept(data));
 
         add(titleRow, "growx");
         add(priceRow, "gapy 6 0");
         add(progressRow, "growx,gapy 6 0");
+        add(hintLbl, "growx");
         add(amenitiesRow, "growx,gapy 8 0");
-        add(pickButton, "h 42,alignx center,gapy 8 0");
+        add(actionRow, "growx,gapy 8 0");
     }
 
     private JPanel makeAvailBadge(String status, Color color) {
