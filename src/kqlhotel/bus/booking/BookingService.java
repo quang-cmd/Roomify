@@ -8,6 +8,7 @@ import kqlhotel.bus.booking.CreateBookingCommand;
 import kqlhotel.bus.booking.RoomOptionDto;
 
 public interface BookingService {
+    List<String> getRoomTypes();
     List<RoomOptionDto> searchAvailableRooms(BookingSearchRequest request);
 
     BookingSelectionSummary summarizeSelection(List<RoomOptionDto> selectedRooms, BookingSearchRequest request);

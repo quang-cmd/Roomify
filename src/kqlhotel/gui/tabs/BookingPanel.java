@@ -45,6 +45,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.gui.model.RoomCardData;
 import kqlhotel.gui.components.RoomCard;
+import javax.swing.JDialog;
 import net.miginfocom.swing.MigLayout;
 
 public class BookingPanel extends JPanel {
@@ -52,14 +53,17 @@ public class BookingPanel extends JPanel {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int ROOMS_PER_SLIDE = 4;
 
-    private final JComboBox<String> roomTypeCombo = new JComboBox<>(new String[]{"Tất cả", "Deluxe", "Grand Premium", "Suite"});
+    private final JComboBox<String> roomTypeCombo = new JComboBox<>();
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
     private LocalDate selectedCheckInDate;
     private LocalDate selectedCheckOutDate;
-    private static final int MAX_GUESTS = 10;
-    private int guestCount = 2;
-    private JLabel guestCountLabel;
+    private static final int MAX_ADULTS = 10;
+    private static final int MAX_CHILDREN = 10;
+    private int adultsCount = 2;
+    private int childrenCount = 0;
+    private JLabel adultsCountLabel;
+    private JLabel childrenCountLabel;
 
     private final CardLayout bookingCards = new CardLayout();
     private final JPanel bookingContent = new JPanel(bookingCards);
@@ -88,8 +92,10 @@ public class BookingPanel extends JPanel {
     private PrimaryButton searchButton;
     private JButton prevSlideButton;
     private JButton nextSlideButton;
-    private JButton guestMinusButton;
-    private JButton guestPlusButton;
+    private JButton childrenMinusButton;
+    private JButton childrenPlusButton;
+    private JButton adultsMinusButton;
+    private JButton adultsPlusButton;
     private boolean filterLocked;
     private int currentSlideIndex;
     private kqlhotel.entity.Customer preFilledCustomer;
@@ -97,6 +103,8 @@ public class BookingPanel extends JPanel {
     public BookingPanel() {
         this.bookingService = BookingServiceProvider.get();
         initializeDefaultDates();
+        
+        loadRoomTypes();
 
         setOpaque(false);
         setBackground(PAGE_BG);
@@ -122,8 +130,23 @@ public class BookingPanel extends JPanel {
         checkOutField.setText(selectedCheckOutDate.format(DATE_FORMAT));
     }
 
+    private void loadRoomTypes() {
+        roomTypeCombo.removeAllItems();
+        roomTypeCombo.addItem("Tất cả");
+        try {
+            List<String> types = bookingService.getRoomTypes();
+            if (types != null) {
+                for (String t : types) {
+                    roomTypeCombo.addItem(t);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void renderInitialRooms() {
-        BookingSearchRequest initialRequest = new BookingSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate, guestCount);
+        BookingSearchRequest initialRequest = new BookingSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate, adultsCount, childrenCount);
         lastSearchRequest = initialRequest;
         List<RoomOptionDto> rooms = bookingService.searchAvailableRooms(initialRequest);
         renderRooms(mapToCardData(rooms));
@@ -173,10 +196,10 @@ public class BookingPanel extends JPanel {
         dateRow.add(makeDateBlock("Trả phòng *", checkOutField), "grow");
 
         filterCard.add(dateRow);
-        filterCard.add(new JLabel("Số khách"));
-        filterCard.add(createGuestStepper(), "h 44");
+        filterCard.add(new JLabel("Khách"));
+        filterCard.add(createGuestStepper(), "h 88");
 
-        JLabel note = new JLabel("Tối đa 4 khách mỗi phòng");
+        JLabel note = new JLabel("Tối đa 2 trẻ < 12 tuổi/phòng");
         note.setForeground(new Color(150, 165, 190));
         note.setFont(note.getFont().deriveFont(11f));
         filterCard.add(note, "gapy 0 4");
@@ -391,53 +414,61 @@ public class BookingPanel extends JPanel {
     }
 
     private JPanel createGuestStepper() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createLineBorder(new Color(193, 206, 231), 1));
-        panel.setBackground(new Color(244, 248, 255));
+        JPanel wrapper = new JPanel(new MigLayout("insets 0, gap 4, wrap 1", "[grow,fill]", "[][]"));
+        wrapper.setOpaque(false);
 
-        guestMinusButton = createStepperBtn("-");
-        guestPlusButton = createStepperBtn("+");
-        guestMinusButton.setToolTipText("Giảm số khách");
-        guestPlusButton.setToolTipText("Tăng số khách");
-
-        guestCountLabel = new JLabel(guestCount + " khách", SwingConstants.CENTER);
-        guestCountLabel.setForeground(new Color(26, 49, 86));
-        guestCountLabel.setFont(guestCountLabel.getFont().deriveFont(Font.BOLD, 13f));
-
-        JPanel centerChip = new JPanel(new BorderLayout());
-        centerChip.setOpaque(true);
-        centerChip.setBackground(Color.WHITE);
-        centerChip.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 1, new Color(221, 231, 248)));
-        centerChip.add(guestCountLabel, BorderLayout.CENTER);
-
-        guestMinusButton.addActionListener(e -> {
-            if (filterLocked) {
-                return;
-            }
-            if (guestCount > 1) {
-                guestCount--;
-                guestCountLabel.setText(guestCount + " khách");
-                syncGuestForms();
-                updateGuestStepperState();
-            }
+        // Adults
+        JPanel adultsPanel = new JPanel(new BorderLayout());
+        adultsPanel.setBorder(BorderFactory.createLineBorder(new Color(193, 206, 231), 1));
+        adultsPanel.setBackground(new Color(244, 248, 255));
+        adultsMinusButton = createStepperBtn("-");
+        adultsPlusButton = createStepperBtn("+");
+        adultsCountLabel = new JLabel(adultsCount + " người lớn", SwingConstants.CENTER);
+        adultsCountLabel.setForeground(new Color(26, 49, 86));
+        adultsCountLabel.setFont(adultsCountLabel.getFont().deriveFont(Font.BOLD, 13f));
+        JPanel adultsCenter = new JPanel(new BorderLayout());
+        adultsCenter.setOpaque(true);
+        adultsCenter.setBackground(Color.WHITE);
+        adultsCenter.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 1, new Color(221, 231, 248)));
+        adultsCenter.add(adultsCountLabel, BorderLayout.CENTER);
+        adultsMinusButton.addActionListener(e -> {
+            if (!filterLocked && adultsCount > 1) { adultsCount--; updateGuestStepperState(); syncGuestForms(); }
         });
-        guestPlusButton.addActionListener(e -> {
-            if (filterLocked) {
-                return;
-            }
-            if (guestCount < MAX_GUESTS) {
-                guestCount++;
-                guestCountLabel.setText(guestCount + " khách");
-                syncGuestForms();
-                updateGuestStepperState();
-            }
+        adultsPlusButton.addActionListener(e -> {
+            if (!filterLocked && adultsCount < MAX_ADULTS) { adultsCount++; updateGuestStepperState(); syncGuestForms(); }
         });
+        adultsPanel.add(adultsMinusButton, BorderLayout.WEST);
+        adultsPanel.add(adultsCenter, BorderLayout.CENTER);
+        adultsPanel.add(adultsPlusButton, BorderLayout.EAST);
 
-        panel.add(guestMinusButton, BorderLayout.WEST);
-        panel.add(centerChip, BorderLayout.CENTER);
-        panel.add(guestPlusButton, BorderLayout.EAST);
+        // Children
+        JPanel childrenPanel = new JPanel(new BorderLayout());
+        childrenPanel.setBorder(BorderFactory.createLineBorder(new Color(193, 206, 231), 1));
+        childrenPanel.setBackground(new Color(244, 248, 255));
+        childrenMinusButton = createStepperBtn("-");
+        childrenPlusButton = createStepperBtn("+");
+        childrenCountLabel = new JLabel(childrenCount + " trẻ em (<12)", SwingConstants.CENTER);
+        childrenCountLabel.setForeground(new Color(26, 49, 86));
+        childrenCountLabel.setFont(childrenCountLabel.getFont().deriveFont(Font.BOLD, 13f));
+        JPanel childrenCenter = new JPanel(new BorderLayout());
+        childrenCenter.setOpaque(true);
+        childrenCenter.setBackground(Color.WHITE);
+        childrenCenter.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 1, new Color(221, 231, 248)));
+        childrenCenter.add(childrenCountLabel, BorderLayout.CENTER);
+        childrenMinusButton.addActionListener(e -> {
+            if (!filterLocked && childrenCount > 0) { childrenCount--; updateGuestStepperState(); syncGuestForms(); }
+        });
+        childrenPlusButton.addActionListener(e -> {
+            if (!filterLocked && childrenCount < MAX_CHILDREN) { childrenCount++; updateGuestStepperState(); syncGuestForms(); }
+        });
+        childrenPanel.add(childrenMinusButton, BorderLayout.WEST);
+        childrenPanel.add(childrenCenter, BorderLayout.CENTER);
+        childrenPanel.add(childrenPlusButton, BorderLayout.EAST);
+
         updateGuestStepperState();
-        return panel;
+        wrapper.add(adultsPanel, "h 42");
+        wrapper.add(childrenPanel, "h 42");
+        return wrapper;
     }
 
     private JButton createStepperBtn(String text) {
@@ -469,19 +500,16 @@ public class BookingPanel extends JPanel {
     }
 
     private void updateGuestStepperState() {
-        if (guestMinusButton == null || guestPlusButton == null || guestCountLabel == null) {
-            return;
-        }
-
-        guestCountLabel.setText(guestCount + " khách");
-
-        boolean minusEnabled = !filterLocked && guestCount > 1;
-        boolean plusEnabled = !filterLocked && guestCount < MAX_GUESTS;
-
-        applyGuestStepperButtonState(guestMinusButton, minusEnabled);
-        applyGuestStepperButtonState(guestPlusButton, plusEnabled);
-
-        guestCountLabel.setForeground(filterLocked ? new Color(138, 149, 170) : new Color(26, 49, 86));
+        if (adultsMinusButton == null) return;
+        adultsCountLabel.setText(adultsCount + " người lớn");
+        childrenCountLabel.setText(childrenCount + " trẻ em (<12)");
+        applyGuestStepperButtonState(adultsMinusButton, !filterLocked && adultsCount > 1);
+        applyGuestStepperButtonState(adultsPlusButton, !filterLocked && adultsCount < MAX_ADULTS);
+        applyGuestStepperButtonState(childrenMinusButton, !filterLocked && childrenCount > 0);
+        applyGuestStepperButtonState(childrenPlusButton, !filterLocked && childrenCount < MAX_CHILDREN);
+        Color textCol = filterLocked ? new Color(138, 149, 170) : new Color(26, 49, 86);
+        adultsCountLabel.setForeground(textCol);
+        childrenCountLabel.setForeground(textCol);
     }
 
     private void applyGuestStepperButtonState(JButton button, boolean enabled) {
@@ -942,17 +970,17 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        if (guestCount < 1 || guestCount > MAX_GUESTS) {
+        if (adultsCount < 1 || adultsCount > MAX_ADULTS) {
             JOptionPane.showMessageDialog(
                 this,
-                "Số khách phải trong khoảng từ 1 đến " + MAX_GUESTS + ".",
+                "Số người lớn không hợp lệ.",
                 "Dữ liệu không hợp lệ",
                 JOptionPane.WARNING_MESSAGE
             );
             return;
         }
 
-        BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, guestCount);
+        BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, adultsCount, childrenCount);
         lastSearchRequest = request;
         currentSlideIndex = 0;
 
@@ -986,7 +1014,8 @@ public class BookingPanel extends JPanel {
         CreateBookingCommand command = new CreateBookingCommand(
             checkInDate,
             checkOutDate,
-            guestCount,
+            adultsCount,
+            childrenCount,
             guestInfos,
             toSelectedRoomOptions()
         );
@@ -1062,14 +1091,11 @@ public class BookingPanel extends JPanel {
 
         String referenceNumber = "";
         if (choice == 1) {
-            referenceNumber = JOptionPane.showInputDialog(this, "Nhập số tham chiếu chuyển khoản:", "");
+            // Show VietQR dialog for bank transfer
+            String bookingRef = "DP-" + System.currentTimeMillis() % 100000;
+            referenceNumber = showQrPaymentDialog(paymentAmount, bookingRef);
             if (referenceNumber == null) {
-                return;
-            }
-            referenceNumber = referenceNumber.trim();
-            if (referenceNumber.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Số tham chiếu không được để trống khi chuyển khoản.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-                return;
+                return; // User cancelled
             }
         }
 
@@ -1092,7 +1118,8 @@ public class BookingPanel extends JPanel {
         CreateBookingCommand command = new CreateBookingCommand(
             checkInDate,
             checkOutDate,
-            guestCount,
+            adultsCount,
+            childrenCount,
             guestInfos,
             toSelectedRoomOptions(),
             totalAmount,
@@ -1135,12 +1162,14 @@ public class BookingPanel extends JPanel {
 
         // Reset form and refresh room list
         selectedRooms.clear();
-        for (GuestFormRow row : guestFormRows) {
-            row.idField.setText("");
-            row.nameField.setText("");
-            row.phoneField.setText("");
-        }
+        guestFormRows.clear();
+        guestFormsPanel.removeAll();
+        guestFormsPanel.revalidate();
+        guestFormsPanel.repaint();
         this.preFilledCustomer = null;
+        adultsCount = 2;
+        childrenCount = 0;
+        updateGuestStepperState();
         setStep(1);
         bookingCards.show(bookingContent, "select-room");
         runSearch();
@@ -1152,6 +1181,7 @@ public class BookingPanel extends JPanel {
             String idNo = guest.getIdNo();
             String phone = guest.getPhone();
             String name = guest.getFullName();
+            boolean isChild = i >= adultsCount;
 
             if (name == null || name.trim().length() < 2) {
                 JOptionPane.showMessageDialog(this,
@@ -1159,13 +1189,19 @@ public class BookingPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-            if (idNo == null || !idNo.matches("\\d{9,12}")) {
+            if (!isChild && (idNo == null || !idNo.matches("\\d{9,12}"))) {
+                JOptionPane.showMessageDialog(this,
+                    "CCCD/Hộ chiếu của Khách " + (i + 1) + " (Người lớn) phải gồm 9-12 chữ số.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (isChild && idNo != null && !idNo.isEmpty() && !idNo.matches("\\d{9,12}")) {
                 JOptionPane.showMessageDialog(this,
                     "CCCD/Hộ chiếu của Khách " + (i + 1) + " phải gồm 9-12 chữ số.",
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-            if (phone == null || !phone.matches("0\\d{9,10}")) {
+            if (phone != null && !phone.isEmpty() && !phone.matches("0\\d{9,10}")) {
                 JOptionPane.showMessageDialog(this,
                     "Số điện thoại của Khách " + (i + 1) + " phải bắt đầu bằng 0 và có 10-11 chữ số.",
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
@@ -1184,10 +1220,22 @@ public class BookingPanel extends JPanel {
             String phone = row.phoneField.getText().trim();
             String idNo = row.idField.getText().trim();
 
-            if (fullName.isEmpty() || phone.isEmpty() || idNo.isEmpty()) {
+            boolean isChild = i >= adultsCount;
+
+            if (fullName.isEmpty()) {
                 JOptionPane.showMessageDialog(
                     this,
-                    "Vui lòng nhập đủ thông tin cho Khách " + (i + 1) + ".",
+                    "Vui lòng nhập họ tên cho Khách " + (i + 1) + ".",
+                    "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return null;
+            }
+            
+            if (!isChild && idNo.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng nhập CCCD/Hộ chiếu cho Khách " + (i + 1) + " (Người lớn).",
                     "Thiếu thông tin",
                     JOptionPane.WARNING_MESSAGE
                 );
@@ -1200,12 +1248,13 @@ public class BookingPanel extends JPanel {
     }
 
     private void syncGuestForms() {
-        guestFormsTitleLabel.setText("Danh sách khách (" + guestCount + " người) - Ưu tiên CCCD để định danh và auto-fill");
+        int totalPeople = adultsCount + childrenCount;
+        guestFormsTitleLabel.setText("Danh sách khách (" + totalPeople + " người) - Ưu tiên CCCD để định danh và auto-fill");
 
-        while (guestFormRows.size() < guestCount) {
+        while (guestFormRows.size() < totalPeople) {
             guestFormRows.add(createGuestFormRow(guestFormRows.size() + 1));
         }
-        while (guestFormRows.size() > guestCount) {
+        while (guestFormRows.size() > totalPeople) {
             guestFormRows.remove(guestFormRows.size() - 1);
         }
 
@@ -1229,7 +1278,7 @@ public class BookingPanel extends JPanel {
 
     private GuestFormRow createGuestFormRow(int index) {
         JPanel rowPanel = new RoundedPanel(10, Color.WHITE, new Color(225, 231, 245), 1f);
-        rowPanel.setLayout(new MigLayout("wrap 4,insets 8,gap 8", "[80!][grow,fill][grow,fill][grow,fill]", "[]"));
+        rowPanel.setLayout(new MigLayout("insets 8,gap 8", "[grow,fill][grow,fill][grow,fill]", "[][]"));
 
         JLabel label = new JLabel("Khách " + index);
         label.setForeground(new Color(44, 71, 117));
@@ -1246,11 +1295,10 @@ public class BookingPanel extends JPanel {
 
         attachAutoFillById(idField, nameField, phoneField);
 
-        rowPanel.add(label);
-        rowPanel.add(new JLabel(""), "span 3");
-        rowPanel.add(idField, "span 2,growx,h 34");
-        rowPanel.add(nameField, "growx,h 34");
-        rowPanel.add(phoneField, "growx,h 34");
+        rowPanel.add(label, "span 3, wrap");
+        rowPanel.add(idField, "grow,h 34");
+        rowPanel.add(nameField, "grow,h 34");
+        rowPanel.add(phoneField, "grow,h 34");
 
         return new GuestFormRow(rowPanel, nameField, phoneField, idField);
     }
@@ -1391,7 +1439,7 @@ public class BookingPanel extends JPanel {
             dateText = selectedCheckInDate.format(DATE_FORMAT) + " -> " + selectedCheckOutDate.format(DATE_FORMAT);
         }
         selectedDateLabel.setText("Ngày nhận/trả: " + dateText);
-        selectedGuestLabel.setText("Số khách: " + guestCount);
+        selectedGuestLabel.setText("Số khách: " + (adultsCount + childrenCount));
     }
 
     private String buildSelectedRoomsSummary() {
@@ -1425,7 +1473,7 @@ public class BookingPanel extends JPanel {
             checkOutDate = checkInDate.plusDays(1);
         }
 
-        return new BookingSearchRequest((String) roomTypeCombo.getSelectedItem(), checkInDate, checkOutDate, guestCount);
+        return new BookingSearchRequest((String) roomTypeCombo.getSelectedItem(), checkInDate, checkOutDate, adultsCount, childrenCount);
     }
 
     private List<RoomOptionDto> toSelectedRoomOptions() {
@@ -1519,9 +1567,9 @@ public class BookingPanel extends JPanel {
             return;
         }
         int totalCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
-        if (totalCapacity < guestCount) {
+        if (totalCapacity < adultsCount) {
             JOptionPane.showMessageDialog(this,
-                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người) không đủ cho " + guestCount + " khách.\n"
+                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người lớn) không đủ cho " + adultsCount + " người lớn.\n"
                 + "Vui lòng chọn thêm phòng.",
                 "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
             return;
@@ -1572,6 +1620,95 @@ public class BookingPanel extends JPanel {
     }
 
     
+
+    /**
+     * Shows a VietQR payment dialog. Returns the booking reference if user confirms,
+     * or null if user cancels.
+     */
+    private String showQrPaymentDialog(long amount, String bookingRef) {
+        String bankId   = "970405"; // Agribank BIN
+        String acctNo   = "4306205595150";
+        String acctName = "NGUYEN NGOC QUANG";
+        String addInfoEncoded  = java.net.URLEncoder.encode("Dat phong " + bookingRef, java.nio.charset.StandardCharsets.UTF_8);
+        String acctNameEncoded = java.net.URLEncoder.encode(acctName, java.nio.charset.StandardCharsets.UTF_8);
+        String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + acctNo + "-compact2.png"
+                     + "?amount=" + amount
+                     + "&addInfo=" + addInfoEncoded
+                     + "&accountName=" + acctNameEncoded;
+
+        java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(this);
+        JDialog dialog = new JDialog((java.awt.Frame)(owner instanceof java.awt.Frame ? owner : null),
+                "Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng", true);
+        dialog.setLayout(new MigLayout("insets 20,gap 12", "[center,grow]", "[][][][]"));
+        dialog.setResizable(false);
+
+        JLabel titleLbl = new JLabel("Qu\u00e9t m\u00e3 \u0111\u1ec3 thanh to\u00e1n");
+        titleLbl.setFont(titleLbl.getFont().deriveFont(Font.BOLD, 16f));
+        titleLbl.setForeground(new Color(30, 58, 102));
+        titleLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        dialog.add(titleLbl, "wrap,growx");
+
+        JLabel bankInfo = new JLabel("<html><center>"
+                + "<b>Agribank</b> \u2014 STK: <b>" + acctNo + "</b><br>"
+                + "Ch\u1ee7 TK: <b>" + acctName + "</b><br>"
+                + "S\u1ed1 ti\u1ec1n: <b style='color:#1a5fb4'>" + formatMoney(amount) + "</b><br>"
+                + "N\u1ed9i dung: <b>Dat phong " + bookingRef + "</b>"
+                + "</center></html>");
+        bankInfo.setHorizontalAlignment(SwingConstants.CENTER);
+        dialog.add(bankInfo, "wrap,growx");
+
+        JLabel qrLabel = new JLabel("\u0110ang t\u1ea3i m\u00e3 QR...", SwingConstants.CENTER);
+        qrLabel.setPreferredSize(new java.awt.Dimension(260, 260));
+        qrLabel.setBorder(BorderFactory.createLineBorder(new Color(210, 220, 240), 1));
+        dialog.add(qrLabel, "wrap,align center");
+
+        JLabel noteLbl = new JLabel("<html><center><i>Sau khi kh\u00e1ch chuy\u1ec3n ti\u1ec1n th\u00e0nh c\u00f4ng, nh\u1ea5n <b>\u0110\u00e3 nh\u1eadn ti\u1ec1n</b>.</i></center></html>");
+        noteLbl.setForeground(new Color(100, 110, 130));
+        noteLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        dialog.add(noteLbl, "wrap,growx");
+
+        JPanel btnRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 16, 0));
+        JButton cancelBtn  = new JButton("Hu\u1ef7");
+        JButton confirmBtn = new JButton("\u0110\u00e3 nh\u1eadn ti\u1ec1n \u2713");
+        confirmBtn.setBackground(new Color(30, 90, 200));
+        confirmBtn.setForeground(Color.WHITE);
+        confirmBtn.setOpaque(true);
+        confirmBtn.setFocusPainted(false);
+        btnRow.add(cancelBtn);
+        btnRow.add(confirmBtn);
+        dialog.add(btnRow, "growx");
+
+        final String[] resultRef = {null};
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        confirmBtn.addActionListener(e -> { resultRef[0] = bookingRef; dialog.dispose(); });
+
+        // Fetch QR image on a background thread
+        new Thread(() -> {
+            try {
+                java.net.URL url = java.net.URI.create(qrUrl).toURL();
+                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(url);
+                if (img != null) {
+                    java.awt.Image scaled = img.getScaledInstance(250, 250, java.awt.Image.SCALE_SMOOTH);
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        qrLabel.setIcon(new ImageIcon(scaled));
+                        qrLabel.setText("");
+                        dialog.pack();
+                    });
+                } else {
+                    javax.swing.SwingUtilities.invokeLater(() ->
+                        qrLabel.setText("<html><center>Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c QR.<br>Ki\u1ec3m tra k\u1ebft n\u1ed1i m\u1ea1ng.</center></html>"));
+                }
+            } catch (Exception ex) {
+                javax.swing.SwingUtilities.invokeLater(() ->
+                    qrLabel.setText("<html><center>L\u1ed7i k\u1ebft n\u1ed1i.<br>Ki\u1ec3m tra k\u1ebft n\u1ed1i m\u1ea1ng.</center></html>"));
+            }
+        }, "qr-loader").start();
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true); // blocks until disposed
+        return resultRef[0];
+    }
 
     private static final class GuestFormRow {
         private final JPanel panel;

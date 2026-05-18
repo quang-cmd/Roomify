@@ -11,6 +11,11 @@ import kqlhotel.bus.booking.RoomOptionDto;
 
 public class PendingBookingService implements BookingService {
     @Override
+    public List<String> getRoomTypes() {
+        return new ArrayList<>();
+    }
+
+    @Override
     public List<RoomOptionDto> searchAvailableRooms(BookingSearchRequest request) {
         return new ArrayList<>();
     }
