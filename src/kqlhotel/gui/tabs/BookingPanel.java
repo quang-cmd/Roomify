@@ -999,6 +999,12 @@ public class BookingPanel extends JPanel {
             return;
         }
 
+        if (!validateSelectedRoomCapacity()) {
+            setStep(1);
+            bookingCards.show(bookingContent, "select-room");
+            return;
+        }
+
         List<GuestInfoDto> guestInfos = collectGuestInfos();
         if (guestInfos == null) {
             return;
@@ -1043,6 +1049,12 @@ public class BookingPanel extends JPanel {
     private void submitBookingWithPayment(String paymentPlanLabel, double paymentRatio) {
         if (selectedRooms.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            setStep(1);
+            bookingCards.show(bookingContent, "select-room");
+            return;
+        }
+
+        if (!validateSelectedRoomCapacity()) {
             setStep(1);
             bookingCards.show(bookingContent, "select-room");
             return;
@@ -1502,6 +1514,7 @@ public class BookingPanel extends JPanel {
             room.getStatus(),
             calculateFreeRate(room.getStatus()),
             room.getMaxGuests(),
+            room.getMaxChildren(),
             room.getAmenities(),
             bg,
             tone
@@ -1566,16 +1579,33 @@ public class BookingPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        int totalCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
-        if (totalCapacity < adultsCount) {
-            JOptionPane.showMessageDialog(this,
-                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người lớn) không đủ cho " + adultsCount + " người lớn.\n"
-                + "Vui lòng chọn thêm phòng.",
-                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+        if (!validateSelectedRoomCapacity()) {
             return;
         }
         bookingCards.show(bookingContent, "customer-info");
         setStep(2);
+    }
+
+    private boolean validateSelectedRoomCapacity() {
+        int totalAdultCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
+        if (adultsCount > totalAdultCapacity) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa người lớn của các phòng đã chọn (" + totalAdultCapacity + ") không đủ cho " + adultsCount + " người lớn.\n"
+                + "Vui lòng chọn thêm phòng hoặc chọn loại phòng lớn hơn.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        int totalChildCapacity = selectedRooms.stream().mapToInt(r -> r.childCapacity).sum();
+        if (childrenCount > totalChildCapacity) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa trẻ em của các phòng đã chọn (" + totalChildCapacity + ") không đủ cho " + childrenCount + " trẻ em.\n"
+                + "Vui lòng chọn thêm phòng hoặc chọn loại phòng lớn hơn.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        return true;
     }
 
     private void setStep(int step) {

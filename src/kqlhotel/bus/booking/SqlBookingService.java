@@ -79,20 +79,11 @@ public class SqlBookingService implements BookingService {
         int nights = (int) Math.max(1, ChronoUnit.DAYS.between(checkInDate, checkOutDate));
 
         long roomTotalPerNight = 0;
-        int sumAdultCapacity = 0;
         for (RoomOptionDto selectedRoom : selectedRooms) {
             roomTotalPerNight += selectedRoom.getNightlyPrice();
-            sumAdultCapacity += selectedRoom.getMaxGuests();
         }
 
         long totalAmount = roomTotalPerNight * nights;
-
-        int extraBeds = Math.max(0, request.getAdults() - sumAdultCapacity);
-        if (extraBeds > 0) {
-            long avgRoomPricePerNight = selectedRooms.isEmpty() ? 0 : roomTotalPerNight / selectedRooms.size();
-            long surchargePerNight = (long) (extraBeds * 0.20 * avgRoomPricePerNight);
-            totalAmount += surchargePerNight * nights;
-        }
 
         return new BookingSelectionSummary(selectedRooms.size(), nights, totalAmount);
     }
@@ -127,9 +118,8 @@ public class SqlBookingService implements BookingService {
              return fail("Số lượng trẻ em (" + children + ") vượt quá quy định tối đa (" + sumChildrenCapacity + " bé/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
         }
         
-        int extraBeds = Math.max(0, adults - sumAdultCapacity);
-        if (extraBeds > 2 * numberOfRooms) {
-             return fail("Sức chứa không đủ. Mỗi phòng chỉ được kê thêm tối đa 2 giường phụ (Đang cần kê " + extraBeds + " giường cho " + numberOfRooms + " phòng).");
+        if (adults > sumAdultCapacity) {
+             return fail("Số lượng người lớn (" + adults + ") vượt quá quy định tối đa (" + sumAdultCapacity + " người/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
         }
 
         double ratio = command.getPaymentRatio();
@@ -194,14 +184,8 @@ public class SqlBookingService implements BookingService {
             long tienPhong = command.getTotalAmount();
             if (tienPhong <= 0) {
                 long perNight = 0;
-                int cap = 0;
                 for (RoomOptionDto r : command.getSelectedRooms()) {
                     perNight += r.getNightlyPrice();
-                    cap += r.getMaxGuests();
-                }
-                int eb = Math.max(0, command.getAdults() - cap);
-                if (eb > 0 && !command.getSelectedRooms().isEmpty()) {
-                    perNight += eb * 0.20 * (perNight / command.getSelectedRooms().size());
                 }
                 tienPhong = perNight * nights;
             }

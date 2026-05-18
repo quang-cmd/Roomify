@@ -61,7 +61,7 @@ public class RoomCard extends JPanel {
         perNight.setForeground(new Color(230, 230, 230));
         perNight.setFont(perNight.getFont().deriveFont(13f));
 
-        JLabel capacityLbl = new JLabel("Tối đa " + data.capacity + " khách");
+        JLabel capacityLbl = new JLabel("Tối đa " + data.capacity + " NL · " + data.childCapacity + " TE");
         capacityLbl.setForeground(new Color(220, 220, 220));
         capacityLbl.setFont(capacityLbl.getFont().deriveFont(12f));
 
