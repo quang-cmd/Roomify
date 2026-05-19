@@ -58,7 +58,14 @@ public class SqlCheckInService implements CheckInService {
             }
 
             if (checkInDAO.hasInvoiceDetails(maHD)) {
-                return CheckInResult.fail("Booking này đã nhận phòng trước đó.");
+                boolean synced = checkInDAO.syncExistingCheckIn(maDatPhong, maHD);
+                return CheckInResult.ok(
+                        maHD,
+                        0,
+                        synced
+                                ? "Booking da co chi tiet hoa don. Da dong bo lai trang thai nhan phong."
+                                : "Booking nay da nhan phong truoc do."
+                );
             }
 
             List<Object[]> reservedRooms = checkInDAO.getReservedRooms(maDatPhong);

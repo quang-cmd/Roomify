@@ -197,8 +197,8 @@ public class SqlBookingService implements BookingService {
             }
             long tienThue = Math.max(0L, tongTien - tienPhong);
             long paidAmount = Math.round(tongTien * command.getPaymentRatio());
-            // Deposit recorded on the booking itself (0 when fully paid up-front, otherwise = paidAmount)
-            long tienCocBooking = command.isFullyPaid() ? 0L : paidAmount;
+            // Store the amount collected at booking time, including full upfront payment.
+            long tienCocBooking = paidAmount;
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
             String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
