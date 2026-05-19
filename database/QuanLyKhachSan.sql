@@ -10,6 +10,7 @@ IF OBJECT_ID('dbo.ThanhToan', 'U')      IS NOT NULL DROP TABLE dbo.ThanhToan;
 IF OBJECT_ID('dbo.ChiTietDichVu', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietDichVu;
 IF OBJECT_ID('dbo.ChiTietHoaDon', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietHoaDon;
 IF OBJECT_ID('dbo.HoaDon', 'U')         IS NOT NULL DROP TABLE dbo.HoaDon;
+IF OBJECT_ID('dbo.ChiTietKhachO', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietKhachO;
 IF OBJECT_ID('dbo.ChiTietDatPhong', 'U')IS NOT NULL DROP TABLE dbo.ChiTietDatPhong;
 IF OBJECT_ID('dbo.DatPhong', 'U')       IS NOT NULL DROP TABLE dbo.DatPhong;
 IF OBJECT_ID('dbo.PhanCongCa', 'U')     IS NOT NULL DROP TABLE dbo.PhanCongCa;
@@ -181,6 +182,18 @@ CREATE TABLE ChiTietDatPhong (
                                  CONSTRAINT FK_CTDatPhong_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong),
                                  CONSTRAINT FK_CTDatPhong_Phong    FOREIGN KEY (maPhong)    REFERENCES Phong(maPhong),
                                  CONSTRAINT CK_CTDatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien)
+);
+GO
+
+CREATE TABLE ChiTietKhachO (
+    maDatPhong CHAR(5) NOT NULL,
+    maPhong    CHAR(4) NOT NULL,
+    hoTen      NVARCHAR(100) NOT NULL,
+    cccd       VARCHAR(20) NOT NULL,
+    sdt        VARCHAR(15) NULL,
+    vaiTro     NVARCHAR(50) DEFAULT N'Khách lưu trú',
+    CONSTRAINT PK_ChiTietKhachO PRIMARY KEY (maDatPhong, maPhong, cccd),
+    CONSTRAINT FK_CTKhachO_CTDatPhong FOREIGN KEY (maDatPhong, maPhong) REFERENCES ChiTietDatPhong(maDatPhong, maPhong)
 );
 GO
 
@@ -428,6 +441,17 @@ INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien,
 ('DP010', 'P103', '2026-04-19 14:00', '2026-04-21 12:00',  750000.00, 2, NULL);
 GO
 
+INSERT INTO ChiTietKhachO (maDatPhong, maPhong, hoTen, cccd, sdt, vaiTro) VALUES
+-- DP004 - Phong P201 co 2 khach (KhachHang 5 la chu)
+('DP004', 'P201', N'Vo Minh Duc', '079085000005', '0820000005', N'Người đại diện'),
+('DP004', 'P201', N'Le Thu Ha', '079085000099', '0912345678', N'Khách lưu trú'),
+-- DP005 - Phong P203 co 4 khach (KhachHang 8 la chu)
+('DP005', 'P203', N'Phan Tuan Khang', '079087000008', '0820000008', N'Người đại diện'),
+('DP005', 'P203', N'Nguyen Thi Bao', '079087000011', '0901111111', N'Khách lưu trú'),
+('DP005', 'P203', N'Phan Tuan Kiet', '079087000022', NULL, N'Khách lưu trú (Trẻ em)'),
+('DP005', 'P203', N'Phan Bao Ngoc', '079087000033', NULL, N'Khách lưu trú (Trẻ em)');
+GO
+
 -- ----- HoaDon -----
 -- Cong thuc: tongTienThanhToan = tienPhong + tienDichVu - tienKhuyenMai + tienThue + phiDoiPhong
 -- tienThue = 10% * (tienPhong + tienDichVu - tienKhuyenMai)
@@ -541,6 +565,7 @@ UNION ALL SELECT 'DichVu',           COUNT(*) FROM DichVu
 UNION ALL SELECT 'KhuyenMai',        COUNT(*) FROM KhuyenMai
 UNION ALL SELECT 'DatPhong',         COUNT(*) FROM DatPhong
 UNION ALL SELECT 'ChiTietDatPhong',  COUNT(*) FROM ChiTietDatPhong
+UNION ALL SELECT 'ChiTietKhachO',    COUNT(*) FROM ChiTietKhachO
 UNION ALL SELECT 'ChiPhi',           COUNT(*) FROM ChiPhi
 UNION ALL SELECT 'HoaDon',           COUNT(*) FROM HoaDon
 UNION ALL SELECT 'ChiTietHoaDon',    COUNT(*) FROM ChiTietHoaDon
