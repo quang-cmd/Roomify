@@ -69,6 +69,11 @@ public class DashboardPanel extends JPanel {
     @Override
     public void addNotify() {
         super.addNotify();
+
+        if (!kqlhotel.gui.Permission.isQuanLy()) {
+            return;
+        }
+
         if (!loadedOnce) {
             loadedOnce = true;
             SwingUtilities.invokeLater(this::refresh);
