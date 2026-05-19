@@ -116,7 +116,7 @@ public class SqlCheckInService implements CheckInService {
                 commands.add(new RoomCheckInCommand(maPhong, ngayNhanDuKien, ngayTraDuKien, ngayNhanThucTe, donGia, soDem, phuThu, thanhTien));
             }
             
-            checkInDAO.executeCheckInTransaction(maHD, commands, totalRoom);
+            checkInDAO.executeCheckInTransaction(maDatPhong, maHD, commands, totalRoom);
 
             return CheckInResult.ok(
                     maHD,

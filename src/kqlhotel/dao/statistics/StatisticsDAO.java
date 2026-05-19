@@ -26,17 +26,17 @@ import kqlhotel.entity.statistics.RoomTypeShare;
  */
 public class StatisticsDAO {
 
-    /** Điều kiện doanh thu: DaThanhToan hoặc DaHuy nhưng đã thu tiền. */
-    private static final String REVENUE_COND =
-        "(trangThai = 'DaThanhToan' OR (trangThai = 'DaHuy' AND tongTienThanhToan > 0))";
+    /** Doanh thu thong ke theo dong tien da thu thanh cong trong ThanhToan. */
+    private static final String CASH_REVENUE_EXPR =
+        "CASE WHEN trangThaiTT = 'ThanhToanThanhCong' THEN soTienTT ELSE 0 END";
 
     /** Tổng doanh thu trong khoảng [start, end]. */
     public double getRevenue(LocalDateTime start, LocalDateTime end) {
         String sql =
-            "SELECT COALESCE(SUM(tongTienThanhToan), 0) AS total " +
-            "FROM HoaDon " +
-            "WHERE " + REVENUE_COND + " " +
-            "  AND ngayThanhToan BETWEEN ? AND ?";
+            "SELECT COALESCE(SUM(" + CASH_REVENUE_EXPR + "), 0) AS total " +
+            "FROM ThanhToan " +
+            "WHERE ngayTT >= ? AND ngayTT < ? " +
+            "  AND trangThaiTT = 'ThanhToanThanhCong'";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -55,7 +55,12 @@ public class StatisticsDAO {
     }
 
     public int countOccupiedRooms() {
-        return countQuery("SELECT COUNT(*) FROM Phong WHERE trangThaiPhong = 'DangSuDung'");
+        return countQuery(
+            "SELECT COUNT(DISTINCT ctdp.maPhong) " +
+            "FROM DatPhong dp " +
+            "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
+            "WHERE dp.trangThaiDatPhong = 'DangO'"
+        );
     }
 
     public int countBookings(LocalDateTime start, LocalDateTime end) {
@@ -77,9 +82,9 @@ public class StatisticsDAO {
         String sql =
             "SELECT COUNT(*) " +
             "FROM ChiTietDatPhong ctdp " +
-            "JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
             "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
-            "  AND hd.trangThai = 'ChuaThanhToan'";
+            "  AND dp.trangThaiDatPhong = 'DaDat'";
         return countDateRangeQuery(sql, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
     }
 
@@ -87,9 +92,9 @@ public class StatisticsDAO {
         String sql =
             "SELECT COUNT(DISTINCT ctdp.maDatPhong) " +
             "FROM ChiTietDatPhong ctdp " +
-            "JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
             "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
-            "  AND hd.trangThai = 'ChuaThanhToan'";
+            "  AND dp.trangThaiDatPhong = 'DaDat'";
         return countDateRangeQuery(sql, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
     }
 
@@ -243,12 +248,12 @@ public class StatisticsDAO {
         LocalDateTime endBound   = LocalDateTime.now().plusDays(1);
 
         String sql =
-            "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
-            "       SUM(tongTienThanhToan) AS total " +
-            "FROM HoaDon " +
-            "WHERE " + REVENUE_COND + " " +
-            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
-            "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
+            "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, " +
+            "       SUM(" + CASH_REVENUE_EXPR + ") AS total " +
+            "FROM ThanhToan " +
+            "WHERE ngayTT >= ? AND ngayTT < ? " +
+            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
+            "GROUP BY YEAR(ngayTT), MONTH(ngayTT)";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(startBound));
@@ -288,12 +293,12 @@ public class StatisticsDAO {
         LocalDateTime endBound   = end.plusDays(1).atStartOfDay();
 
         String sql =
-            "SELECT YEAR(ngayThanhToan) AS yr, MONTH(ngayThanhToan) AS mo, " +
-            "       SUM(tongTienThanhToan) AS total " +
-            "FROM HoaDon " +
-            "WHERE " + REVENUE_COND + " " +
-            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
-            "GROUP BY YEAR(ngayThanhToan), MONTH(ngayThanhToan)";
+            "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, " +
+            "       SUM(" + CASH_REVENUE_EXPR + ") AS total " +
+            "FROM ThanhToan " +
+            "WHERE ngayTT >= ? AND ngayTT < ? " +
+            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
+            "GROUP BY YEAR(ngayTT), MONTH(ngayTT)";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(startBound));
@@ -330,11 +335,11 @@ public class StatisticsDAO {
         }
 
         String sql =
-            "SELECT CAST(ngayThanhToan AS DATE) AS dt, SUM(tongTienThanhToan) AS total " +
-            "FROM HoaDon " +
-            "WHERE " + REVENUE_COND + " " +
-            "  AND ngayThanhToan >= ? AND ngayThanhToan < ? " +
-            "GROUP BY CAST(ngayThanhToan AS DATE)";
+            "SELECT CAST(ngayTT AS DATE) AS dt, SUM(" + CASH_REVENUE_EXPR + ") AS total " +
+            "FROM ThanhToan " +
+            "WHERE ngayTT >= ? AND ngayTT < ? " +
+            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
+            "GROUP BY CAST(ngayTT AS DATE)";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -435,8 +440,8 @@ public class StatisticsDAO {
 
     /**
      * Lấy {@code limit} đặt phòng gần nhất theo {@code ngayDat DESC}.
-     * Mỗi DatPhong chỉ trả về 1 dòng (chọn phòng có maPhong đầu tiên qua ROW_NUMBER).
-     * Status được suy luận theo ngày so với GETDATE().
+     * Mỗi DatPhong chỉ trả về 1 dòng, gộp danh sách phòng để booking nhiều phòng không bị hiểu nhầm.
+     * Status lấy từ DatPhong.trangThaiDatPhong.
      */
     public List<RecentBooking> getRecentBookings(int limit) {
         return queryRecentBookings(limit);
@@ -455,19 +460,22 @@ public class StatisticsDAO {
         String sql =
             "SELECT TOP (?) maPhong, hoTenKH, tenLoaiPhong, trangThai, ngayDat " +
             "FROM ( " +
-            "    SELECT dp.maDatPhong, dp.ngayDat, ctdp.ngayNhanDuKien, ctdp.ngayTraDuKien, " +
-            "           kh.hoTenKH, p.maPhong, lp.tenLoaiPhong, " +
-            "           CASE WHEN ctdp.ngayNhanDuKien > GETDATE() THEN N'Sắp đến' " +
-            "                WHEN ctdp.ngayTraDuKien  < GETDATE() THEN N'Đã xong' " +
-            "                ELSE N'Đang ở' END AS trangThai, " +
-            "           ROW_NUMBER() OVER (PARTITION BY dp.maDatPhong ORDER BY p.maPhong) AS rn " +
+            "    SELECT dp.maDatPhong, dp.ngayDat, kh.hoTenKH, " +
+            "           STRING_AGG(CAST(p.maPhong AS VARCHAR(10)), ', ') WITHIN GROUP (ORDER BY p.maPhong) AS maPhong, " +
+            "           STRING_AGG(CAST(lp.tenLoaiPhong AS NVARCHAR(100)), N', ') WITHIN GROUP (ORDER BY p.maPhong) AS tenLoaiPhong, " +
+            "           CASE dp.trangThaiDatPhong " +
+            "                WHEN 'DaDat' THEN N'Sắp nhận' " +
+            "                WHEN 'DangO' THEN N'Đang ở' " +
+            "                WHEN 'DaTra' THEN N'Đã trả' " +
+            "                WHEN 'DaHuy' THEN N'Đã hủy' " +
+            "                ELSE dp.trangThaiDatPhong END AS trangThai " +
             "    FROM DatPhong dp " +
             "    JOIN KhachHang        kh   ON dp.maKH        = kh.maKH " +
             "    JOIN ChiTietDatPhong  ctdp ON dp.maDatPhong  = ctdp.maDatPhong " +
             "    JOIN Phong            p    ON ctdp.maPhong   = p.maPhong " +
             "    JOIN LoaiPhong        lp   ON p.maLoaiPhong  = lp.maLoaiPhong " +
+            "    GROUP BY dp.maDatPhong, dp.ngayDat, kh.hoTenKH, dp.trangThaiDatPhong " +
             ") ranked " +
-            "WHERE rn = 1 " +
             "ORDER BY ngayDat DESC";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -511,21 +519,27 @@ public class StatisticsDAO {
             "           cthd.maPhong " +
             "    FROM ChiTietHoaDon cthd " +
             "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
-            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND hd.trangThai != 'DaHuy' " +
+            "    JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
+            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND dp.trangThaiDatPhong <> 'DaHuy' " +
             "    UNION " +
             "    SELECT CAST(ctdp.ngayNhanDuKien AS DATE) AS inDate, " +
             "           CAST(ctdp.ngayTraDuKien AS DATE) AS outDate, " +
             "           ctdp.maPhong " +
             "    FROM ChiTietDatPhong ctdp " +
-            "    JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
-            "    WHERE hd.trangThai = 'ChuaThanhToan' " +
-            "      AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd2 WHERE cthd2.maHD = hd.maHD AND cthd2.maPhong = ctdp.maPhong)" +
+            "    JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
+            "    WHERE dp.trangThaiDatPhong = 'DaDat' " +
+            "      AND NOT EXISTS (" +
+            "          SELECT 1 FROM ChiTietHoaDon cthd2 " +
+            "          JOIN HoaDon hd2 ON hd2.maHD = cthd2.maHD " +
+            "          WHERE hd2.maDatPhong = dp.maDatPhong AND cthd2.maPhong = ctdp.maPhong" +
+            "      )" +
             ")" +
             "SELECT ds.dt AS date, (SELECT cnt FROM TotalRooms) AS totalRooms, COUNT(DISTINCT o.maPhong) AS occupiedRooms " +
             "FROM DateSeries ds " +
             "LEFT JOIN Occupied o ON ds.dt >= o.inDate AND ds.dt < o.outDate " +
             "GROUP BY ds.dt " +
-            "ORDER BY ds.dt";
+            "ORDER BY ds.dt " +
+            "OPTION (MAXRECURSION 0)";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -565,8 +579,9 @@ public class StatisticsDAO {
             "           COUNT(DISTINCT cthd.maPhong) AS roomsSold " +
             "    FROM ChiTietHoaDon cthd " +
             "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "    JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "    WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "      AND hd.trangThai = 'DaThanhToan'" +
+            "      AND dp.trangThaiDatPhong <> 'DaHuy'" +
             "    GROUP BY CAST(cthd.ngayNhanPhong AS DATE)" +
             ")" +
             "SELECT ds.dt AS date, " +
@@ -574,7 +589,8 @@ public class StatisticsDAO {
             "       0 AS revpar, 0 AS trevpar " +
             "FROM DateSeries ds " +
             "LEFT JOIN DailyStats ds2 ON ds.dt = ds2.dt " +
-            "ORDER BY ds.dt";
+            "ORDER BY ds.dt " +
+            "OPTION (MAXRECURSION 0)";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -608,8 +624,9 @@ public class StatisticsDAO {
             "SELECT SUM(cthd.thanhTien) AS roomRevenue " +
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai = 'DaThanhToan'";
+            "  AND dp.trangThaiDatPhong <> 'DaHuy'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -638,10 +655,10 @@ public class StatisticsDAO {
 
         // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy có tiền
         String sql =
-            "SELECT SUM(hd.tongTienThanhToan) AS totalRevenue " +
-            "FROM HoaDon hd " +
-            "WHERE hd.ngayThanhToan >= ? AND hd.ngayThanhToan < ? " +
-            "  AND (hd.trangThai = 'DaThanhToan' OR (hd.trangThai = 'DaHuy' AND hd.tongTienThanhToan > 0))";
+            "SELECT SUM(" + CASH_REVENUE_EXPR + ") AS totalRevenue " +
+            "FROM ThanhToan " +
+            "WHERE ngayTT >= ? AND ngayTT < ? " +
+            "  AND trangThaiTT = 'ThanhToanThanhCong'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -667,8 +684,9 @@ public class StatisticsDAO {
             "SELECT SUM(cthd.thanhTien) AS roomRevenue, SUM(cthd.soDem) AS totalNights " +
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
+            "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND hd.trangThai = 'DaThanhToan'";
+            "  AND dp.trangThaiDatPhong <> 'DaHuy'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {

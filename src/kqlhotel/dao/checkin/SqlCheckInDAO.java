@@ -40,6 +40,7 @@ public class SqlCheckInDAO implements CheckInDAO {
                         "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
                         "LEFT JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
                         "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
+                        "  AND dp.trangThaiDatPhong = 'DaDat' " +
                         "  AND (hd.trangThai IS NULL OR hd.trangThai <> 'DaHuy') " +
                         (isBlank(keyword) ? "" :
                                 "AND (dp.maDatPhong LIKE ? OR hd.maHD LIKE ? OR kh.hoTenKH LIKE ? OR kh.sdt LIKE ? OR kh.CCCD LIKE ?) ") +
@@ -193,7 +194,7 @@ public class SqlCheckInDAO implements CheckInDAO {
     }
 
     @Override
-    public void executeCheckInTransaction(String maHD, List<RoomCheckInCommand> rooms, BigDecimal totalRoom) throws Exception {
+    public void executeCheckInTransaction(String maDatPhong, String maHD, List<RoomCheckInCommand> rooms, BigDecimal totalRoom) throws Exception {
         Connection con = openConnection();
         if (con == null) throw new SQLException("Không thể kết nối CSDL.");
         
@@ -227,6 +228,15 @@ public class SqlCheckInDAO implements CheckInDAO {
                     ps.addBatch();
                 }
                 ps.executeBatch();
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE DatPhong SET trangThaiDatPhong = 'DangO' WHERE maDatPhong = ? AND trangThaiDatPhong = 'DaDat'")) {
+                ps.setString(1, maDatPhong);
+                int updated = ps.executeUpdate();
+                if (updated == 0) {
+                    throw new SQLException("Khong the cap nhat trang thai dat phong sang DangO.");
+                }
             }
 
             updateInvoiceMoney(con, maHD, totalRoom);

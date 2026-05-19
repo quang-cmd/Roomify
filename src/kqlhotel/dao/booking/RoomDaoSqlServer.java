@@ -87,7 +87,7 @@ public class RoomDaoSqlServer implements RoomDao {
             + "JOIN Phong p ON p.maLoaiPhong = lp.maLoaiPhong "
             + "LEFT JOIN ChiTietDatPhong ctdp ON ctdp.maPhong = p.maPhong "
             + "AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien "
-            + "AND EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maDatPhong = ctdp.maDatPhong AND hd.trangThai <> 'DaHuy') "
+            + "AND EXISTS (SELECT 1 FROM DatPhong dp WHERE dp.maDatPhong = ctdp.maDatPhong AND dp.trangThaiDatPhong IN ('DaDat', 'DangO')) "
             + "WHERE (? = 1 OR lp.tenLoaiPhong LIKE ?) "
             + "GROUP BY lp.tenLoaiPhong, lp.giaPhong, lp.sucChuaToiDa" + maxChildrenGroupBy + ", lp.tienNghi "
             + "HAVING SUM(CASE WHEN p.trangThaiPhong <> 'BaoTri' AND ctdp.maPhong IS NULL THEN 1 ELSE 0 END) > 0 "

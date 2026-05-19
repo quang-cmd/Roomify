@@ -18,9 +18,24 @@ public class Permission {
             return false;
         }
 
-        // Quản lý được dùng tất cả trừ Đặt phòng
+        // Quản lý được dùng tất cả chức năng trong hệ thống.
         if (isQuanLy()) {
-            return !"booking".equals(route);
+            return switch (route) {
+                case "dashboard",
+                     "booking",
+                     "check-in",
+                     "checkout",
+                     "swap-room",
+                     "cancel-room",
+                     "room-management",
+                     "staff",
+                     "customers",
+                     "services",
+                     "promotions",
+                     "invoices",
+                     "statistics" -> true;
+                default -> false;
+            };
         }
 
         // Nhân viên được dùng các màn hình nghiệp vụ chính
