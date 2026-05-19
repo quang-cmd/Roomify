@@ -235,6 +235,28 @@ public class SqlBookingService implements BookingService {
                 }
             }
 
+            // 5.5. Insert guests to ChiTietKhachO
+            String insertCtko = "INSERT INTO ChiTietKhachO (maDatPhong, maPhong, hoTen, cccd, sdt, vaiTro) VALUES (?, ?, ?, ?, ?, ?)";
+            for (int i = 0; i < command.getGuestInfos().size(); i++) {
+                GuestInfoDto g = command.getGuestInfos().get(i);
+                // Distribute guests among booked rooms
+                String roomId = allocatedRoomIds.get(i % allocatedRoomIds.size());
+                
+                try (PreparedStatement ps = con.prepareStatement(insertCtko)) {
+                    ps.setString(1, maDatPhong);
+                    ps.setString(2, roomId);
+                    ps.setString(3, g.getFullName() != null && !g.getFullName().isEmpty() ? g.getFullName() : "Khách phụ " + i);
+                    
+                    String fallbackCccd = "CCCD_" + System.currentTimeMillis() + "_" + i;
+                    ps.setString(4, g.getIdNo() != null && !g.getIdNo().isEmpty() ? g.getIdNo() : fallbackCccd);
+                    
+                    ps.setString(5, g.getPhone());
+                    ps.setString(6, i == 0 ? "Người đại diện" : "Khách lưu trú");
+                    ps.executeUpdate();
+                }
+            }
+
+
             // 6. Insert HoaDon
             String maHD = nextId(con, "HoaDon", "maHD", "HD", 5);
             String insertHoaDon = "INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) " +
