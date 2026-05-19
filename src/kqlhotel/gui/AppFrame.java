@@ -59,6 +59,7 @@ public class AppFrame extends JFrame {
     private ShiftOpeningPanel shiftPanel;
     private LoginPanel loginPanel;
     private CancelRoomPanel cancelRoomPanel;
+    private StatisticsPanel statisticsPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -103,7 +104,7 @@ public class AppFrame extends JFrame {
         bookingPanel = new BookingPanel();
         screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
-        StatisticsPanel statisticsPanel = new StatisticsPanel();
+        statisticsPanel = new StatisticsPanel();
         JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
         statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
         statisticsScroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -732,6 +733,9 @@ public class AppFrame extends JFrame {
         // Auto-refresh room management data when entering the tab
         if (route.equals("room-management")) {
             refreshRoomManagementData();
+        }
+        if (route.equals("statistics") && statisticsPanel != null) {
+            statisticsPanel.refresh();
         }
 
         // Update page title with Vietnamese text

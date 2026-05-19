@@ -202,14 +202,15 @@ public class SqlBookingService implements BookingService {
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
             String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
-            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?)";
+            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, trangThaiDatPhong, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
                 ps.setString(1, maDatPhong);
                 ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
                 ps.setBigDecimal(3, java.math.BigDecimal.valueOf(tienCocBooking));
-                ps.setString(4, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
-                ps.setString(5, leadCustomerId);
-                ps.setString(6, maNV);
+                ps.setString(4, "DaDat");
+                ps.setString(5, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
+                ps.setString(6, leadCustomerId);
+                ps.setString(7, maNV);
                 ps.executeUpdate();
             }
 
@@ -364,9 +365,9 @@ public class SqlBookingService implements BookingService {
             "AND p.trangThaiPhong <> 'BaoTri' " +
             "AND NOT EXISTS (" +
             "  SELECT 1 FROM ChiTietDatPhong ctdp " +
-            "  JOIN HoaDon hd ON hd.maDatPhong = ctdp.maDatPhong " +
+            "  JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
             "  WHERE ctdp.maPhong = p.maPhong " +
-            "  AND hd.trangThai <> 'DaHuy' " +
+            "  AND dp.trangThaiDatPhong IN ('DaDat', 'DangO') " +
             "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
             ") " +
             "ORDER BY NEWID()";
