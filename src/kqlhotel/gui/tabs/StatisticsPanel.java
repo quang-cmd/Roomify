@@ -3,6 +3,7 @@ package kqlhotel.gui.tabs;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -10,9 +11,15 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Window;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +28,7 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -29,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import kqlhotel.bus.statistics.StatisticsBUS;
 import kqlhotel.entity.statistics.ExpenseRecord;
@@ -127,15 +136,7 @@ public class StatisticsPanel extends JPanel {
         PrimaryButton exportBtn = new PrimaryButton("Xuất báo cáo");
         exportBtn.setBackground(ThemeColors.PREMIUM_ACCENT);
         exportBtn.setForeground(Color.WHITE);
-        exportBtn.addActionListener(e -> {
-            DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            JOptionPane.showMessageDialog(
-                this,
-                "Đã tạo báo cáo từ " + fromDatePicker.getSelectedDate().format(df) + " đến " + toDatePicker.getSelectedDate().format(df),
-                "Xuất báo cáo",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-        });
+        exportBtn.addActionListener(e -> exportStatisticsReport());
 
         PrimaryButton expenseBtn = new PrimaryButton("Quản lý Chi phí");
         expenseBtn.setBackground(ThemeColors.PREMIUM_SURFACE_HOVER);
@@ -573,6 +574,250 @@ public class StatisticsPanel extends JPanel {
         }
     }
 
+    private void exportStatisticsReport() {
+        LocalDate startDate = fromDatePicker.getSelectedDate();
+        LocalDate endDate = toDatePicker.getSelectedDate();
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            JOptionPane.showMessageDialog(this,
+                "Vui lòng chọn khoảng ngày hợp lệ trước khi xuất báo cáo.",
+                "Xuất báo cáo",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu báo cáo thống kê");
+        chooser.setFileFilter(new FileNameExtensionFilter("HTML report (*.html)", "html"));
+        chooser.setSelectedFile(new File("BaoCaoThongKe_"
+            + startDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+            + "_"
+            + endDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+            + ".html"));
+
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File selected = chooser.getSelectedFile();
+        if (!selected.getName().toLowerCase(Locale.ROOT).endsWith(".html")) {
+            selected = new File(selected.getParentFile(), selected.getName() + ".html");
+        }
+
+        try {
+            String html = buildStatisticsReportHtml(startDate, endDate);
+            Files.writeString(selected.toPath(), html, StandardCharsets.UTF_8);
+            int option = JOptionPane.showConfirmDialog(this,
+                "Đã lưu báo cáo tại:\n" + selected.getAbsolutePath() + "\n\nBạn có muốn mở báo cáo ngay không?",
+                "Xuất báo cáo",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE);
+            if (option == JOptionPane.YES_OPTION && Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(selected);
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Không thể lưu báo cáo: " + ex.getMessage(),
+                "Xuất báo cáo",
+                JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                "Không thể tạo báo cáo: " + ex.getMessage(),
+                "Xuất báo cáo",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String buildStatisticsReportHtml(LocalDate startDate, LocalDate endDate) {
+        DateTimeFormatter displayDate = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter displayDateTime = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        KpiSummary kpi = bus.loadKpis(startDate, endDate);
+        double manualExpenses = bus.loadManualExpenses(startDate, endDate);
+        double salaryExpenses = bus.loadSalaryExpenses(startDate, endDate);
+        double adr = bus.loadAdr(startDate, endDate);
+        double revpar = bus.loadRevpar(startDate, endDate);
+        double trevpar = bus.loadTrevpar(startDate, endDate);
+        List<RevenuePoint> revenuePoints = bus.loadRevenueByRange(startDate, endDate);
+        List<OccupancyPoint> occupancyPoints = bus.loadOccupancyTrend(startDate, endDate);
+        List<HotelKpiPoint> adrPoints = bus.loadAdrTrend(startDate, endDate);
+        List<RoomTypeShare> roomShares = bus.loadRoomTypeDistribution();
+        List<RecentBooking> recentBookings = bus.loadAllRecentBookings();
+        List<ExpenseRecord> expenses = filterExpensesByRange(bus.loadExpenses(), startDate, endDate);
+
+        StringBuilder html = new StringBuilder();
+        html.append("<!doctype html><html lang=\"vi\"><head><meta charset=\"UTF-8\">")
+            .append("<title>Báo cáo thống kê Roomify</title>")
+            .append("<style>")
+            .append("body{margin:0;background:#edf2f7;color:#0f172a;font-family:Segoe UI,Arial,sans-serif;}")
+            .append(".page{max-width:1180px;margin:28px auto;padding:0 24px 40px;}")
+            .append(".hero{background:#172554;color:#fff;border-radius:18px;padding:28px 32px;margin-bottom:18px;}")
+            .append(".hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:4px 0;color:#bfdbfe}")
+            .append(".grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}")
+            .append(".card{background:#fff;border:1px solid #dbe4f0;border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.06);}")
+            .append(".label{font-size:13px;color:#64748b;margin-bottom:8px}.value{font-size:25px;font-weight:800}.sub{font-size:12px;color:#64748b;margin-top:8px}")
+            .append("section{background:#fff;border:1px solid #dbe4f0;border-radius:14px;padding:18px;margin-top:14px;}")
+            .append("h2{font-size:18px;margin:0 0 12px}table{width:100%;border-collapse:collapse;font-size:13px}")
+            .append("th,td{padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:left}th{background:#f8fafc;color:#475569}")
+            .append(".num{text-align:right}.muted{color:#64748b}.positive{color:#047857}.negative{color:#dc2626}")
+            .append("@media print{body{background:#fff}.page{max-width:none;margin:0}.card,section,.hero{box-shadow:none}}")
+            .append("</style></head><body><main class=\"page\">");
+
+        html.append("<div class=\"hero\"><h1>Báo cáo thống kê Roomify</h1>")
+            .append("<p>Khoảng thời gian: ").append(escapeHtml(startDate.format(displayDate)))
+            .append(" - ").append(escapeHtml(endDate.format(displayDate))).append("</p>")
+            .append("<p>Xuất lúc: ").append(escapeHtml(LocalDateTime.now().format(displayDateTime))).append("</p></div>");
+
+        html.append("<div class=\"grid\">")
+            .append(metricCard("Doanh thu", formatMoneyFull(kpi.getRevenue()), "Tổng doanh thu đã ghi nhận"))
+            .append(metricCard("Chi phí", formatMoneyFull(kpi.getExpenses()), "Lương: " + formatMoneyFull(salaryExpenses) + " | Khác: " + formatMoneyFull(manualExpenses)))
+            .append(metricCard("Lợi nhuận", formatMoneyFull(kpi.getProfit()), "Biên lợi nhuận: " + formatPercent(kpi.getRevenue() == 0 ? 0 : kpi.getProfit() / kpi.getRevenue())))
+            .append(metricCard("ADR", formatMoneyFull(adr), "Giá phòng trung bình"))
+            .append(metricCard("RevPAR", formatMoneyFull(revpar), "Doanh thu/phòng khả dụng"))
+            .append(metricCard("TrevPAR", formatMoneyFull(trevpar), "Tổng doanh thu/phòng khả dụng"))
+            .append(metricCard("Booking", String.valueOf(kpi.getTotalBookings()), "Số lượt đặt trong kỳ"))
+            .append(metricCard("Lấp đầy", formatPercent(kpi.getOccupancyRate()), kpi.getOccupiedRooms() + "/" + kpi.getTotalRooms() + " phòng đang dùng"))
+            .append("</div>");
+
+        appendRevenueTable(html, revenuePoints);
+        appendExpenseTable(html, expenses);
+        appendOccupancyTable(html, occupancyPoints, displayDate);
+        appendAdrTable(html, adrPoints, displayDate);
+        appendRoomShareTable(html, roomShares);
+        appendRecentBookingTable(html, recentBookings, displayDateTime);
+
+        html.append("</main></body></html>");
+        return html.toString();
+    }
+
+    private List<ExpenseRecord> filterExpensesByRange(List<ExpenseRecord> all, LocalDate startDate, LocalDate endDate) {
+        List<ExpenseRecord> filtered = new ArrayList<>();
+        if (all == null) {
+            return filtered;
+        }
+        for (ExpenseRecord item : all) {
+            if (item.getDate() == null) {
+                continue;
+            }
+            LocalDate date = item.getDate().toLocalDate();
+            if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+                filtered.add(item);
+            }
+        }
+        return filtered;
+    }
+
+    private String metricCard(String label, String value, String sub) {
+        return "<div class=\"card\"><div class=\"label\">" + escapeHtml(label) + "</div><div class=\"value\">"
+            + escapeHtml(value) + "</div><div class=\"sub\">" + escapeHtml(sub) + "</div></div>";
+    }
+
+    private void appendRevenueTable(StringBuilder html, List<RevenuePoint> points) {
+        html.append("<section><h2>Doanh thu và lợi nhuận theo kỳ</h2><table><thead><tr>")
+            .append("<th>Kỳ</th><th class=\"num\">Doanh thu</th><th class=\"num\">Lợi nhuận ước tính</th>")
+            .append("</tr></thead><tbody>");
+        if (points == null || points.isEmpty()) {
+            appendEmptyRow(html, 3);
+        } else {
+            for (RevenuePoint point : points) {
+                html.append("<tr><td>").append(escapeHtml(point.getLabel())).append("</td><td class=\"num\">")
+                    .append(escapeHtml(formatMoneyFull(point.getRevenue()))).append("</td><td class=\"num ")
+                    .append(point.getProfit() >= 0 ? "positive" : "negative").append("\">")
+                    .append(escapeHtml(formatMoneyFull(point.getProfit()))).append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendExpenseTable(StringBuilder html, List<ExpenseRecord> expenses) {
+        html.append("<section><h2>Chi phí nhập tay</h2><table><thead><tr>")
+            .append("<th>ID</th><th>Loại</th><th>Tên chi phí</th><th class=\"num\">Số tiền</th><th>Ngày</th><th>Ghi chú</th>")
+            .append("</tr></thead><tbody>");
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (expenses == null || expenses.isEmpty()) {
+            appendEmptyRow(html, 6);
+        } else {
+            for (ExpenseRecord item : expenses) {
+                html.append("<tr><td>").append(item.getId()).append("</td><td>").append(escapeHtml(item.getType()))
+                    .append("</td><td>").append(escapeHtml(item.getName())).append("</td><td class=\"num\">")
+                    .append(escapeHtml(formatMoneyFull(item.getAmount()))).append("</td><td>")
+                    .append(item.getDate() == null ? "" : escapeHtml(item.getDate().format(df))).append("</td><td>")
+                    .append(escapeHtml(item.getNote())).append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendOccupancyTable(StringBuilder html, List<OccupancyPoint> points, DateTimeFormatter df) {
+        html.append("<section><h2>Tỷ lệ lấp đầy</h2><table><thead><tr>")
+            .append("<th>Ngày</th><th class=\"num\">Phòng sử dụng</th><th class=\"num\">Tổng phòng</th><th class=\"num\">Tỷ lệ</th>")
+            .append("</tr></thead><tbody>");
+        if (points == null || points.isEmpty()) {
+            appendEmptyRow(html, 4);
+        } else {
+            for (OccupancyPoint point : points) {
+                html.append("<tr><td>").append(escapeHtml(point.getDate().format(df))).append("</td><td class=\"num\">")
+                    .append(point.getOccupiedRooms()).append("</td><td class=\"num\">").append(point.getTotalRooms())
+                    .append("</td><td class=\"num\">").append(escapeHtml(formatPercent(point.getRate()))).append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendAdrTable(StringBuilder html, List<HotelKpiPoint> points, DateTimeFormatter df) {
+        html.append("<section><h2>ADR / RevPAR / TrevPAR</h2><table><thead><tr>")
+            .append("<th>Ngày</th><th class=\"num\">ADR</th><th class=\"num\">RevPAR</th><th class=\"num\">TrevPAR</th>")
+            .append("</tr></thead><tbody>");
+        if (points == null || points.isEmpty()) {
+            appendEmptyRow(html, 4);
+        } else {
+            for (HotelKpiPoint point : points) {
+                html.append("<tr><td>").append(escapeHtml(point.getDate().format(df))).append("</td><td class=\"num\">")
+                    .append(escapeHtml(formatMoneyFull(point.getAdr()))).append("</td><td class=\"num\">")
+                    .append(escapeHtml(formatMoneyFull(point.getRevpar()))).append("</td><td class=\"num\">")
+                    .append(escapeHtml(formatMoneyFull(point.getTrevpar()))).append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendRoomShareTable(StringBuilder html, List<RoomTypeShare> shares) {
+        html.append("<section><h2>Phân bổ loại phòng</h2><table><thead><tr>")
+            .append("<th>Loại phòng</th><th class=\"num\">Số lượng</th>")
+            .append("</tr></thead><tbody>");
+        if (shares == null || shares.isEmpty()) {
+            appendEmptyRow(html, 2);
+        } else {
+            for (RoomTypeShare share : shares) {
+                html.append("<tr><td>").append(escapeHtml(share.getLabel())).append("</td><td class=\"num\">")
+                    .append(share.getCount()).append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendRecentBookingTable(StringBuilder html, List<RecentBooking> bookings, DateTimeFormatter df) {
+        html.append("<section><h2>Đặt phòng gần đây</h2><table><thead><tr>")
+            .append("<th>Phòng</th><th>Khách</th><th>Loại phòng</th><th>Trạng thái</th><th>Ngày đặt</th>")
+            .append("</tr></thead><tbody>");
+        if (bookings == null || bookings.isEmpty()) {
+            appendEmptyRow(html, 5);
+        } else {
+            for (RecentBooking booking : bookings) {
+                html.append("<tr><td>").append(escapeHtml(booking.getRoomCode())).append("</td><td>")
+                    .append(escapeHtml(booking.getGuestName())).append("</td><td>")
+                    .append(escapeHtml(booking.getRoomType())).append("</td><td>")
+                    .append(escapeHtml(booking.getStatus())).append("</td><td>")
+                    .append(booking.getBookingDate() == null ? "" : escapeHtml(booking.getBookingDate().format(df)))
+                    .append("</td></tr>");
+            }
+        }
+        html.append("</tbody></table></section>");
+    }
+
+    private void appendEmptyRow(StringBuilder html, int columns) {
+        html.append("<tr><td class=\"muted\" colspan=\"").append(columns).append("\">Không có dữ liệu</td></tr>");
+    }
+
     private void populateRecentList(List<RecentBooking> items) {
         recentListBox.removeAll();
         if (items == null || items.isEmpty()) {
@@ -611,8 +856,23 @@ public class StatisticsPanel extends JPanel {
         return moneyFormat.format(v) + " đ";
     }
 
+    private String formatMoneyFull(double value) {
+        return moneyFormat.format(Math.round(value)) + " đ";
+    }
+
     private String formatPercent(double value) {
         return String.format(Locale.forLanguageTag("vi-VN"), "%.1f%%", value * 100);
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
     }
 
     private double parseMoneyInput(String raw) {
