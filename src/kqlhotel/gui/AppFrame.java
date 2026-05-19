@@ -508,9 +508,7 @@ public class AppFrame extends JFrame {
         if (roomManagementPanel != null) {
             roomManagementPanel.reloadData();
         }
-        if (bookingPanel != null) {
-            bookingPanel.refreshData();
-        }
+//
     }
 
     public void navigateToCheckoutWithRoom(String roomID) {
@@ -761,9 +759,7 @@ public class AppFrame extends JFrame {
         if (route.equals("room-management")) {
             refreshRoomManagementData();
         }
-        if (route.equals("booking") && bookingPanel != null) {
-            bookingPanel.refreshData();
-        }
+//
         if (route.equals("statistics") && statisticsPanel != null) {
             statisticsPanel.refresh();
         }
