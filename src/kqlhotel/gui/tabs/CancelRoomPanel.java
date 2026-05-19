@@ -148,9 +148,6 @@ public class CancelRoomPanel extends JPanel {
         add(body, "grow");
 
         setState("RESULT");
-
-        // Tự động hủy các phòng đặt cọc 30% quá 1 ngày check-in mà chưa nhận phòng
-        autoExpireOverdueDepositBookings();
     }
 
     private void updateSearchResults() {
@@ -1051,7 +1048,7 @@ public class CancelRoomPanel extends JPanel {
      * Áp dụng phạt 100% tiền cọc theo chính sách.
      * Chạy trên background thread để không block giao diện.
      */
-    private void autoExpireOverdueDepositBookings() {
+    public void autoExpireOverdueDepositBookings() {
         new javax.swing.SwingWorker<java.util.List<String[]>, Void>() {
             @Override
             protected java.util.List<String[]> doInBackground() {

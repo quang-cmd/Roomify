@@ -97,6 +97,7 @@ public class BookingPanel extends JPanel {
     private JButton adultsMinusButton;
     private JButton adultsPlusButton;
     private boolean filterLocked;
+    private boolean capacityHintsVisible;
     private int currentSlideIndex;
     private kqlhotel.entity.Customer preFilledCustomer;
 
@@ -148,6 +149,7 @@ public class BookingPanel extends JPanel {
     private void renderInitialRooms() {
         BookingSearchRequest initialRequest = new BookingSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate, adultsCount, childrenCount);
         lastSearchRequest = initialRequest;
+        capacityHintsVisible = false;
         List<RoomOptionDto> rooms = bookingService.searchAvailableRooms(initialRequest);
         renderRooms(mapToCardData(rooms));
     }
@@ -844,8 +846,10 @@ public class BookingPanel extends JPanel {
     }
 
     private JPanel roomCard(RoomCardData data) {
-        boolean selected = selectedRooms.contains(data);
-        return new RoomCard(data, selected, this::toggleRoomSelection);
+        int selectedCount = countSelectedRooms(data);
+        return new RoomCard(data, selectedCount > 0, selectedCount,
+            this::addRoomSelection,
+            this::removeRoomSelection);
     }
 
     
@@ -982,6 +986,7 @@ public class BookingPanel extends JPanel {
 
         BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, adultsCount, childrenCount);
         lastSearchRequest = request;
+        capacityHintsVisible = true;
         currentSlideIndex = 0;
 
         selectedRooms.clear();
@@ -999,8 +1004,17 @@ public class BookingPanel extends JPanel {
             return;
         }
 
+        if (!validateSelectedRoomCapacity()) {
+            setStep(1);
+            bookingCards.show(bookingContent, "select-room");
+            return;
+        }
+
         List<GuestInfoDto> guestInfos = collectGuestInfos();
         if (guestInfos == null) {
+            return;
+        }
+        if (!validateGuestData(guestInfos)) {
             return;
         }
 
@@ -1048,6 +1062,12 @@ public class BookingPanel extends JPanel {
             return;
         }
 
+        if (!validateSelectedRoomCapacity()) {
+            setStep(1);
+            bookingCards.show(bookingContent, "select-room");
+            return;
+        }
+
         List<GuestInfoDto> guestInfos = collectGuestInfos();
         if (guestInfos == null) {
             return;
@@ -1074,7 +1094,8 @@ public class BookingPanel extends JPanel {
         int choice = JOptionPane.showOptionDialog(
             this,
             "<html>Phương án: <b>" + paymentPlanLabel + "</b><br>" +
-                "Tổng tiền phòng: <b>" + formatMoney(totalAmount) + "</b><br>" +
+                "Tổng hóa đơn tạm tính: <b>" + formatMoney(totalAmount) + "</b><br>" +
+                "<span style='color:#64748b'>(Đã bao gồm VAT 10%)</span><br>" +
                 "Cần thu: <b>" + formatMoney(paymentAmount) + "</b><br><br>" +
                 "Chọn phương thức thanh toán:</html>",
             "Phương thức thanh toán",
@@ -1181,6 +1202,7 @@ public class BookingPanel extends JPanel {
             String idNo = guest.getIdNo();
             String phone = guest.getPhone();
             String name = guest.getFullName();
+            String email = guest.getEmail();
             boolean isChild = i >= adultsCount;
 
             if (name == null || name.trim().length() < 2) {
@@ -1207,6 +1229,19 @@ public class BookingPanel extends JPanel {
                     "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
+            if (i == 0 && (email == null || email.trim().isEmpty())) {
+                JOptionPane.showMessageDialog(this,
+                    "Vui lòng nhập email của khách chính để gửi xác nhận đặt phòng.",
+                    "Thiếu email", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (email != null && !email.trim().isEmpty()
+                    && !email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                JOptionPane.showMessageDialog(this,
+                    "Email của Khách " + (i + 1) + " không hợp lệ.",
+                    "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
         }
         return true;
     }
@@ -1219,6 +1254,7 @@ public class BookingPanel extends JPanel {
             String fullName = row.nameField.getText().trim();
             String phone = row.phoneField.getText().trim();
             String idNo = row.idField.getText().trim();
+            String email = row.emailField.getText().trim();
 
             boolean isChild = i >= adultsCount;
 
@@ -1242,7 +1278,7 @@ public class BookingPanel extends JPanel {
                 return null;
             }
 
-            guestInfos.add(new GuestInfoDto(fullName, phone, idNo));
+            guestInfos.add(new GuestInfoDto(fullName, phone, idNo, email));
         }
         return guestInfos;
     }
@@ -1265,6 +1301,7 @@ public class BookingPanel extends JPanel {
                 firstRow.idField.setText(preFilledCustomer.getCCCD());
                 firstRow.nameField.setText(preFilledCustomer.getHoTenKH());
                 firstRow.phoneField.setText(preFilledCustomer.getSdt());
+                firstRow.emailField.setText(preFilledCustomer.getEmail());
             }
         }
 
@@ -1278,7 +1315,7 @@ public class BookingPanel extends JPanel {
 
     private GuestFormRow createGuestFormRow(int index) {
         JPanel rowPanel = new RoundedPanel(10, Color.WHITE, new Color(225, 231, 245), 1f);
-        rowPanel.setLayout(new MigLayout("insets 8,gap 8", "[grow,fill][grow,fill][grow,fill]", "[][]"));
+        rowPanel.setLayout(new MigLayout("insets 8,gap 8", "[grow,fill][grow,fill][grow,fill][grow,fill]", "[][]"));
 
         JLabel label = new JLabel("Khách " + index);
         label.setForeground(new Color(44, 71, 117));
@@ -1293,17 +1330,21 @@ public class BookingPanel extends JPanel {
         JTextField phoneField = new JTextField();
         phoneField.putClientProperty("JTextField.placeholderText", "Số điện thoại");
 
-        attachAutoFillById(idField, nameField, phoneField);
+        JTextField emailField = new JTextField();
+        emailField.putClientProperty("JTextField.placeholderText", index == 1 ? "Email nhận xác nhận" : "Email (nếu có)");
 
-        rowPanel.add(label, "span 3, wrap");
+        attachAutoFillById(idField, nameField, phoneField, emailField);
+
+        rowPanel.add(label, "span 4, wrap");
         rowPanel.add(idField, "grow,h 34");
         rowPanel.add(nameField, "grow,h 34");
         rowPanel.add(phoneField, "grow,h 34");
+        rowPanel.add(emailField, "grow,h 34");
 
-        return new GuestFormRow(rowPanel, nameField, phoneField, idField);
+        return new GuestFormRow(rowPanel, nameField, phoneField, idField, emailField);
     }
 
-    private void attachAutoFillById(JTextField idField, JTextField nameField, JTextField phoneField) {
+    private void attachAutoFillById(JTextField idField, JTextField nameField, JTextField phoneField, JTextField emailField) {
         idField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -1325,6 +1366,7 @@ public class BookingPanel extends JPanel {
                 if (idNo.length() < 9) {
                     nameField.setText("");
                     phoneField.setText("");
+                    emailField.setText("");
                     return;
                 }
 
@@ -1333,9 +1375,11 @@ public class BookingPanel extends JPanel {
                     GuestInfoDto customer = found.get();
                     nameField.setText(customer.getHoTenNV());
                     phoneField.setText(customer.getSdt());
+                    emailField.setText(customer.getEmail());
                 } else {
                     nameField.setText("");
                     phoneField.setText("");
+                    emailField.setText("");
                 }
             }
         });
@@ -1381,15 +1425,34 @@ public class BookingPanel extends JPanel {
         updateSlideControls();
     }
 
-    private void toggleRoomSelection(RoomCardData data) {
-        if (selectedRooms.contains(data)) {
-            selectedRooms.remove(data);
-        } else {
-            selectedRooms.add(data);
+    private void addRoomSelection(RoomCardData data) {
+        int selectedCount = countSelectedRooms(data);
+        int availableRooms = Math.max(0, data.optionDto.getAvailableRooms());
+        if (selectedCount >= availableRooms) {
+            JOptionPane.showMessageDialog(this,
+                "Loại phòng này chỉ còn " + availableRooms + " phòng trống trong khoảng ngày đã chọn.",
+                "Không thể chọn thêm", JOptionPane.WARNING_MESSAGE);
+            return;
         }
-
+        selectedRooms.add(data);
         renderCurrentSlide();
         updateSelectionSummary();
+    }
+
+    private void removeRoomSelection(RoomCardData data) {
+        selectedRooms.remove(data);
+        renderCurrentSlide();
+        updateSelectionSummary();
+    }
+
+    private int countSelectedRooms(RoomCardData data) {
+        int count = 0;
+        for (RoomCardData selectedRoom : selectedRooms) {
+            if (selectedRoom == data) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void updateSlideControls() {
@@ -1449,9 +1512,20 @@ public class BookingPanel extends JPanel {
 
         StringBuilder builder = new StringBuilder();
         builder.append("<html><b>Đã chọn: ").append(selectedRooms.size()).append(" phòng</b><br>");
-        for (int i = 0; i < selectedRooms.size(); i++) {
-            builder.append(selectedRooms.get(i).roomType);
-            if (i < selectedRooms.size() - 1) {
+        List<RoomCardData> uniqueRooms = new ArrayList<>();
+        for (RoomCardData selectedRoom : selectedRooms) {
+            if (!uniqueRooms.contains(selectedRoom)) {
+                uniqueRooms.add(selectedRoom);
+            }
+        }
+        for (int i = 0; i < uniqueRooms.size(); i++) {
+            RoomCardData room = uniqueRooms.get(i);
+            int count = countSelectedRooms(room);
+            builder.append(room.roomType);
+            if (count > 1) {
+                builder.append(" x").append(count);
+            }
+            if (i < uniqueRooms.size() - 1) {
                 builder.append(", ");
             }
         }
@@ -1502,10 +1576,46 @@ public class BookingPanel extends JPanel {
             room.getStatus(),
             calculateFreeRate(room.getStatus()),
             room.getMaxGuests(),
+            room.getMaxChildren(),
+            capacityHintsVisible ? buildCapacityHint(room) : "",
+            hasEnoughRoomsForSearch(room),
             room.getAmenities(),
             bg,
             tone
         );
+    }
+
+    private String buildCapacityHint(RoomOptionDto room) {
+        int requiredRooms = calculateRequiredRoomsForSearch(room);
+        if (requiredRooms == Integer.MAX_VALUE) {
+            return "Loại phòng này không phù hợp với số trẻ em đã nhập";
+        }
+        if (requiredRooms <= 1) {
+            return "1 phòng đủ cho nhóm khách này";
+        }
+        if (room.getAvailableRooms() < requiredRooms) {
+            return "Chỉ còn " + room.getAvailableRooms() + " phòng, chưa đủ cho nhóm khách này";
+        }
+        return "Cần chọn ít nhất " + requiredRooms + " phòng loại này";
+    }
+
+    private boolean hasEnoughRoomsForSearch(RoomOptionDto room) {
+        return room.getAvailableRooms() >= calculateRequiredRoomsForSearch(room);
+    }
+
+    private int calculateRequiredRoomsForSearch(RoomOptionDto room) {
+        int adultRooms = ceilDiv(Math.max(1, adultsCount), Math.max(1, room.getMaxGuests()));
+        if (childrenCount > 0 && room.getMaxChildren() <= 0) {
+            return Integer.MAX_VALUE;
+        }
+        int childRooms = childrenCount <= 0
+            ? 0
+            : ceilDiv(childrenCount, room.getMaxChildren());
+        return Math.max(1, Math.max(adultRooms, childRooms));
+    }
+
+    private int ceilDiv(int value, int divisor) {
+        return (value + divisor - 1) / divisor;
     }
 
     private Color resolveRoomTone(String roomType) {
@@ -1566,16 +1676,33 @@ public class BookingPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng trước.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        int totalCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
-        if (totalCapacity < adultsCount) {
-            JOptionPane.showMessageDialog(this,
-                "Tổng sức chứa các phòng đã chọn (" + totalCapacity + " người lớn) không đủ cho " + adultsCount + " người lớn.\n"
-                + "Vui lòng chọn thêm phòng.",
-                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+        if (!validateSelectedRoomCapacity()) {
             return;
         }
         bookingCards.show(bookingContent, "customer-info");
         setStep(2);
+    }
+
+    private boolean validateSelectedRoomCapacity() {
+        int totalAdultCapacity = selectedRooms.stream().mapToInt(r -> r.capacity).sum();
+        if (adultsCount > totalAdultCapacity) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa người lớn của các phòng đã chọn (" + totalAdultCapacity + ") không đủ cho " + adultsCount + " người lớn.\n"
+                + "Vui lòng chọn thêm phòng hoặc chọn loại phòng lớn hơn.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        int totalChildCapacity = selectedRooms.stream().mapToInt(r -> r.childCapacity).sum();
+        if (childrenCount > totalChildCapacity) {
+            JOptionPane.showMessageDialog(this,
+                "Tổng sức chứa trẻ em của các phòng đã chọn (" + totalChildCapacity + ") không đủ cho " + childrenCount + " trẻ em.\n"
+                + "Vui lòng chọn thêm phòng hoặc chọn loại phòng lớn hơn.",
+                "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        return true;
     }
 
     private void setStep(int step) {
@@ -1715,12 +1842,14 @@ public class BookingPanel extends JPanel {
         private final JTextField nameField;
         private final JTextField phoneField;
         private final JTextField idField;
+        private final JTextField emailField;
 
-        private GuestFormRow(JPanel panel, JTextField nameField, JTextField phoneField, JTextField idField) {
+        private GuestFormRow(JPanel panel, JTextField nameField, JTextField phoneField, JTextField idField, JTextField emailField) {
             this.panel = panel;
             this.nameField = nameField;
             this.phoneField = phoneField;
             this.idField = idField;
+            this.emailField = emailField;
         }
     }
 }

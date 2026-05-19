@@ -58,6 +58,7 @@ public class AppFrame extends JFrame {
     private CheckoutPanel checkoutPanel;
     private ShiftOpeningPanel shiftPanel;
     private LoginPanel loginPanel;
+    private CancelRoomPanel cancelRoomPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -78,6 +79,9 @@ public class AppFrame extends JFrame {
         transitionTimer = new Timer(700, e -> {
             if (pendingCardName != null) {
                 rootCards.show(rootPanel, pendingCardName);
+                if (pendingCardName.equals("app") && cancelRoomPanel != null) {
+                    cancelRoomPanel.autoExpireOverdueDepositBookings();
+                }
                 pendingCardName = null;
             }
         });
@@ -111,7 +115,8 @@ public class AppFrame extends JFrame {
         checkoutPanel = new CheckoutPanel();
         screenPanel.add(checkoutPanel, "checkout");
 
-        screenPanel.add(new CancelRoomPanel(), "cancel-room");
+        cancelRoomPanel = new CancelRoomPanel();
+        screenPanel.add(cancelRoomPanel, "cancel-room");
 
         roomManagementPanel = new RoomManagementPanel();
         screenPanel.add(roomManagementPanel, "room-management");
