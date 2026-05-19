@@ -278,10 +278,25 @@ public class RoomDetailDialog extends JDialog {
 
         RoundedPanel pnlPersonal = new RoundedPanel(12, Color.WHITE, ThemeColors.BORDER, 1);
         pnlPersonal.setLayout(new MigLayout("insets 16 20 16 20, wrap 2", "[grow][grow]", "[]12[]"));
+        
+        JPanel titleWrap = new JPanel(new MigLayout("insets 0", "[grow][]", "[]"));
+        titleWrap.setOpaque(false);
         JLabel title1 = new JLabel("THÔNG TIN CÁ NHÂN");
         title1.setFont(title1.getFont().deriveFont(Font.BOLD, 10f));
         title1.setForeground(ThemeColors.TEXT_MUTED);
-        pnlPersonal.add(title1, "span 2, wrap");
+        titleWrap.add(title1);
+        
+        JButton btnViewAll = new JButton("Xem tất cả khách");
+        btnViewAll.setFont(btnViewAll.getFont().deriveFont(Font.BOLD, 11f));
+        btnViewAll.setForeground(ThemeColors.PRIMARY);
+        btnViewAll.setContentAreaFilled(false);
+        btnViewAll.setBorderPainted(false);
+        btnViewAll.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnViewAll.setMargin(new Insets(0, 0, 0, 0));
+        btnViewAll.addActionListener(e -> showGuestListDialog());
+        titleWrap.add(btnViewAll, "alignx right");
+        
+        pnlPersonal.add(titleWrap, "span 2, growx, wrap");
 
         String ten = (customer != null) ? customer.getHoTenKH() : "Khách vãng lai";
         String sdt = (customer != null) ? customer.getSdt() : "N/A";
@@ -385,6 +400,116 @@ public class RoomDetailDialog extends JDialog {
         pnl.add(lblT);
         pnl.add(lblV);
         return pnl;
+    }
+
+    private void showGuestListDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog dialog = new JDialog(owner, "Danh sách khách - Phòng " + roomNo, ModalityType.APPLICATION_MODAL);
+        dialog.setSize(500, 400);
+        dialog.setLocationRelativeTo(this);
+        
+        JPanel pnl = new JPanel(new MigLayout("insets 20, wrap 1", "[grow,fill]", "[][grow,fill][]"));
+        pnl.setBackground(Color.WHITE);
+        
+        JLabel title = new JLabel("Danh sách khách ở - Phòng " + roomNo);
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setForeground(ThemeColors.TEXT_PRIMARY);
+        pnl.add(title);
+        
+        JPanel listPanel = new JPanel(new MigLayout("insets 0, wrap 1, gap 10", "[grow,fill]", "[]"));
+        listPanel.setBackground(Color.WHITE);
+        
+        // Truy vấn dữ liệu thực từ CSDL bảng ChiTietKhachO
+        int fetchedCount = 0;
+        if (invoice != null && invoice.getMaDatPhong() != null) {
+            String maDatPhong = invoice.getMaDatPhong();
+            try {
+                java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+                String sql = "SELECT hoTen, cccd, sdt, vaiTro FROM ChiTietKhachO WHERE maDatPhong = ? AND maPhong = ? ORDER BY CASE WHEN vaiTro = N'Người đại diện' THEN 0 ELSE 1 END, hoTen ASC";
+                java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, maDatPhong);
+                ps.setString(2, roomNo);
+                java.sql.ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    fetchedCount++;
+                    listPanel.add(createGuestCard(rs.getString("hoTen"), rs.getString("sdt"), rs.getString("cccd"), rs.getString("vaiTro")));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+        // Nếu phòng chưa có đủ dữ liệu khách phụ, tự động sinh ra các khách phụ còn thiếu
+        if (fetchedCount == 0) {
+            // Trường hợp hoàn toàn không có dữ liệu (có thể do lỗi cũ), hiển thị người đại diện từ customer object
+            if (customer != null) {
+                listPanel.add(createGuestCard(customer.getHoTenKH(), customer.getSdt(), customer.getCCCD(), "Người đại diện"));
+                fetchedCount++;
+            }
+        }
+        
+        int totalGuests = (invoice != null) ? invoice.getSoLuongNguoi() : 1;
+        for (int i = fetchedCount; i < totalGuests; i++) {
+            listPanel.add(createGuestCard("Khách phụ " + i, "Chưa cập nhật", "Chưa cập nhật", "Khách lưu trú"));
+        }
+        
+        JScrollPane scroll = new JScrollPane(listPanel);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        pnl.add(scroll, "grow");
+        
+        JButton btnClose = new JButton("Đóng");
+        btnClose.setBackground(ThemeColors.PRIMARY);
+        btnClose.setForeground(Color.WHITE);
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        
+        JPanel botPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        botPanel.setBackground(Color.WHITE);
+        botPanel.add(btnClose);
+        
+        pnl.add(botPanel);
+        
+        dialog.setContentPane(pnl);
+        dialog.setVisible(true);
+    }
+    
+    private JPanel createGuestCard(String name, String phone, String idCard, String role) {
+        RoundedPanel card = new RoundedPanel(12, new Color(245, 248, 252), ThemeColors.BORDER, 1);
+        card.setLayout(new MigLayout("insets 12", "[][grow][]", "[]"));
+        
+        JLabel icon = new JLabel();
+        javax.swing.ImageIcon clientIcon = kqlhotel.gui.utils.IconLoader.loadIcon("client.png", 24, 24);
+        if (clientIcon != null) {
+            icon.setIcon(clientIcon);
+        } else {
+            icon.setText("👤");
+            icon.setFont(icon.getFont().deriveFont(24f));
+        }
+        card.add(icon, "gapright 10");
+        
+        JPanel info = new JPanel(new MigLayout("insets 0, wrap 1, gap 2", "[]", "[]"));
+        info.setOpaque(false);
+        
+        JLabel lblName = new JLabel(name);
+        lblName.setFont(lblName.getFont().deriveFont(Font.BOLD, 14f));
+        lblName.setForeground(ThemeColors.TEXT_PRIMARY);
+        
+        JLabel lblDetails = new JLabel("SĐT: " + (phone != null && !phone.isEmpty() ? phone : "N/A") + " - CCCD: " + (idCard != null && !idCard.isEmpty() ? idCard : "N/A"));
+        lblDetails.setFont(lblDetails.getFont().deriveFont(11f));
+        lblDetails.setForeground(ThemeColors.TEXT_MUTED);
+        
+        info.add(lblName);
+        info.add(lblDetails);
+        
+        card.add(info, "growx");
+        
+        JLabel lblRole = new JLabel(role);
+        lblRole.setFont(lblRole.getFont().deriveFont(Font.BOLD, 11f));
+        lblRole.setForeground(role.equals("Người đại diện") ? ThemeColors.ACCENT : ThemeColors.PRIMARY);
+        card.add(lblRole, "alignx right");
+        
+        return card;
     }
 
     private JPanel createHoaDonTab() {
