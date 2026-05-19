@@ -1106,6 +1106,7 @@ public class CheckoutBUS {
             }
 
             return true;
+
         } catch (Exception e) {
             e.printStackTrace();
             return false;

@@ -30,7 +30,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.Session;
 import kqlhotel.utils.CurrencyUtils;
 import net.miginfocom.swing.MigLayout;
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
 import java.util.stream.Collectors;
@@ -628,7 +628,7 @@ public class CheckoutPanel extends JPanel {
         detailPenaltyLabel.setFont(detailPenaltyLabel.getFont().deriveFont(Font.BOLD, 13f));
         costBox.add(detailPenaltyLabel, "gapy 4 0");
 
-        JLabel depositTitle = new JLabel("Tiền cọc đã trả");
+        JLabel depositTitle = new JLabel("Tiền cọc còn lại");
         depositTitle.setForeground(new Color(110, 125, 145));
         costBox.add(depositTitle, "gapy 4 0");
 
@@ -1300,7 +1300,7 @@ public class CheckoutPanel extends JPanel {
                     + "&addInfo=" + java.net.URLEncoder.encode(maHD, "UTF-8")
                     + "&accountName=" + java.net.URLEncoder.encode(accountName, "UTF-8");
 
-            java.net.URL url = java.net.URI.create(qrUrl).toURL();
+            java.net.URL url = new java.net.URL(qrUrl);
             ImageIcon icon = new ImageIcon(url);
 
             JLabel label = new JLabel(icon);

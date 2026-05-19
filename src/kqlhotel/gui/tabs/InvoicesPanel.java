@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
@@ -471,54 +471,68 @@ public class InvoicesPanel extends JPanel {
             conPhaiThanhToan = 0;
             tienHoanTra = 0;
         } else {
-        tongTienPhongThuan = Math.max(0, hd.getTienPhong());
-        tongPhuThu = calculateTotalSurcharge(roomDetails);
-        tongPhiPhat = calculateTotalPenalty(roomDetails);
-        tienDichVuHienThi = Math.max(0, hd.getTienDichVu());
-        tienThueHienThi = Math.max(0, hd.getTienThue());
+            // Tính footer theo chính các dòng chi tiết đang hiển thị,
+            // không lấy cứng hd.getTongTienThanhToan() để tránh lệch.
+            tongTienPhongThuan = calculateTotalBaseRoom(roomDetails);
+            tongPhuThu = calculateTotalSurcharge(roomDetails);
+            tongPhiPhat = calculateTotalPenalty(roomDetails);
+            tienDichVuHienThi = calculateTotalService(serviceDetails);
+            tienKhuyenMaiHienThi = Math.max(0, hd.getTienKhuyenMai());
 
-        tienKhuyenMaiHienThi = Math.max(0, hd.getTienKhuyenMai());
+            double tongTruocThue = Math.max(
+                    0,
+                    tongTienPhongThuan
+                            + tongPhuThu
+                            + tongPhiPhat
+                            + tienDichVuHienThi
+            );
 
-        tongTruocGiam = Math.max(
-                0,
-                tongTienPhongThuan
-                        + tongPhuThu
-                        + tongPhiPhat
-                        + tienDichVuHienThi
-                        + tienThueHienThi
-        );
+            tienThueHienThi = tongTruocThue * 0.10;
+            tongTruocGiam = tongTruocThue + tienThueHienThi;
 
-        tyLeGiamHangThanhVien = getMembershipDiscountRate(kh);
-        tenHangThanhVien = getMembershipRankName(kh);
+            // Tách khuyến mãi đang lưu trong hóa đơn thành:
+            // 1. Khuyến mãi theo mã
+            // 2. Khuyến mãi theo hạng thành viên
+            tyLeGiamHangThanhVien = getMembershipDiscountRate(kh);
+            tenHangThanhVien = getMembershipRankName(kh);
 
-        tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
-                tongTruocGiam,
-                tienKhuyenMaiHienThi,
-                tyLeGiamHangThanhVien
-        );
+            tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
+                    tongTruocGiam,
+                    tienKhuyenMaiHienThi,
+                    tyLeGiamHangThanhVien
+            );
 
-        tienKhuyenMaiHangHienThi = Math.max(
-                0,
-                tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
-        );
+            tienKhuyenMaiHangHienThi = Math.max(
+                    0,
+                    tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
+            );
 
-        tongSauKhuyenMai = Math.max(0, hd.getTongTienThanhToan());
+            tongSauKhuyenMai = Math.max(
+                    0,
+                    tongTruocGiam - tienKhuyenMaiMaHienThi - tienKhuyenMaiHangHienThi
+            );
 
-        if ("DaThanhToan".equals(computedStatus)) {
-            tienThanhToanThem = Math.max(0, tongSauKhuyenMai - tienCoc);
-            conPhaiThanhToan = 0;
-            tienHoanTra = 0;
-        } else {
-            tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
-            conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
+            if ("DaThanhToan".equals(computedStatus)) {
+                // Hóa đơn đã thanh toán thì footer phải cân về 0.
+                // Không lấy số đã thanh toán thêm từ giao dịch thực tế nữa,
+                // mà hiển thị theo số còn lại sau khi trừ cọc.
+                tienThanhToanThem = Math.max(0, tongSauKhuyenMai - tienCoc);
 
-            if (tongDaThanhToan > tongSauKhuyenMai) {
-                tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
-            } else {
+                conPhaiThanhToan = 0;
                 tienHoanTra = 0;
+            } else {
+                // Hóa đơn chưa thanh toán xong thì lấy theo giao dịch thực tế.
+                tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+
+                conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
+
+                if (tongDaThanhToan > tongSauKhuyenMai) {
+                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
+                } else {
+                    tienHoanTra = 0;
+                }
             }
         }
-    }
 
         JPanel topRow = new JPanel(new MigLayout("insets 0,fillx", "[][grow,fill][][][]", "[]"));
         topRow.setOpaque(false);
@@ -728,8 +742,7 @@ public class InvoicesPanel extends JPanel {
                 tienKhuyenMaiHangHienThi,
                 tenHangThanhVien,
                 tongSauKhuyenMai,
-                tienCoc,
-                tongDaThanhToan
+                tienCoc
         );
 
         JPanel dueCard = createImageDueCard(
@@ -739,8 +752,8 @@ public class InvoicesPanel extends JPanel {
                 conPhaiThanhToan
         );
 
-        bottomCards.add(summaryCard, "growx, h 250!");
-        bottomCards.add(dueCard, "growx, h 250!");
+        bottomCards.add(summaryCard, "growx, h 220!");
+        bottomCards.add(dueCard, "growx, h 220!");
 
         tablePanel.add(bottomCards, "growx");
 
@@ -1187,17 +1200,16 @@ public class InvoicesPanel extends JPanel {
             double kmHang,
             String tenHang,
             double tongHoaDon,
-            double tienCoc,
-            double tongDaThanhToan
+            double tienCoc
     ) {
         ImageCardPanel pane = new ImageCardPanel(imagePath);
         pane.setLayout(new MigLayout(
                 "insets 35 35 25 15, fillx",
                 "[160::200][180!][150!,right]",
-                "[]2[]2[]2[]2[]2[]2[]2[]2[]2[]"
+                "[]2[]2[]2[]2[]2[]2[]2[]"
         ));
 
-        pane.add(new JLabel(), "cell 0 0");
+        pane.add(new JLabel(), "cell 0 0"); // cột logo trống
         pane.add(makeSummaryText("Tiền phòng", false), "cell 1 0");
         pane.add(makeSummaryText(CurrencyUtils.formatVND(tienPhong), true), "cell 2 0");
 
@@ -1238,12 +1250,8 @@ public class InvoicesPanel extends JPanel {
         pane.add(totalValue, "cell 2 7");
 
         pane.add(new JLabel(), "cell 0 8");
-        pane.add(makeSummaryText("Tiền cọc đặt phòng", false), "cell 1 8");
+        pane.add(makeSummaryText("Tiền cọc đã cọc", false), "cell 1 8");
         pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tienCoc), true), "cell 2 8");
-
-        pane.add(new JLabel(), "cell 0 9");
-        pane.add(makeSummaryText("Tiền đã trả", false), "cell 1 9");
-        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tongDaThanhToan), true), "cell 2 9");
 
         return pane;
     }

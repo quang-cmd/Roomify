@@ -32,7 +32,6 @@ public class EmployeeDashboardPanel extends JPanel {
     private final JLabel lblShiftTime = valueLabel("--");
     private final JLabel lblStaff = valueLabel("--");
     private final JLabel lblShiftRevenue = valueLabel("--");
-    private final JLabel lblOpeningMoney = valueLabel("--");
 
     private final JLabel lblCheckInRooms = bigValue("--");
     private final JLabel lblCheckInBookings = bigValue("--");
@@ -149,7 +148,6 @@ public class EmployeeDashboardPanel extends JPanel {
         panel.add(miniInfo("Ca hiện tại", lblShiftName));
         panel.add(miniInfo("Giờ làm việc", lblShiftTime));
         panel.add(miniInfo("Nhân viên", lblStaff));
-        panel.add(miniInfo("Tiền mở ca", lblOpeningMoney));
         panel.add(miniInfo("Doanh thu ca", lblShiftRevenue));
         return panel;
     }
@@ -207,7 +205,6 @@ public class EmployeeDashboardPanel extends JPanel {
             lblShiftName.setText("Không có");
             lblShiftTime.setText("--");
             lblStaff.setText("--");
-            lblOpeningMoney.setText("--");
             lblShiftRevenue.setText("--");
             return;
         }
@@ -223,7 +220,6 @@ public class EmployeeDashboardPanel extends JPanel {
         lblShiftName.setText(tenCa);
         lblShiftTime.setText(info.gioBatDau + " – " + info.gioKetThuc);
         lblStaff.setText(info.hoTenNV);
-        lblOpeningMoney.setText(formatVND(info.tienMoCa));
         lblShiftRevenue.setText(formatVND(info.doanhThu));
     }
 
