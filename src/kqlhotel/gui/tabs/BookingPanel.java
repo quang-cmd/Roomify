@@ -996,6 +996,8 @@ public class BookingPanel extends JPanel {
         setStep(1);
     }
 
+
+
     private void submitBooking() {
         if (selectedRooms.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui l\u00f2ng ch\u1ecdn ít nh\u1ea5t 1 ph\u00f2ng tr\u01b0\u1edbc.", "Thi\u1ebfu th\u00f4ng tin", JOptionPane.WARNING_MESSAGE);

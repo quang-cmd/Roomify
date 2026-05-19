@@ -508,6 +508,7 @@ public class AppFrame extends JFrame {
         if (roomManagementPanel != null) {
             roomManagementPanel.reloadData();
         }
+//
     }
 
     public void navigateToCheckoutWithRoom(String roomID) {
@@ -758,6 +759,7 @@ public class AppFrame extends JFrame {
         if (route.equals("room-management")) {
             refreshRoomManagementData();
         }
+//
         if (route.equals("statistics") && statisticsPanel != null) {
             statisticsPanel.refresh();
         }
