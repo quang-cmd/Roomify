@@ -61,6 +61,9 @@ public class AppFrame extends JFrame {
     private ShiftOpeningPanel shiftPanel;
     private LoginPanel loginPanel;
     private CancelRoomPanel cancelRoomPanel;
+    private StatisticsPanel statisticsPanel;
+    private DashboardPanel dashboardPanel;
+    private EmployeeDashboardPanel employeeDashboardPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -100,8 +103,8 @@ public class AppFrame extends JFrame {
         contentWrap.add(createTopbar(), BorderLayout.NORTH);
 
         screenPanel.setOpaque(false);
-        DashboardPanel dashboardPanel = new DashboardPanel();
-        EmployeeDashboardPanel employeeDashboardPanel = new EmployeeDashboardPanel();
+        dashboardPanel = new DashboardPanel();
+        employeeDashboardPanel = new EmployeeDashboardPanel();
 
         dashboardWrap.setOpaque(false);
         dashboardWrap.add(dashboardPanel, "manager-dashboard");
@@ -111,7 +114,7 @@ public class AppFrame extends JFrame {
         bookingPanel = new BookingPanel();
         screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
-        StatisticsPanel statisticsPanel = new StatisticsPanel();
+        statisticsPanel = new StatisticsPanel();
         JScrollPane statisticsScroll = new JScrollPane(statisticsPanel);
         statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
         statisticsScroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -483,8 +486,8 @@ public class AppFrame extends JFrame {
         logoutBtn.setForeground(ThemeColors.DANGER);
         logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
         logoutBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
-            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+                BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)));
         logoutBtn.setFocusPainted(false);
         logoutBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t kh\u1ecfi h\u1ec7 th\u1ed1ng");
@@ -585,11 +588,11 @@ public class AppFrame extends JFrame {
 
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
-            this,
-            "B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n \u0111\u0103ng xu\u1ea5t?",
-            "X\u00e1c nh\u1eadn",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
+                this,
+                "B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n \u0111\u0103ng xu\u1ea5t?",
+                "X\u00e1c nh\u1eadn",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
         );
 
         if (option != JOptionPane.YES_OPTION) {
@@ -670,12 +673,12 @@ public class AppFrame extends JFrame {
         wrapper.setOpaque(false);
 
         RoundedPanel card = new RoundedPanel(
-            16,
-            ThemeColors.SURFACE,
-            ThemeColors.BORDER_SOFT,
-            1f,
-            new Color(17, 24, 39, 20),
-            6
+                16,
+                ThemeColors.SURFACE,
+                ThemeColors.BORDER_SOFT,
+                1f,
+                new Color(17, 24, 39, 20),
+                6
         );
         card.setLayout(new MigLayout("wrap 1,insets 24,gap 10", "[grow,fill]", "[]"));
         card.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -740,14 +743,23 @@ public class AppFrame extends JFrame {
         if ("dashboard".equals(route)) {
             if (Permission.isQuanLy()) {
                 dashboardCards.show(dashboardWrap, "manager-dashboard");
+                if (dashboardPanel != null) {
+                    dashboardPanel.refresh();
+                }
             } else {
                 dashboardCards.show(dashboardWrap, "employee-dashboard");
+                if (employeeDashboardPanel != null) {
+                    employeeDashboardPanel.refresh();
+                }
             }
         }
 
         // Auto-refresh room management data when entering the tab
         if (route.equals("room-management")) {
             refreshRoomManagementData();
+        }
+        if (route.equals("statistics") && statisticsPanel != null) {
+            statisticsPanel.refresh();
         }
 
         // Update page title with Vietnamese text
