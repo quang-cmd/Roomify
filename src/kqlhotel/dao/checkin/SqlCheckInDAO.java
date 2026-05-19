@@ -110,7 +110,7 @@ public class SqlCheckInDAO implements CheckInDAO {
                         (String) r[7],
                         roomMap.getOrDefault(maDP, Collections.emptyList()),
                         nights,
-                        ((Integer) r[8]) > 0
+                        false
                 ));
             }
 
@@ -148,6 +148,43 @@ public class SqlCheckInDAO implements CheckInDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() && rs.getInt(1) > 0;
             }
+        }
+    }
+
+    @Override
+    public boolean syncExistingCheckIn(String maDatPhong, String maHD) throws Exception {
+        Connection con = openConnection();
+        if (con == null) throw new SQLException("Khong the ket noi CSDL.");
+
+        boolean oldAutoCommit = con.getAutoCommit();
+        try {
+            con.setAutoCommit(false);
+
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE Phong SET trangThaiPhong = 'DangSuDung' " +
+                            "WHERE maPhong IN (" +
+                            "    SELECT maPhong FROM ChiTietHoaDon " +
+                            "    WHERE maHD = ? AND ngayNhanPhong IS NOT NULL AND ngayTraThucTe IS NULL" +
+                            ")")) {
+                ps.setString(1, maHD);
+                ps.executeUpdate();
+            }
+
+            int updatedBooking;
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE DatPhong SET trangThaiDatPhong = 'DangO' " +
+                            "WHERE maDatPhong = ? AND trangThaiDatPhong = 'DaDat'")) {
+                ps.setString(1, maDatPhong);
+                updatedBooking = ps.executeUpdate();
+            }
+
+            con.commit();
+            return updatedBooking > 0;
+        } catch (SQLException e) {
+            con.rollback();
+            throw e;
+        } finally {
+            con.setAutoCommit(oldAutoCommit);
         }
     }
 
