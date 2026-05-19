@@ -46,7 +46,7 @@ public class ShiftDAO {
         "JOIN CaLam cl ON pc.maCa = cl.maCa " +
         "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
-        "WHERE pc.tienKetCa = 0 " +
+        "WHERE pc.trangThai = N'DangMo' " +
         "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
         "ORDER BY pc.ngay DESC";
 
@@ -75,7 +75,14 @@ public class ShiftDAO {
             if (hasOpenShift(con, maNV, maCa)) return true;
 
             String maPC = nextMaPC(con);
-            String sql = "INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES (?, ?, ?, 0, ?, ?)";
+            String sql = """
+                INSERT INTO PhanCongCa (
+                    maPC, ngay, tienMoCa, tienKetCa,
+                    thoiGianMoCa, thoiGianKetCa, trangThai,
+                    maNV, maCa
+                )
+                VALUES (?, ?, ?, 0, GETDATE(), NULL, N'DangMo', ?, ?)
+            """;
 
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setString(1, maPC);
@@ -94,7 +101,7 @@ public class ShiftDAO {
     }
 
     private boolean hasOpenShift(Connection con, String maNV, String maCa) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM PhanCongCa WHERE maNV = ? AND maCa = ? AND tienKetCa = 0";
+        String sql = "SELECT COUNT(*) FROM PhanCongCa WHERE maNV = ? AND maCa = ? AND trangThai = N'DangMo'";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maNV);
             ps.setString(2, maCa);
@@ -148,7 +155,7 @@ public class ShiftDAO {
                         "JOIN CaLam cl ON pc.maCa = cl.maCa " +
                         "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
                         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
-                        "WHERE pc.tienKetCa = 0 AND pc.maNV = ? " +
+                        "WHERE pc.trangThai = N'DangMo' AND pc.maNV = ? " +
                         "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
                         "ORDER BY pc.ngay DESC";
 
@@ -231,7 +238,7 @@ public class ShiftDAO {
         String sql = """
         SELECT TOP 1 maNV
         FROM PhanCongCa
-        WHERE tienKetCa = 0
+        WHERE trangThai = N'DangMo'
         ORDER BY ngay DESC
     """;
 
@@ -263,7 +270,7 @@ public class ShiftDAO {
         SELECT TOP 1 maPC
         FROM PhanCongCa
         WHERE maNV = ?
-          AND tienKetCa = 0
+          AND trangThai = N'DangMo'
         ORDER BY ngay DESC
     """;
 
@@ -293,11 +300,13 @@ public class ShiftDAO {
         }
 
         String sql = """
-        UPDATE PhanCongCa
-        SET tienKetCa = ?
-        WHERE maPC = ?
-          AND tienKetCa = 0
-    """;
+            UPDATE PhanCongCa
+            SET tienKetCa = ?,
+                thoiGianKetCa = GETDATE(),
+                trangThai = N'DaKet'
+            WHERE maPC = ?
+              AND trangThai = N'DangMo'
+        """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setBigDecimal(1, java.math.BigDecimal.valueOf(tienKetCa));

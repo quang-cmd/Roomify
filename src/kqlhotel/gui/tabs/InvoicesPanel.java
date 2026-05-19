@@ -471,36 +471,36 @@ public class InvoicesPanel extends JPanel {
             conPhaiThanhToan = 0;
             tienHoanTra = 0;
         } else {
-        tongTienPhongThuan = Math.max(0, hd.getTienPhong());
-        tongPhuThu = calculateTotalSurcharge(roomDetails);
-        tongPhiPhat = calculateTotalPenalty(roomDetails);
-        tienDichVuHienThi = Math.max(0, hd.getTienDichVu());
-        tienThueHienThi = Math.max(0, hd.getTienThue());
+            tongTienPhongThuan = Math.max(0, hd.getTienPhong());
+            tongPhuThu = calculateTotalSurcharge(roomDetails);
+            tongPhiPhat = calculateTotalPenalty(roomDetails);
+            tienDichVuHienThi = Math.max(0, hd.getTienDichVu());
+            tienThueHienThi = Math.max(0, hd.getTienThue());
 
-        tienKhuyenMaiHienThi = Math.max(0, hd.getTienKhuyenMai());
+            tienKhuyenMaiHienThi = Math.max(0, hd.getTienKhuyenMai());
 
-        tongTruocGiam = Math.max(
-                0,
-                tongTienPhongThuan
-                        + tongPhuThu
-                        + tongPhiPhat
-                        + tienDichVuHienThi
-                        + tienThueHienThi
-        );
+            tongTruocGiam = Math.max(
+                    0,
+                    tongTienPhongThuan
+                            + tongPhuThu
+                            + tongPhiPhat
+                            + tienDichVuHienThi
+                            + tienThueHienThi
+            );
 
-        tyLeGiamHangThanhVien = getMembershipDiscountRate(kh);
-        tenHangThanhVien = getMembershipRankName(kh);
+            tyLeGiamHangThanhVien = getMembershipDiscountRate(kh);
+            tenHangThanhVien = getMembershipRankName(kh);
 
-        tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
-                tongTruocGiam,
-                tienKhuyenMaiHienThi,
-                tyLeGiamHangThanhVien
-        );
+            tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
+                    tongTruocGiam,
+                    tienKhuyenMaiHienThi,
+                    tyLeGiamHangThanhVien
+            );
 
-        tienKhuyenMaiHangHienThi = Math.max(
-                0,
-                tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
-        );
+            tienKhuyenMaiHangHienThi = Math.max(
+                    0,
+                    tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
+            );
 
             tongSauKhuyenMai = Math.max(
                     0,
@@ -515,13 +515,13 @@ public class InvoicesPanel extends JPanel {
                 tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
                 conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
 
-            if (tongDaThanhToan > tongSauKhuyenMai) {
-                tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
-            } else {
-                tienHoanTra = 0;
+                if (tongDaThanhToan > tongSauKhuyenMai) {
+                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
+                } else {
+                    tienHoanTra = 0;
+                }
             }
         }
-    }
 
         JPanel topRow = new JPanel(new MigLayout("insets 0,fillx", "[][grow,fill][][][]", "[]"));
         topRow.setOpaque(false);
@@ -566,6 +566,20 @@ public class InvoicesPanel extends JPanel {
             }
         });
 
+        String tmpPaymentStaffName = invoicesBUS.getPaymentStaffName(hd.getMaHD());
+        String tmpPaymentStaffId = invoicesBUS.getPaymentStaffId(hd.getMaHD());
+
+        if (tmpPaymentStaffName == null || tmpPaymentStaffName.isBlank()) {
+            tmpPaymentStaffName = invoicesBUS.getStaffName(hd.getMaNhanVien());
+        }
+
+        if (tmpPaymentStaffId == null || tmpPaymentStaffId.isBlank()) {
+            tmpPaymentStaffId = hd.getMaNhanVien();
+        }
+
+        final String paymentStaffName = tmpPaymentStaffName;
+        final String paymentStaffId = tmpPaymentStaffId;
+
         PrimaryButton bPdf = new PrimaryButton("Xuất PDF");
         bPdf.setIcon(loadIcon("print.png", 18, 18));
         bPdf.setBackground(new Color(255, 193, 7));
@@ -577,7 +591,7 @@ public class InvoicesPanel extends JPanel {
                     SwingUtilities.getWindowAncestor(this),
                     hd,
                     invoicesBUS.getCustomerInfo(hd.getMaKhachHang()),
-                    invoicesBUS.getStaffName(hd.getMaNhanVien()),
+                    paymentStaffName,
                     invoicesBUS.getRoomDetails(hd.getMaHD()),
                     invoicesBUS.getServiceDetails(hd.getMaHD()),
                     invoicesBUS
@@ -614,12 +628,10 @@ public class InvoicesPanel extends JPanel {
                 hd.getMaDatPhong() != null ? "Mã đặt: " + hd.getMaDatPhong() : "Không có mã đặt"
         ));
 
-        String staffName = invoicesBUS.getStaffName(hd.getMaNhanVien());
-
         infoRow.add(createBox(
                 "NHÂN VIÊN",
-                staffName != null ? staffName : hd.getMaNhanVien(),
-                hd.getMaNhanVien() != null ? "Mã NV: " + hd.getMaNhanVien() : "Chưa có nhân viên"
+                paymentStaffName != null ? paymentStaffName : "Không xác định",
+                paymentStaffId != null ? "Mã NV: " + paymentStaffId : "Chưa có nhân viên"
         ));
 
         JLabel tTitle = new JLabel("CHI TIẾT HÓA ĐƠN");

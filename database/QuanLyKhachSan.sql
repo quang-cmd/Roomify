@@ -78,14 +78,18 @@ CREATE TABLE CaLam (
 GO
 
 CREATE TABLE PhanCongCa (
-                            maPC       CHAR(5)       PRIMARY KEY,
-                            ngay       DATETIME2     NOT NULL,
-                            tienMoCa   DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
-                            tienKetCa  DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
-                            maNV       CHAR(5)       NOT NULL,
-                            maCa       CHAR(5)       NOT NULL,
-                            CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-                            CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
+						maPC           CHAR(5)        PRIMARY KEY,
+						ngay           DATETIME2      NOT NULL,
+						tienMoCa       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
+						tienKetCa      DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
+						thoiGianMoCa   DATETIME2      NULL,
+						thoiGianKetCa  DATETIME2      NULL,
+						trangThai      NVARCHAR(20)   NOT NULL DEFAULT N'DaPhanCong'
+							CHECK (trangThai IN (N'DaPhanCong', N'DangMo', N'DaKet')),
+						maNV           CHAR(5)        NOT NULL,
+						maCa           CHAR(5)        NOT NULL,
+						CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+						CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
 );
 GO
 
@@ -340,12 +344,17 @@ INSERT INTO CaLam (maCa, gioBatDau, gioKetThuc, ghiChu, loaiCa) VALUES
 ('CA003', '22:00:00', '06:00:00', N'Ca toi',  'CaToi');
 GO
 
-INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES
-('PC001', '2026-04-23', 500000.00,  3500000.00, 'NV002', 'CA001'),
-('PC002', '2026-04-23', 500000.00,  4200000.00, 'NV003', 'CA002'),
-('PC003', '2026-04-24', 500000.00,  3800000.00, 'NV004', 'CA001'),
-('PC004', '2026-04-24', 500000.00,  4500000.00, 'NV005', 'CA002'),
-('PC005', '2026-04-25', 500000.00,        0.00, 'NV002', 'CA001'); -- ca dang mo
+INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa,thoiGianMoCa, thoiGianKetCa, trangThai, maNV, maCa) VALUES
+('PC001', '2026-04-23', 500000.00, 3500000.00, '2026-04-23 06:00:00', '2026-04-23 14:00:00', N'DaKet',      'NV002', 'CA001'),
+('PC002', '2026-04-23', 500000.00, 4200000.00, '2026-04-23 14:00:00', '2026-04-23 22:00:00', N'DaKet',      'NV003', 'CA002'),
+('PC003', '2026-04-24', 500000.00, 3800000.00, '2026-04-24 06:00:00', '2026-04-24 14:00:00', N'DaKet',      'NV004', 'CA001'),
+('PC004', '2026-04-24', 500000.00, 4500000.00, '2026-04-24 14:00:00', '2026-04-24 22:00:00', N'DaKet',      'NV005', 'CA002'),
+-- ca đang mở hôm nay
+('PC005', '2026-04-25', 500000.00, 0.00,       '2026-04-25 06:00:00', NULL,                  N'DangMo',     'NV002', 'CA001'),
+
+-- ca đã phân công nhưng chưa mở
+('PC006', '2026-04-25', 0.00,      0.00,       NULL,                  NULL,                  N'DaPhanCong', 'NV003', 'CA002'),
+('PC007', '2026-04-25', 0.00,      0.00,       NULL,                  NULL,                  N'DaPhanCong', 'NV004', 'CA003');
 GO
 
 -- ----- LoaiPhong (6 loai) + Phong (12 phong) -----
