@@ -259,25 +259,24 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         }
 
         String sql = """
-        SELECT ISNULL(SUM(tt.soTienTT), 0) AS totalPaid
-        FROM ThanhToan tt
-        JOIN HoaDon hd ON tt.maHD = hd.maHD
-        WHERE hd.maDatPhong = ?
-          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+        SELECT ISNULL(tienCoc, 0) AS tienCoc
+        FROM DatPhong
+        WHERE maDatPhong = ?
     """;
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
-            PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, maDatPhong);
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maDatPhong);
 
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getDouble("totalPaid");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("tienCoc");
+                    }
+                }
             }
-
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

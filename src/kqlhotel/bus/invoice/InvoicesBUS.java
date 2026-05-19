@@ -63,7 +63,7 @@ public class InvoicesBUS {
             return 0;
         }
 
-        return invoiceDAO.getSuccessfulPaymentByBooking(maDatPhong);
+        return invoiceDAO.getDepositAmount(maDatPhong);
     }
 
     public String getComputedStatus(Invoice hd) {

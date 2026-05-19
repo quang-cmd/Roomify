@@ -728,7 +728,8 @@ public class InvoicesPanel extends JPanel {
                 tienKhuyenMaiHangHienThi,
                 tenHangThanhVien,
                 tongSauKhuyenMai,
-                tienCoc
+                tienCoc,
+                tongDaThanhToan
         );
 
         JPanel dueCard = createImageDueCard(
@@ -738,8 +739,8 @@ public class InvoicesPanel extends JPanel {
                 conPhaiThanhToan
         );
 
-        bottomCards.add(summaryCard, "growx, h 220!");
-        bottomCards.add(dueCard, "growx, h 220!");
+        bottomCards.add(summaryCard, "growx, h 250!");
+        bottomCards.add(dueCard, "growx, h 250!");
 
         tablePanel.add(bottomCards, "growx");
 
@@ -1186,16 +1187,17 @@ public class InvoicesPanel extends JPanel {
             double kmHang,
             String tenHang,
             double tongHoaDon,
-            double tienCoc
+            double tienCoc,
+            double tongDaThanhToan
     ) {
         ImageCardPanel pane = new ImageCardPanel(imagePath);
         pane.setLayout(new MigLayout(
                 "insets 35 35 25 15, fillx",
                 "[160::200][180!][150!,right]",
-                "[]2[]2[]2[]2[]2[]2[]2[]"
+                "[]2[]2[]2[]2[]2[]2[]2[]2[]2[]"
         ));
 
-        pane.add(new JLabel(), "cell 0 0"); // cột logo trống
+        pane.add(new JLabel(), "cell 0 0");
         pane.add(makeSummaryText("Tiền phòng", false), "cell 1 0");
         pane.add(makeSummaryText(CurrencyUtils.formatVND(tienPhong), true), "cell 2 0");
 
@@ -1236,8 +1238,12 @@ public class InvoicesPanel extends JPanel {
         pane.add(totalValue, "cell 2 7");
 
         pane.add(new JLabel(), "cell 0 8");
-        pane.add(makeSummaryText("Tiền cọc đã cọc", false), "cell 1 8");
+        pane.add(makeSummaryText("Tiền cọc đặt phòng", false), "cell 1 8");
         pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tienCoc), true), "cell 2 8");
+
+        pane.add(new JLabel(), "cell 0 9");
+        pane.add(makeSummaryText("Tiền đã trả", false), "cell 1 9");
+        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tongDaThanhToan), true), "cell 2 9");
 
         return pane;
     }
