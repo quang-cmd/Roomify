@@ -28,39 +28,39 @@ GO
 -- 1. Tai khoan / Nhan vien / Khach hang
 -- =====================================================================
 CREATE TABLE TaiKhoan (
-    tenDangNhap VARCHAR(50)  PRIMARY KEY,
-    matKhau     NVARCHAR(255) NOT NULL,
-    vaiTro      VARCHAR(20)  NOT NULL CHECK (vaiTro IN ('QuanLy', 'NhanVien')),
-    trangThaiTK VARCHAR(20)  NOT NULL DEFAULT 'DangHoatDong'
-                CHECK (trangThaiTK IN ('DangHoatDong', 'NgungHoatDong'))
+                          tenDangNhap VARCHAR(50)  PRIMARY KEY,
+                          matKhau     NVARCHAR(255) NOT NULL,
+                          vaiTro      VARCHAR(20)  NOT NULL CHECK (vaiTro IN ('QuanLy', 'NhanVien')),
+                          trangThaiTK VARCHAR(20)  NOT NULL DEFAULT 'DangHoatDong'
+                              CHECK (trangThaiTK IN ('DangHoatDong', 'NgungHoatDong'))
 );
 GO
 
 CREATE TABLE NhanVien (
-    maNV         CHAR(5)        PRIMARY KEY,
-    hoTenNV      NVARCHAR(100)  NOT NULL,
-    sdt          VARCHAR(15)    NOT NULL UNIQUE,
-    gioiTinh     BIT            NOT NULL,
-    luong        DECIMAL(18,2)  NOT NULL CHECK (luong >= 0),
-    ngayVao      DATETIME2      NOT NULL,
-    tenDangNhap  VARCHAR(50)    NOT NULL UNIQUE,
-    CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenDangNhap) REFERENCES TaiKhoan(tenDangNhap)
+                          maNV         CHAR(5)        PRIMARY KEY,
+                          hoTenNV      NVARCHAR(100)  NOT NULL,
+                          sdt          VARCHAR(15)    NOT NULL UNIQUE,
+                          gioiTinh     BIT            NOT NULL,
+                          luong        DECIMAL(18,2)  NOT NULL CHECK (luong >= 0),
+                          ngayVao      DATETIME2      NOT NULL,
+                          tenDangNhap  VARCHAR(50)    NOT NULL UNIQUE,
+                          CONSTRAINT FK_NhanVien_TaiKhoan FOREIGN KEY (tenDangNhap) REFERENCES TaiKhoan(tenDangNhap)
 );
 GO
 
 CREATE TABLE KhachHang (
-    maKH        CHAR(5)        PRIMARY KEY,
-    hoTenKH     NVARCHAR(100)  NOT NULL,
-    gioiTinh    BIT            NOT NULL DEFAULT 1,
-    ngaySinh    DATETIME2      NULL,
-    email       VARCHAR(100)   NULL,
-    sdt         VARCHAR(15)    NOT NULL UNIQUE,
-    CCCD        VARCHAR(20)    NOT NULL UNIQUE,
-    quocTich    NVARCHAR(50)   NOT NULL DEFAULT N'Viet Nam',
-    diaChi      NVARCHAR(200)  NULL,
-    hangKH      VARCHAR(20)    NOT NULL DEFAULT 'Dong'
-                CHECK (hangKH IN ('Dong', 'Bac', 'Vang', 'KimCuong')),
-    diemTichLuy INT            NOT NULL DEFAULT 0 CHECK (diemTichLuy >= 0)
+                           maKH        CHAR(5)        PRIMARY KEY,
+                           hoTenKH     NVARCHAR(100)  NOT NULL,
+                           gioiTinh    BIT            NOT NULL DEFAULT 1,
+                           ngaySinh    DATETIME2      NULL,
+                           email       VARCHAR(100)   NULL,
+                           sdt         VARCHAR(15)    NOT NULL UNIQUE,
+                           CCCD        VARCHAR(20)    NOT NULL UNIQUE,
+                           quocTich    NVARCHAR(50)   NOT NULL DEFAULT N'Viet Nam',
+                           diaChi      NVARCHAR(200)  NULL,
+                           hangKH      VARCHAR(20)    NOT NULL DEFAULT 'Dong'
+                               CHECK (hangKH IN ('Dong', 'Bac', 'Vang', 'KimCuong')),
+                           diemTichLuy INT            NOT NULL DEFAULT 0 CHECK (diemTichLuy >= 0)
 );
 GO
 
@@ -68,33 +68,33 @@ GO
 -- 2. Ca lam viec / Phan cong ca
 -- =====================================================================
 CREATE TABLE CaLam (
-    maCa       CHAR(5)       PRIMARY KEY,
-    gioBatDau  TIME          NOT NULL,
-    gioKetThuc TIME          NOT NULL,
-    ghiChu     NVARCHAR(200) NULL,
-    loaiCa     VARCHAR(20)   NOT NULL CHECK (loaiCa IN ('CaSang', 'CaChieu', 'CaToi'))
+                       maCa       CHAR(5)       PRIMARY KEY,
+                       gioBatDau  TIME          NOT NULL,
+                       gioKetThuc TIME          NOT NULL,
+                       ghiChu     NVARCHAR(200) NULL,
+                       loaiCa     VARCHAR(20)   NOT NULL CHECK (loaiCa IN ('CaSang', 'CaChieu', 'CaToi'))
 );
 GO
 
 CREATE TABLE PhanCongCa (
-    maPC       CHAR(5)       PRIMARY KEY,
-    ngay       DATETIME2     NOT NULL,
-    tienMoCa   DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
-    tienKetCa  DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
-    maNV       CHAR(5)       NOT NULL,
-    maCa       CHAR(5)       NOT NULL,
-    CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-    CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
+                            maPC       CHAR(5)       PRIMARY KEY,
+                            ngay       DATETIME2     NOT NULL,
+                            tienMoCa   DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
+                            tienKetCa  DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
+                            maNV       CHAR(5)       NOT NULL,
+                            maCa       CHAR(5)       NOT NULL,
+                            CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+                            CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
 );
 GO
 
 CREATE TABLE ChiPhi (
-    maChiPhi   INT IDENTITY(1,1) PRIMARY KEY,
-    loaiChiPhi NVARCHAR(50)      NOT NULL,
-    tenChiPhi  NVARCHAR(255)     NOT NULL,
-    soTien     DECIMAL(18,0)     NOT NULL CHECK (soTien >= 0),
-    ngayChi    DATETIME2         NOT NULL,
-    ghiChu     NVARCHAR(500)     NULL
+                        maChiPhi   INT IDENTITY(1,1) PRIMARY KEY,
+                        loaiChiPhi NVARCHAR(50)      NOT NULL,
+                        tenChiPhi  NVARCHAR(255)     NOT NULL,
+                        soTien     DECIMAL(18,0)     NOT NULL CHECK (soTien >= 0),
+                        ngayChi    DATETIME2         NOT NULL,
+                        ghiChu     NVARCHAR(500)     NULL
 );
 GO
 
@@ -102,25 +102,25 @@ GO
 -- 3. Loai phong / Phong
 -- =====================================================================
 CREATE TABLE LoaiPhong (
-    maLoaiPhong  CHAR(5)        PRIMARY KEY,
-    tenLoaiPhong NVARCHAR(100)  NOT NULL,
-    soLuongPhong INT            NOT NULL CHECK (soLuongPhong >= 0),
-    giaPhong     DECIMAL(18,2)  NOT NULL CHECK (giaPhong >= 0),
-    sucChuaToiDa INT            NOT NULL CHECK (sucChuaToiDa > 0),
-    soTreEmTD    INT            NOT NULL DEFAULT 0 CHECK (soTreEmTD >= 0),
-    dienTich     DECIMAL(10,2)  NOT NULL CHECK (dienTich > 0),
-    moTa         NVARCHAR(255)  NULL,
-    tienNghi     NVARCHAR(255)  NULL
+                           maLoaiPhong  CHAR(5)        PRIMARY KEY,
+                           tenLoaiPhong NVARCHAR(100)  NOT NULL,
+                           soLuongPhong INT            NOT NULL CHECK (soLuongPhong >= 0),
+                           giaPhong     DECIMAL(18,2)  NOT NULL CHECK (giaPhong >= 0),
+                           sucChuaToiDa INT            NOT NULL CHECK (sucChuaToiDa > 0),
+                           soTreEmTD    INT            NOT NULL DEFAULT 0 CHECK (soTreEmTD >= 0),
+                           dienTich     DECIMAL(10,2)  NOT NULL CHECK (dienTich > 0),
+                           moTa         NVARCHAR(255)  NULL,
+                           tienNghi     NVARCHAR(255)  NULL
 );
 GO
 
 CREATE TABLE Phong (
-    maPhong         CHAR(4)     PRIMARY KEY,
-    maLoaiPhong     CHAR(5)     NOT NULL,
-    tang            INT         NOT NULL CHECK (tang > 0),
-    trangThaiPhong  VARCHAR(20) NOT NULL DEFAULT 'Trong'
-                    CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri')),
-    CONSTRAINT FK_Phong_LoaiPhong FOREIGN KEY (maLoaiPhong) REFERENCES LoaiPhong(maLoaiPhong)
+                       maPhong         CHAR(4)     PRIMARY KEY,
+                       maLoaiPhong     CHAR(5)     NOT NULL,
+                       tang            INT         NOT NULL CHECK (tang > 0),
+                       trangThaiPhong  VARCHAR(20) NOT NULL DEFAULT 'Trong'
+                           CHECK (trangThaiPhong IN ('Trong', 'DangSuDung', 'BaoTri')),
+                       CONSTRAINT FK_Phong_LoaiPhong FOREIGN KEY (maLoaiPhong) REFERENCES LoaiPhong(maLoaiPhong)
 );
 GO
 
@@ -128,27 +128,27 @@ GO
 -- 4. Dich vu / Khuyen mai
 -- =====================================================================
 CREATE TABLE DichVu (
-    maDV         CHAR(5)        PRIMARY KEY,
-    tenDV        NVARCHAR(100)  NOT NULL,
-    donGia       DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
-    loaiDV       NVARCHAR(50)   NULL,
-    moTaDV       NVARCHAR(255)  NULL,
-    trangThaiDV  VARCHAR(20)    NOT NULL DEFAULT 'DangHoatDong'
-                 CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
+                        maDV         CHAR(5)        PRIMARY KEY,
+                        tenDV        NVARCHAR(100)  NOT NULL,
+                        donGia       DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
+                        loaiDV       NVARCHAR(50)   NULL,
+                        moTaDV       NVARCHAR(255)  NULL,
+                        trangThaiDV  VARCHAR(20)    NOT NULL DEFAULT 'DangHoatDong'
+                            CHECK (trangThaiDV IN ('DangHoatDong', 'NgungHoatDong'))
 );
 GO
 
 CREATE TABLE KhuyenMai (
-    maKM            CHAR(5)        PRIMARY KEY,
-    tenKM           NVARCHAR(100)  NOT NULL,
-    dieuKienApDung  DECIMAL(18,2)  NOT NULL CHECK (dieuKienApDung >= 0),
-    loaiKM          VARCHAR(20)    NOT NULL CHECK (loaiKM IN ('TheoTien', 'TheoPhanTram')),
-    giaTriToiDa     DECIMAL(18,2)  NOT NULL CHECK (giaTriToiDa >= 0),
-    tienKhuyenMai   DECIMAL(18,2)  NOT NULL CHECK (tienKhuyenMai >= 0),
-    ngayBatDau      DATETIME2      NOT NULL,
-    ngayKetThuc     DATETIME2      NOT NULL,
-    trangThaiKM     VARCHAR(20)    NOT NULL CHECK (trangThaiKM IN ('SapDienRa', 'DangHoatDong', 'HetHan')),
-    CONSTRAINT CK_KhuyenMai_Ngay CHECK (ngayKetThuc > ngayBatDau)
+                           maKM            CHAR(5)        PRIMARY KEY,
+                           tenKM           NVARCHAR(100)  NOT NULL,
+                           dieuKienApDung  DECIMAL(18,2)  NOT NULL CHECK (dieuKienApDung >= 0),
+                           loaiKM          VARCHAR(20)    NOT NULL CHECK (loaiKM IN ('TheoTien', 'TheoPhanTram')),
+                           giaTriToiDa     DECIMAL(18,2)  NOT NULL CHECK (giaTriToiDa >= 0),
+                           tienKhuyenMai   DECIMAL(18,2)  NOT NULL CHECK (tienKhuyenMai >= 0),
+                           ngayBatDau      DATETIME2      NOT NULL,
+                           ngayKetThuc     DATETIME2      NOT NULL,
+                           trangThaiKM     VARCHAR(20)    NOT NULL CHECK (trangThaiKM IN ('SapDienRa', 'DangHoatDong', 'HetHan')),
+                           CONSTRAINT CK_KhuyenMai_Ngay CHECK (ngayKetThuc > ngayBatDau)
 );
 GO
 
@@ -156,29 +156,31 @@ GO
 -- 5. Dat phong / Chi tiet dat phong
 -- =====================================================================
 CREATE TABLE DatPhong (
-    maDatPhong      CHAR(5)        PRIMARY KEY,
-    ngayDat         DATETIME2      NOT NULL,
-    tienCoc         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienCoc >= 0),
-    ghiChu          NVARCHAR(255)  NULL,
-    maKH            CHAR(5)        NOT NULL,
-    maNV            CHAR(5)        NOT NULL,
-    CONSTRAINT FK_DatPhong_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
-    CONSTRAINT FK_DatPhong_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
+                          maDatPhong      CHAR(5)        PRIMARY KEY,
+                          ngayDat         DATETIME2      NOT NULL,
+                          tienCoc         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienCoc >= 0),
+                          trangThaiDatPhong VARCHAR(20)  NOT NULL DEFAULT 'DaDat'
+                              CHECK (trangThaiDatPhong IN ('DaDat', 'DangO', 'DaTra', 'DaHuy')),
+                          ghiChu          NVARCHAR(255)  NULL,
+                          maKH            CHAR(5)        NOT NULL,
+                          maNV            CHAR(5)        NOT NULL,
+                          CONSTRAINT FK_DatPhong_KhachHang FOREIGN KEY (maKH) REFERENCES KhachHang(maKH),
+                          CONSTRAINT FK_DatPhong_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
 );
 GO
 
 CREATE TABLE ChiTietDatPhong (
-    maDatPhong     CHAR(5)        NOT NULL,
-    maPhong        CHAR(4)        NOT NULL,
-    ngayNhanDuKien DATETIME2      NOT NULL,
-    ngayTraDuKien  DATETIME2      NOT NULL,
-    donGiaDat      DECIMAL(18,2)  NOT NULL CHECK (donGiaDat >= 0),
-    soLuongNguoiO  INT            NOT NULL CHECK (soLuongNguoiO > 0),
-    ghiChu         NVARCHAR(255)  NULL,
-    CONSTRAINT PK_ChiTietDatPhong PRIMARY KEY (maDatPhong, maPhong),
-    CONSTRAINT FK_CTDatPhong_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong),
-    CONSTRAINT FK_CTDatPhong_Phong    FOREIGN KEY (maPhong)    REFERENCES Phong(maPhong),
-    CONSTRAINT CK_CTDatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien)
+                                 maDatPhong     CHAR(5)        NOT NULL,
+                                 maPhong        CHAR(4)        NOT NULL,
+                                 ngayNhanDuKien DATETIME2      NOT NULL,
+                                 ngayTraDuKien  DATETIME2      NOT NULL,
+                                 donGiaDat      DECIMAL(18,2)  NOT NULL CHECK (donGiaDat >= 0),
+                                 soLuongNguoiO  INT            NOT NULL CHECK (soLuongNguoiO > 0),
+                                 ghiChu         NVARCHAR(255)  NULL,
+                                 CONSTRAINT PK_ChiTietDatPhong PRIMARY KEY (maDatPhong, maPhong),
+                                 CONSTRAINT FK_CTDatPhong_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong),
+                                 CONSTRAINT FK_CTDatPhong_Phong    FOREIGN KEY (maPhong)    REFERENCES Phong(maPhong),
+                                 CONSTRAINT CK_CTDatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien)
 );
 GO
 
@@ -186,75 +188,75 @@ GO
 -- 6. Hoa don / Chi tiet hoa don / Chi tiet dich vu / Thanh toan
 -- =====================================================================
 CREATE TABLE HoaDon (
-    maHD                CHAR(5)        PRIMARY KEY,
-    ngayLapHD           DATETIME2      NOT NULL,
-    ngayThanhToan       DATETIME2      NULL,
-    ghiChu              NVARCHAR(255)  NULL,
-    soLuongNguoiO       INT            NOT NULL CHECK (soLuongNguoiO >= 0),
-    tienPhong           DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienPhong >= 0),
-    tienDichVu          DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienDichVu >= 0),
-    tienKhuyenMai       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKhuyenMai >= 0),
-    tienThue            DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienThue >= 0),
-    tongTienThanhToan   DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tongTienThanhToan >= 0),
-    phiDoiPhong         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiDoiPhong >= 0),
-    maKM                CHAR(5)        NULL,
-    maKH                CHAR(5)        NOT NULL,
-    maNV                CHAR(5)        NOT NULL,
-    phuongThucTT        VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
-    trangThai           VARCHAR(20)    NOT NULL DEFAULT 'ChuaThanhToan'
-                        CHECK (trangThai IN ('ChuaThanhToan', 'DaThanhToan', 'DaHuy')),
-    maDatPhong          CHAR(5)        NULL,
-    CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM)        REFERENCES KhuyenMai(maKM),
-    CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKH)        REFERENCES KhachHang(maKH),
-    CONSTRAINT FK_HoaDon_NhanVien  FOREIGN KEY (maNV)        REFERENCES NhanVien(maNV),
-    CONSTRAINT FK_HoaDon_DatPhong  FOREIGN KEY (maDatPhong)  REFERENCES DatPhong(maDatPhong)
+                        maHD                CHAR(5)        PRIMARY KEY,
+                        ngayLapHD           DATETIME2      NOT NULL,
+                        ngayThanhToan       DATETIME2      NULL,
+                        ghiChu              NVARCHAR(255)  NULL,
+                        soLuongNguoiO       INT            NOT NULL CHECK (soLuongNguoiO >= 0),
+                        tienPhong           DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienPhong >= 0),
+                        tienDichVu          DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienDichVu >= 0),
+                        tienKhuyenMai       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKhuyenMai >= 0),
+                        tienThue            DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienThue >= 0),
+                        tongTienThanhToan   DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tongTienThanhToan >= 0),
+                        phiDoiPhong         DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiDoiPhong >= 0),
+                        maKM                CHAR(5)        NULL,
+                        maKH                CHAR(5)        NOT NULL,
+                        maNV                CHAR(5)        NOT NULL,
+                        phuongThucTT        VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
+                        trangThai           VARCHAR(20)    NOT NULL DEFAULT 'ChuaThanhToan'
+                            CHECK (trangThai IN ('ChuaThanhToan', 'DaThanhToan', 'DaHuy')),
+                        maDatPhong          CHAR(5)        NULL,
+                        CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM)        REFERENCES KhuyenMai(maKM),
+                        CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKH)        REFERENCES KhachHang(maKH),
+                        CONSTRAINT FK_HoaDon_NhanVien  FOREIGN KEY (maNV)        REFERENCES NhanVien(maNV),
+                        CONSTRAINT FK_HoaDon_DatPhong  FOREIGN KEY (maDatPhong)  REFERENCES DatPhong(maDatPhong)
 );
 GO
 
 CREATE TABLE ChiTietHoaDon (
-    maHD          CHAR(5)        NOT NULL,
-    maPhong       CHAR(4)        NOT NULL,
-    ngayNhanPhong DATETIME2      NOT NULL,    -- Thoi diem khach thuc su check-in
-    ngayTraPhong  DATETIME2      NOT NULL,    -- Thoi diem du kien tra phong
-    ngayTraThucTe DATETIME2      NULL,        -- NULL = chua check-out
-    soDem         INT            NOT NULL CHECK (soDem > 0),
-    phuThu        DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phuThu >= 0),
-    phiPhat       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiPhat >= 0),
-    thanhTien     DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
-    CONSTRAINT PK_ChiTietHoaDon PRIMARY KEY (maHD, maPhong),
-    CONSTRAINT FK_CTHoaDon_HoaDon FOREIGN KEY (maHD)    REFERENCES HoaDon(maHD),
-    CONSTRAINT FK_CTHoaDon_Phong  FOREIGN KEY (maPhong) REFERENCES Phong(maPhong),
-    CONSTRAINT CK_CTHoaDon_Ngay CHECK (ngayTraPhong > ngayNhanPhong)
+                               maHD          CHAR(5)        NOT NULL,
+                               maPhong       CHAR(4)        NOT NULL,
+                               ngayNhanPhong DATETIME2      NOT NULL,    -- Thoi diem khach thuc su check-in
+                               ngayTraPhong  DATETIME2      NOT NULL,    -- Thoi diem du kien tra phong
+                               ngayTraThucTe DATETIME2      NULL,        -- NULL = chua check-out
+                               soDem         INT            NOT NULL CHECK (soDem > 0),
+                               phuThu        DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phuThu >= 0),
+                               phiPhat       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (phiPhat >= 0),
+                               thanhTien     DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
+                               CONSTRAINT PK_ChiTietHoaDon PRIMARY KEY (maHD, maPhong),
+                               CONSTRAINT FK_CTHoaDon_HoaDon FOREIGN KEY (maHD)    REFERENCES HoaDon(maHD),
+                               CONSTRAINT FK_CTHoaDon_Phong  FOREIGN KEY (maPhong) REFERENCES Phong(maPhong),
+                               CONSTRAINT CK_CTHoaDon_Ngay CHECK (ngayTraPhong > ngayNhanPhong)
 );
 GO
 
 CREATE TABLE ChiTietDichVu (
-    maCTDV    CHAR(8)        PRIMARY KEY,
-    maHD      CHAR(5)        NOT NULL,
-    maDV      CHAR(5)        NOT NULL,
-    soLuong   INT            NOT NULL CHECK (soLuong > 0),
-    donGia    DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
-    thanhTien DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
-    ghiChu    NVARCHAR(255)  NULL,
-    CONSTRAINT FK_CTDichVu_HoaDon FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
-    CONSTRAINT FK_CTDichVu_DichVu FOREIGN KEY (maDV) REFERENCES DichVu(maDV)
+                               maCTDV    CHAR(8)        PRIMARY KEY,
+                               maHD      CHAR(5)        NOT NULL,
+                               maDV      CHAR(5)        NOT NULL,
+                               soLuong   INT            NOT NULL CHECK (soLuong > 0),
+                               donGia    DECIMAL(18,2)  NOT NULL CHECK (donGia >= 0),
+                               thanhTien DECIMAL(18,2)  NOT NULL CHECK (thanhTien >= 0),
+                               ghiChu    NVARCHAR(255)  NULL,
+                               CONSTRAINT FK_CTDichVu_HoaDon FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
+                               CONSTRAINT FK_CTDichVu_DichVu FOREIGN KEY (maDV) REFERENCES DichVu(maDV)
 );
 GO
 
 CREATE TABLE ThanhToan (
-    maTT          CHAR(5)        PRIMARY KEY,
-    ngayTT        DATETIME2      NOT NULL,
-    soTienTT      DECIMAL(18,2)  NOT NULL CHECK (soTienTT >= 0),
-    ghiChu        NVARCHAR(255)  NULL,
-    phuongThucTT  VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
-    trangThaiTT   VARCHAR(30)    NOT NULL DEFAULT 'ThanhToanThanhCong'
-                  CHECK (trangThaiTT IN ('ChoThanhToan', 'ThanhToanThanhCong', 'ThanhToanThatBai', 'DaHuy')),
-    maHD          CHAR(5)        NOT NULL,
-    maPC          CHAR(5)        NULL,         -- Ca lam thu tien (de doi soat ca)
-    maNV          CHAR(5)        NULL,         -- Le tan thu tien
-    CONSTRAINT FK_ThanhToan_HoaDon     FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
-    CONSTRAINT FK_ThanhToan_PhanCongCa FOREIGN KEY (maPC) REFERENCES PhanCongCa(maPC),
-    CONSTRAINT FK_ThanhToan_NhanVien   FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
+                           maTT          CHAR(5)        PRIMARY KEY,
+                           ngayTT        DATETIME2      NOT NULL,
+                           soTienTT      DECIMAL(18,2)  NOT NULL CHECK (soTienTT >= 0),
+                           ghiChu        NVARCHAR(255)  NULL,
+                           phuongThucTT  VARCHAR(20)    NOT NULL CHECK (phuongThucTT IN ('TienMat', 'ChuyenKhoan')),
+                           trangThaiTT   VARCHAR(30)    NOT NULL DEFAULT 'ThanhToanThanhCong'
+                               CHECK (trangThaiTT IN ('ChoThanhToan', 'ThanhToanThanhCong', 'ThanhToanThatBai', 'DaHuy')),
+                           maHD          CHAR(5)        NOT NULL,
+                           maPC          CHAR(5)        NULL,         -- Ca lam thu tien (de doi soat ca)
+                           maNV          CHAR(5)        NULL,         -- Le tan thu tien
+                           CONSTRAINT FK_ThanhToan_HoaDon     FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
+                           CONSTRAINT FK_ThanhToan_PhanCongCa FOREIGN KEY (maPC) REFERENCES PhanCongCa(maPC),
+                           CONSTRAINT FK_ThanhToan_NhanVien   FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
 );
 GO
 
@@ -266,10 +268,12 @@ CREATE INDEX IX_Phong_maLoaiPhong    ON Phong(maLoaiPhong);
 CREATE INDEX IX_Phong_trangThai      ON Phong(trangThaiPhong);
 CREATE INDEX IX_DatPhong_maKH        ON DatPhong(maKH);
 CREATE INDEX IX_DatPhong_ngayDat     ON DatPhong(ngayDat);
+CREATE INDEX IX_DatPhong_trangThai   ON DatPhong(trangThaiDatPhong);
 CREATE INDEX IX_CTDP_maPhong         ON ChiTietDatPhong(maPhong);
 CREATE INDEX IX_CTDP_ngayNhan        ON ChiTietDatPhong(ngayNhanDuKien, ngayTraDuKien);
 CREATE INDEX IX_HoaDon_maKH          ON HoaDon(maKH);
 CREATE INDEX IX_HoaDon_maDatPhong    ON HoaDon(maDatPhong);
+CREATE UNIQUE INDEX UX_HoaDon_maDatPhong ON HoaDon(maDatPhong) WHERE maDatPhong IS NOT NULL;
 CREATE INDEX IX_HoaDon_trangThai     ON HoaDon(trangThai);
 CREATE INDEX IX_CTHD_maPhong         ON ChiTietHoaDon(maPhong);
 CREATE INDEX IX_CTHD_ngayNhan        ON ChiTietHoaDon(ngayNhanPhong);
@@ -381,23 +385,23 @@ GO
 --   DP010       : Stage 4 dac biet - Thanh toan 100% ngay khi dat
 -- =====================================================================
 
-INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, ghiChu, maKH, maNV) VALUES
+INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, trangThaiDatPhong, ghiChu, maKH, maNV) VALUES
 -- Stage 4: hoan tat
-('DP001', '2026-04-10 09:00',  450000.00, N'Booking demo da hoan tat',    'KH001', 'NV002'),
-('DP002', '2026-04-12 10:00',  675000.00, N'Booking 2 phong da hoan tat', 'KH002', 'NV003'),
+('DP001', '2026-04-10 09:00',  450000.00, 'DaTra', N'Booking demo da hoan tat',    'KH001', 'NV002'),
+('DP002', '2026-04-12 10:00',  675000.00, 'DaTra', N'Booking 2 phong da hoan tat', 'KH002', 'NV003'),
 -- Stage 3: da tra phong, chua thanh toan du
-('DP003', '2026-04-18 09:00',  450000.00, N'Khach da tra, no phan con lai','KH004', 'NV004'),
+('DP003', '2026-04-18 09:00',  450000.00, 'DaTra', N'Khach da tra, no phan con lai','KH004', 'NV004'),
 -- Stage 2: dang luu tru
-('DP004', '2026-04-20 11:00',  900000.00, N'Khach dang luu tru',          'KH005', 'NV002'),
-('DP005', '2026-04-21 14:00', 1350000.00, N'Khach gia dinh dang o',       'KH008', 'NV003'),
+('DP004', '2026-04-20 11:00',  900000.00, 'DangO', N'Khach dang luu tru',          'KH005', 'NV002'),
+('DP005', '2026-04-21 14:00', 1350000.00, 'DangO', N'Khach gia dinh dang o',       'KH008', 'NV003'),
 -- Stage 1: dat coc, chua check-in
-('DP006', '2026-04-23 16:00',  450000.00, N'Da dat coc - check-in tuong lai','KH003','NV004'),
-('DP007', '2026-04-24 09:00', 1500000.00, N'Dat phong VIP cho ky nghi',    'KH006', 'NV002'),
-('DP008', '2026-04-25 10:00',  675000.00, N'Booking xa - le 30/4',         'KH007', 'NV005'),
+('DP006', '2026-04-23 16:00',  450000.00, 'DaDat', N'Da dat coc - check-in tuong lai','KH003','NV004'),
+('DP007', '2026-04-24 09:00', 1500000.00, 'DaDat', N'Dat phong VIP cho ky nghi',    'KH006', 'NV002'),
+('DP008', '2026-04-25 10:00',  675000.00, 'DaDat', N'Booking xa - le 30/4',         'KH007', 'NV005'),
 -- Stage 5: huy
-('DP009', '2026-04-15 11:00',  300000.00, N'Khach huy do thay doi lich',   'KH001', 'NV003'),
+('DP009', '2026-04-15 11:00',  300000.00, 'DaHuy', N'Khach huy do thay doi lich',   'KH001', 'NV003'),
 -- Stage 4 (full pay khong qua coc)
-('DP010', '2026-04-19 13:00',       0.00, N'Walk-in thanh toan 100% ngay', 'KH004', 'NV002');
+('DP010', '2026-04-19 13:00',       0.00, 'DaTra', N'Walk-in thanh toan 100% ngay', 'KH004', 'NV002');
 GO
 
 INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES

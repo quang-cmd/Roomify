@@ -461,10 +461,12 @@ public class DashboardPanel extends JPanel {
         return String.format("%,.0f đ", amount).replace(',', '.');
     }
     private static String formatCompactVND(double amount) {
-        if (amount >= 1_000_000_000) return String.format("%.1f tỷ", amount / 1_000_000_000.0);
-        if (amount >= 1_000_000) return String.format("%.1f tr", amount / 1_000_000.0);
-        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000.0);
-        return String.format("%.0f", amount);
+        double abs = Math.abs(amount);
+        String sign = amount < 0 ? "-" : "";
+        if (abs >= 1_000_000_000) return sign + String.format("%.1f tỷ", abs / 1_000_000_000.0);
+        if (abs >= 1_000_000) return sign + String.format("%.1f tr", abs / 1_000_000.0);
+        if (abs >= 1_000) return sign + String.format("%.0fK", abs / 1_000.0);
+        return sign + String.format("%.0f", abs);
     }
 
     private static final class RevenueChartPanel extends JPanel {
