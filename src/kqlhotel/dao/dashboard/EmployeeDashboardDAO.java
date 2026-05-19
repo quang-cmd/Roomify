@@ -16,12 +16,7 @@ public class EmployeeDashboardDAO {
             FROM DatPhong dp
             JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong
             WHERE CAST(ctdp.ngayNhanDuKien AS DATE) = ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM HoaDon hd
-                  WHERE hd.maDatPhong = dp.maDatPhong
-                    AND hd.trangThai <> 'DaHuy'
-              )
+              AND dp.trangThaiDatPhong = 'DaDat'
         """;
 
         return count(sql, Date.valueOf(date));
@@ -30,15 +25,10 @@ public class EmployeeDashboardDAO {
     public int countCheckInRoomsToday(LocalDate date) {
         String sql = """
             SELECT COUNT(*)
-            FROM ChiTietDatPhong ctdp
-            JOIN DatPhong dp ON ctdp.maDatPhong = dp.maDatPhong
+            FROM DatPhong dp
+            JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong
             WHERE CAST(ctdp.ngayNhanDuKien AS DATE) = ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM HoaDon hd
-                  WHERE hd.maDatPhong = dp.maDatPhong
-                    AND hd.trangThai <> 'DaHuy'
-              )
+              AND dp.trangThaiDatPhong = 'DaDat'
         """;
 
         return count(sql, Date.valueOf(date));
@@ -46,13 +36,14 @@ public class EmployeeDashboardDAO {
 
     public int countCheckOutRoomsToday(LocalDate date) {
         String sql = """
-            SELECT COUNT(*)
-            FROM ChiTietHoaDon cthd
-            JOIN HoaDon hd ON cthd.maHD = hd.maHD
-            WHERE CAST(cthd.ngayTraPhong AS DATE) = ?
-              AND cthd.ngayTraThucTe IS NULL
-              AND hd.trangThai <> 'DaHuy'
-        """;
+        SELECT COUNT(*)
+        FROM HoaDon hd
+        JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
+        WHERE CAST(cthd.ngayTraPhong AS DATE) = ?
+          AND cthd.ngayNhanPhong IS NOT NULL
+          AND cthd.ngayTraThucTe IS NULL
+          AND hd.trangThai <> 'DaHuy'
+    """;
 
         return count(sql, Date.valueOf(date));
     }
@@ -80,17 +71,12 @@ public class EmployeeDashboardDAO {
                 ctdp.maPhong,
                 ISNULL(kh.hoTenKH, N'Khách hàng') AS tenKhach,
                 CONVERT(VARCHAR(5), ctdp.ngayNhanDuKien, 108) AS gio,
-                dp.maDatPhong
-            FROM ChiTietDatPhong ctdp
-            JOIN DatPhong dp ON ctdp.maDatPhong = dp.maDatPhong
+                dp.maDatPhong AS maThamChieu
+            FROM DatPhong dp
+            JOIN ChiTietDatPhong ctdp ON dp.maDatPhong = ctdp.maDatPhong
             LEFT JOIN KhachHang kh ON dp.maKH = kh.maKH
             WHERE CAST(ctdp.ngayNhanDuKien AS DATE) = ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM HoaDon hd
-                  WHERE hd.maDatPhong = dp.maDatPhong
-                    AND hd.trangThai <> 'DaHuy'
-              )
+              AND dp.trangThaiDatPhong = 'DaDat'
             ORDER BY ctdp.ngayNhanDuKien ASC, ctdp.maPhong ASC
         """;
 
@@ -99,19 +85,20 @@ public class EmployeeDashboardDAO {
 
     public List<RoomScheduleDTO> getTodayCheckOutRooms(LocalDate date) {
         String sql = """
-            SELECT
-                cthd.maPhong,
-                ISNULL(kh.hoTenKH, N'Khách hàng') AS tenKhach,
-                CONVERT(VARCHAR(5), cthd.ngayTraPhong, 108) AS gio,
-                hd.maHD AS maDatPhong
-            FROM ChiTietHoaDon cthd
-            JOIN HoaDon hd ON cthd.maHD = hd.maHD
-            LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH
-            WHERE CAST(cthd.ngayTraPhong AS DATE) = ?
-              AND cthd.ngayTraThucTe IS NULL
-              AND hd.trangThai <> 'DaHuy'
-            ORDER BY cthd.ngayTraPhong ASC, cthd.maPhong ASC
-        """;
+        SELECT
+            cthd.maPhong,
+            ISNULL(kh.hoTenKH, N'Khách hàng') AS tenKhach,
+            CONVERT(VARCHAR(5), cthd.ngayTraPhong, 108) AS gio,
+            hd.maHD AS maThamChieu
+        FROM HoaDon hd
+        JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
+        LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH
+        WHERE CAST(cthd.ngayTraPhong AS DATE) = ?
+          AND cthd.ngayNhanPhong IS NOT NULL
+          AND cthd.ngayTraThucTe IS NULL
+          AND hd.trangThai <> 'DaHuy'
+        ORDER BY cthd.ngayTraPhong ASC, cthd.maPhong ASC
+    """;
 
         return queryRoomSchedule(sql, Date.valueOf(date), "Chờ trả phòng");
     }
@@ -137,7 +124,7 @@ public class EmployeeDashboardDAO {
                                     rs.getString("maPhong"),
                                     rs.getString("tenKhach"),
                                     rs.getString("gio"),
-                                    note + " · " + rs.getString("maDatPhong")
+                                    note + " · " + rs.getString("maThamChieu")
                             ));
                         }
                     }
@@ -148,8 +135,7 @@ public class EmployeeDashboardDAO {
                 if (attempt == 1) {
                     try {
                         ConnectDB.getInstance().connect();
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                     continue;
                 }
 
@@ -187,8 +173,7 @@ public class EmployeeDashboardDAO {
                 if (attempt == 1) {
                     try {
                         ConnectDB.getInstance().connect();
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                     continue;
                 }
 

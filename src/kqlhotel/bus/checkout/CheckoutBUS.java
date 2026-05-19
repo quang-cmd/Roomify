@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import kqlhotel.dao.ConnectDB;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class CheckoutBUS {
     private final InvoiceDAO invoiceDAO = new InvoiceDAO();
@@ -235,7 +239,9 @@ public class CheckoutBUS {
             hd.setNgayThanhToan(null);
         }
 
-        return allUpdated && invoiceDAO.update(hd);
+        boolean updateBookingStatus = updateBookingStatusAfterCheckout(hd);
+
+        return allUpdated && updateBookingStatus && invoiceDAO.update(hd);
     }
 
     public CheckoutTotals previewTotals(Invoice hd, List<String> roomCodes, String maKM) {
@@ -691,13 +697,13 @@ public class CheckoutBUS {
                             "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
-                            "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                            "WHERE hd.trangThai <> 'DaHuy' " +
                             "AND cthd.ngayNhanPhong IS NOT NULL " +
                             "AND cthd.ngayTraThucTe IS NULL "
             );
 
             if (roomCode != null && !roomCode.isEmpty()) {
-                sql.append("AND (p.maPhong LIKE ? OR hd.maHD LIKE ?) ");
+                sql.append("AND p.maPhong LIKE ? ");
             }
             if (cusId != null && !cusId.isEmpty()) {
                 sql.append("AND kh.maKH LIKE ? ");
@@ -712,8 +718,7 @@ public class CheckoutBUS {
             int idx = 1;
 
             if (roomCode != null && !roomCode.isEmpty()) {
-                pstmt.setString(idx++, "%" + roomCode + "%");
-                pstmt.setString(idx++, "%" + roomCode + "%");
+                pstmt.setString(idx++, "%" + roomCode.trim() + "%");
             }
             if (cusId != null && !cusId.isEmpty()) {
                 pstmt.setString(idx++, "%" + cusId + "%");
@@ -752,7 +757,7 @@ public class CheckoutBUS {
                             "JOIN Phong p ON ctdp.maPhong = p.maPhong " +
                             "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                             "JOIN KhachHang kh ON hd.maKH = kh.maKH " +
-                            "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                            "WHERE hd.trangThai <> 'DaHuy' " +
                             "AND cthd.ngayNhanPhong IS NOT NULL " +
                             "AND cthd.ngayTraThucTe IS NULL " +
                             "AND CAST(ctdp.ngayTraDuKien AS DATE) = CAST(GETDATE() AS DATE) " +
@@ -798,26 +803,33 @@ public class CheckoutBUS {
 
     private Invoice getActiveByRoomFromBooking(String maPhong) {
         try {
-            java.sql.Connection con = kqlhotel.dao.ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             String sql =
                     "SELECT TOP 1 hd.* " +
                             "FROM HoaDon hd " +
-                            "JOIN ChiTietDatPhong ctdp ON hd.maDatPhong = ctdp.maDatPhong " +
-                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD AND ctdp.maPhong = cthd.maPhong " +
-                            "WHERE ctdp.maPhong = ? " +
-                            "AND hd.trangThai = 'ChuaThanhToan' " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
+                            "WHERE cthd.maPhong = ? " +
                             "AND cthd.ngayNhanPhong IS NOT NULL " +
                             "AND cthd.ngayTraThucTe IS NULL " +
+                            "AND hd.trangThai <> 'DaHuy' " +
                             "ORDER BY hd.ngayLapHD DESC";
 
-            java.sql.PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, maPhong);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maPhong.trim());
 
-            java.sql.ResultSet rs = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
+
             if (rs.next()) {
-                return invoiceDAO.getById(rs.getString("maHD"));
+                Invoice invoice = new Invoice();
+                invoice.setMaHD(rs.getString("maHD"));
+                invoice.setMaDatPhong(rs.getString("maDatPhong"));
+                invoice.setTrangThai(rs.getString("trangThai"));
+                return invoice;
             }
+
+            System.out.println("Không tìm thấy hóa đơn checkout cho phòng: " + maPhong);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1049,5 +1061,55 @@ public class CheckoutBUS {
         }
 
         return 0;
+    }
+
+    private boolean updateBookingStatusAfterCheckout(Invoice hd) {
+        if (hd == null || hd.getMaDatPhong() == null || hd.getMaDatPhong().isBlank()) {
+            return true;
+        }
+
+        String sqlCount = """
+        SELECT COUNT(*) AS remainingRooms
+        FROM HoaDon hd
+        JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
+        WHERE hd.maDatPhong = ?
+          AND cthd.ngayTraThucTe IS NULL
+          AND hd.trangThai <> 'DaHuy'
+    """;
+
+        String sqlUpdateDone = """
+        UPDATE DatPhong
+        SET trangThaiDatPhong = 'DaTra'
+        WHERE maDatPhong = ?
+    """;
+
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            int remainingRooms = 0;
+
+            try (PreparedStatement ps = con.prepareStatement(sqlCount)) {
+                ps.setString(1, hd.getMaDatPhong());
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        remainingRooms = rs.getInt("remainingRooms");
+                    }
+                }
+            }
+
+            if (remainingRooms == 0) {
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdateDone)) {
+                    ps.setString(1, hd.getMaDatPhong());
+                    ps.executeUpdate();
+                }
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
