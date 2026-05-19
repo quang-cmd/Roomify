@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.dao.payment.PaymentDAO;
 import kqlhotel.entity.statistics.ExpenseRecord;
 import kqlhotel.entity.statistics.HotelKpiPoint;
 import kqlhotel.entity.statistics.OccupancyPoint;
@@ -25,29 +26,11 @@ import kqlhotel.entity.statistics.RoomTypeShare;
  * Không thay thế các DAO khác — chỉ aggregate read-only.
  */
 public class StatisticsDAO {
-
-    /** Doanh thu thong ke theo dong tien da thu thanh cong trong ThanhToan. */
-    private static final String CASH_REVENUE_EXPR =
-        "CASE WHEN trangThaiTT = 'ThanhToanThanhCong' THEN soTienTT ELSE 0 END";
+    private final PaymentDAO paymentDAO = new PaymentDAO();
 
     /** Tổng doanh thu trong khoảng [start, end]. */
     public double getRevenue(LocalDateTime start, LocalDateTime end) {
-        String sql =
-            "SELECT COALESCE(SUM(" + CASH_REVENUE_EXPR + "), 0) AS total " +
-            "FROM ThanhToan " +
-            "WHERE ngayTT >= ? AND ngayTT < ? " +
-            "  AND trangThaiTT = 'ThanhToanThanhCong'";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(start));
-            ps.setTimestamp(2, Timestamp.valueOf(end));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getDouble("total");
-            }
-        } catch (SQLException e) {
-            System.err.println("StatisticsDAO.getRevenue: " + e.getMessage());
-        }
-        return 0;
+        return paymentDAO.getSuccessfulRevenue(start, end);
     }
 
     public int countTotalRooms() {
@@ -244,30 +227,12 @@ public class StatisticsDAO {
             buckets.put(String.format("%02d/%02d", m.getMonthValue(), m.getYear() % 100), 0.0);
         }
 
-        LocalDateTime startBound = now.minusMonths(monthsBack - 1L).withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endBound   = LocalDateTime.now().plusDays(1);
-
-        String sql =
-            "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, " +
-            "       SUM(" + CASH_REVENUE_EXPR + ") AS total " +
-            "FROM ThanhToan " +
-            "WHERE ngayTT >= ? AND ngayTT < ? " +
-            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
-            "GROUP BY YEAR(ngayTT), MONTH(ngayTT)";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(startBound));
-            ps.setTimestamp(2, Timestamp.valueOf(endBound));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String key = String.format("%02d/%02d", rs.getInt("mo"), rs.getInt("yr") % 100);
-                    if (buckets.containsKey(key)) {
-                        buckets.put(key, rs.getDouble("total"));
-                    }
-                }
+        LocalDate startDate = now.minusMonths(monthsBack - 1L).withDayOfMonth(1);
+        Map<String, Double> revenueByMonth = paymentDAO.getSuccessfulMonthlyRevenue(startDate, now);
+        for (Map.Entry<String, Double> entry : revenueByMonth.entrySet()) {
+            if (buckets.containsKey(entry.getKey())) {
+                buckets.put(entry.getKey(), entry.getValue());
             }
-        } catch (SQLException e) {
-            System.err.println("StatisticsDAO.getMonthlyRevenue: " + e.getMessage());
         }
 
         List<RevenuePoint> result = new ArrayList<>(buckets.size());
@@ -289,30 +254,11 @@ public class StatisticsDAO {
             cur = cur.plusMonths(1);
         }
 
-        LocalDateTime startBound = start.atStartOfDay();
-        LocalDateTime endBound   = end.plusDays(1).atStartOfDay();
-
-        String sql =
-            "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, " +
-            "       SUM(" + CASH_REVENUE_EXPR + ") AS total " +
-            "FROM ThanhToan " +
-            "WHERE ngayTT >= ? AND ngayTT < ? " +
-            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
-            "GROUP BY YEAR(ngayTT), MONTH(ngayTT)";
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(startBound));
-            ps.setTimestamp(2, Timestamp.valueOf(endBound));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String key = String.format("%02d/%02d", rs.getInt("mo"), rs.getInt("yr") % 100);
-                    if (buckets.containsKey(key)) {
-                        buckets.put(key, rs.getDouble("total"));
-                    }
-                }
+        Map<String, Double> revenueByMonth = paymentDAO.getSuccessfulMonthlyRevenue(start, end);
+        for (Map.Entry<String, Double> entry : revenueByMonth.entrySet()) {
+            if (buckets.containsKey(entry.getKey())) {
+                buckets.put(entry.getKey(), entry.getValue());
             }
-        } catch (SQLException e) {
-            System.err.println("StatisticsDAO.getMonthlyRevenue(start, end): " + e.getMessage());
         }
 
         List<RevenuePoint> result = new ArrayList<>(buckets.size());
@@ -334,28 +280,13 @@ public class StatisticsDAO {
             cur = cur.plusDays(1);
         }
 
-        String sql =
-            "SELECT CAST(ngayTT AS DATE) AS dt, SUM(" + CASH_REVENUE_EXPR + ") AS total " +
-            "FROM ThanhToan " +
-            "WHERE ngayTT >= ? AND ngayTT < ? " +
-            "  AND trangThaiTT = 'ThanhToanThanhCong' " +
-            "GROUP BY CAST(ngayTT AS DATE)";
-
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
-            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    LocalDate dt = rs.getDate("dt").toLocalDate();
-                    String key = String.format("%02d/%02d", dt.getDayOfMonth(), dt.getMonthValue());
-                    if (buckets.containsKey(key)) {
-                        buckets.put(key, rs.getDouble("total"));
-                    }
-                }
+        Map<LocalDate, Double> revenueByDate = paymentDAO.getSuccessfulDailyRevenue(start, end);
+        for (Map.Entry<LocalDate, Double> entry : revenueByDate.entrySet()) {
+            LocalDate dt = entry.getKey();
+            String key = String.format("%02d/%02d", dt.getDayOfMonth(), dt.getMonthValue());
+            if (buckets.containsKey(key)) {
+                buckets.put(key, entry.getValue());
             }
-        } catch (SQLException e) {
-            System.err.println("StatisticsDAO.getDailyRevenue: " + e.getMessage());
         }
 
         List<RevenuePoint> result = new ArrayList<>(buckets.size());
@@ -653,27 +584,9 @@ public class StatisticsDAO {
         int totalRooms = countTotalRooms();
         if (totalRooms == 0 || days == 0) return 0.0;
 
-        // Tính tổng doanh thu: hóa đơn đã thanh toán + phí phạt từ hóa đơn đã hủy có tiền
-        String sql =
-            "SELECT SUM(" + CASH_REVENUE_EXPR + ") AS totalRevenue " +
-            "FROM ThanhToan " +
-            "WHERE ngayTT >= ? AND ngayTT < ? " +
-            "  AND trangThaiTT = 'ThanhToanThanhCong'";
-
-        try (Connection con = ConnectDB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(start.atStartOfDay()));
-            ps.setTimestamp(2, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    double revenue = rs.getDouble("totalRevenue");
-                    return revenue / (totalRooms * days);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("StatisticsDAO.getTrevpar: " + e.getMessage());
-        }
-        return 0.0;
+        // TrevPAR uses the actual successful cash flow recorded in ThanhToan.
+        double revenue = paymentDAO.getSuccessfulRevenue(start.atStartOfDay(), end.plusDays(1).atStartOfDay());
+        return revenue / (totalRooms * days);
     }
 
     /**

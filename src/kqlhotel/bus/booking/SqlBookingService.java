@@ -13,9 +13,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import kqlhotel.bus.payment.PaymentBUS;
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.booking.RoomDao;
 import kqlhotel.dao.booking.RoomDaoSqlServer;
+import kqlhotel.entity.Payment;
 import kqlhotel.entity.RoomEntity;
 import kqlhotel.service.EmailService;
 
@@ -24,6 +26,7 @@ public class SqlBookingService implements BookingService {
     private static final int CHECK_OUT_HOUR = 12;
     private static final double VAT_RATE = 0.10;
     private final RoomDao roomDao;
+    private final PaymentBUS paymentBUS = new PaymentBUS();
 
     public SqlBookingService() {
         this(new RoomDaoSqlServer());
@@ -260,22 +263,27 @@ public class SqlBookingService implements BookingService {
                 ps.executeUpdate();
             }
 
-            // 7. Insert ThanhToan record (for the actual collected amount)
-            String maTT = nextId(con, "ThanhToan", "maTT", "TT", 5);
-            String insertTT = "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(insertTT)) {
-                ps.setString(1, maTT);
-                ps.setTimestamp(2, Timestamp.valueOf(now));
-                ps.setBigDecimal(3, java.math.BigDecimal.valueOf(paidAmount));
-                String note = command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%";
-                if (command.getPaymentReference() != null && !command.getPaymentReference().isEmpty()) {
-                    note = note + " - Ref: " + command.getPaymentReference();
-                }
-                ps.setString(4, note);
-                ps.setString(5, command.getPaymentMethod());
-                ps.setString(6, "ThanhToanThanhCong");
-                ps.setString(7, maHD);
-                ps.executeUpdate();
+            // 7. Record payment collected at booking time.
+            String note = command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%";
+            if (command.getPaymentReference() != null && !command.getPaymentReference().isEmpty()) {
+                note = note + " - Ref: " + command.getPaymentReference();
+            }
+
+            Payment payment = new Payment(
+                paymentBUS.getNextId(con),
+                now,
+                paidAmount,
+                note,
+                command.getPaymentMethod(),
+                "ThanhToanThanhCong",
+                maHD,
+                null,
+                maNV
+            );
+
+            if (!paymentBUS.recordPayment(con, payment)) {
+                con.rollback();
+                return fail("Khong the luu thong tin thanh toan.");
             }
 
             con.commit();
