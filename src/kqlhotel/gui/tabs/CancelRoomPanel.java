@@ -928,6 +928,14 @@ public class CancelRoomPanel extends JPanel {
             double refund  = Math.max(0, tienHoan);
             double penalty = Math.max(0, tienCocPhong - refund);
 
+            // 0. Xóa phòng này khỏi ChiTietKhachO để không bị lỗi FK constraint
+            try (PreparedStatement pst = con.prepareStatement(
+                    "DELETE FROM ChiTietKhachO WHERE maDatPhong = ? AND maPhong = ?")) {
+                pst.setString(1, maDatPhong);
+                pst.setString(2, maPhong);
+                pst.executeUpdate();
+            }
+
             // 1. Xóa phòng này khỏi ChiTietDatPhong
             try (PreparedStatement pst = con.prepareStatement(
                     "DELETE FROM ChiTietDatPhong WHERE maDatPhong = ? AND maPhong = ?")) {

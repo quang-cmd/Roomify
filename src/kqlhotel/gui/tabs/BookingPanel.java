@@ -996,6 +996,15 @@ public class BookingPanel extends JPanel {
         setStep(1);
     }
 
+    public void refreshData() {
+        if (lastSearchRequest != null && selectedCheckInDate != null && selectedCheckOutDate != null) {
+            if (selectedCheckOutDate.isAfter(selectedCheckInDate)) {
+                List<RoomOptionDto> filtered = bookingService.searchAvailableRooms(lastSearchRequest);
+                renderRooms(mapToCardData(filtered));
+            }
+        }
+    }
+
     private void submitBooking() {
         if (selectedRooms.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui l\u00f2ng ch\u1ecdn ít nh\u1ea5t 1 ph\u00f2ng tr\u01b0\u1edbc.", "Thi\u1ebfu th\u00f4ng tin", JOptionPane.WARNING_MESSAGE);
