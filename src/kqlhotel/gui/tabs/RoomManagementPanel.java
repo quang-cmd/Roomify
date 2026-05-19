@@ -59,7 +59,7 @@ public class RoomManagementPanel extends JPanel {
         setLayout(new MigLayout("insets 24,gap 20,wrap 1", "[grow,fill]", "[][][][grow,fill]"));
 
         // ===== 1. Header =====
-        JPanel header = new JPanel(new MigLayout("insets 0", "[][grow][][]", "[]"));
+        JPanel header = new JPanel(new MigLayout("insets 0, hidemode 3", "[][grow][][]", "[]"));
         header.setOpaque(false);
 
         JPanel titlePanel = new JPanel(new MigLayout("insets 0,wrap 1,gap 2", "[]", "[]"));
