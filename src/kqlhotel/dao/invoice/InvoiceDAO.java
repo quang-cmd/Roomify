@@ -50,24 +50,33 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
 
     public Invoice getActiveByRoom(String maPhong) {
         Invoice invoice = null;
+
         try {
             Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT hd.* " +
-                    "FROM HoaDon hd " +
-                    "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                    "WHERE cthd.maPhong = ? AND hd.trangThai = ? " +
-                    "ORDER BY hd.ngayLapHD DESC";
+
+            String sql =
+                    "SELECT TOP 1 hd.* " +
+                            "FROM HoaDon hd " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
+                            "WHERE cthd.maPhong = ? " +
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
+                            "AND cthd.ngayTraThucTe IS NULL " +
+                            "AND hd.trangThai <> 'DaHuy' " +
+                            "ORDER BY hd.ngayLapHD DESC";
+
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maPhong);
-            pstmt.setString(2, "ChuaThanhToan");
 
             ResultSet rs = pstmt.executeQuery();
+
             if (rs.next()) {
                 invoice = mapResultSetToInvoice(rs);
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return invoice;
     }
 

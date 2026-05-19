@@ -5,6 +5,9 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Image;
+import java.awt.AlphaComposite;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.net.URL;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -86,6 +89,8 @@ public class CheckoutPanel extends JPanel {
 
     private String nextRoomStatus = "Trong";
     private Invoice currentHoaDon;
+    private Image vipBgImage;
+    private final JLabel detailRoomImageLabel = new JLabel();
 
     public CheckoutPanel() {
         setOpaque(false);
@@ -178,8 +183,40 @@ public class CheckoutPanel extends JPanel {
         return stepper;
     }
 
+    private class VipBackgroundPanel extends JPanel {
+        public VipBackgroundPanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            if (vipBgImage == null) {
+                ImageIcon icon = loadRoomImageByFile("vip.png", 1600, 900);
+                if (icon != null) {
+                    vipBgImage = icon.getImage();
+                }
+            }
+
+            if (vipBgImage != null) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+                g2.drawImage(vipBgImage, 0, 0, getWidth(), getHeight(), null);
+            }
+
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+            g2.setColor(new Color(20, 50, 90));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            g2.dispose();
+        }
+    }
+
     private JPanel createStep1View() {
-        JPanel panel = new JPanel(new MigLayout(
+        JPanel panel = new VipBackgroundPanel();
+        panel.setLayout(new MigLayout(
                 "insets 5 24 10 24, gap 12, fill",
                 "[300!][grow,fill]",
                 "[grow,fill]"
@@ -256,10 +293,10 @@ public class CheckoutPanel extends JPanel {
 
         JLabel rTitle = new JLabel("Phòng dự kiến trả trong ngày");
         rTitle.setFont(rTitle.getFont().deriveFont(Font.BOLD, 14f));
-        rTitle.setForeground(new Color(24, 40, 66));
+        rTitle.setForeground(new Color(255, 230, 180));
 
         JLabel rDesc = new JLabel("Gợi ý các phòng có lịch trả hôm nay để lễ tân xử lý nhanh");
-        rDesc.setForeground(new Color(119, 137, 168));
+        rDesc.setForeground(Color.WHITE);
 
         rightSide.add(rTitle);
         rightSide.add(rDesc, "gapy 0 10");
@@ -335,8 +372,35 @@ public class CheckoutPanel extends JPanel {
     }
 
     private JPanel createRoomCard(CheckoutData data) {
-        RoundedPanel card = new RoundedPanel(16, Color.WHITE, new Color(230, 235, 245), 1.5f);
-        card.setLayout(new MigLayout("wrap 1,insets 16,gap 8", "[grow,fill]", "[]"));
+        RoundedPanel card = new RoundedPanel(
+                16,
+                new Color(255, 255, 255, 245),
+                new Color(230, 235, 245),
+                1.5f
+        );
+
+        card.setLayout(new MigLayout(
+                "insets 12,gap 14,fill",
+                "[155!][grow,fill]",
+                "[165!,fill]"
+        ));
+
+        JLabel roomImg = new JLabel();
+        roomImg.setIcon(loadRoomImage(data.roomName, 155, 145));
+        roomImg.setHorizontalAlignment(SwingConstants.CENTER);
+        roomImg.setVerticalAlignment(SwingConstants.CENTER);
+
+        RoundedPanel imgWrap = new RoundedPanel(
+                14,
+                new Color(250, 252, 255),
+                new Color(220, 225, 235),
+                1f
+        );
+        imgWrap.setLayout(new BorderLayout());
+        imgWrap.add(roomImg, BorderLayout.CENTER);
+
+        JPanel infoBox = new JPanel(new MigLayout("wrap 1,insets 0,gap 7", "[grow,fill]", "[]"));
+        infoBox.setOpaque(false);
 
         JPanel header = new JPanel(new MigLayout("insets 0", "[grow,fill][]", "[]"));
         header.setOpaque(false);
@@ -405,12 +469,15 @@ public class CheckoutPanel extends JPanel {
         footer.add(price, "aligny center");
         footer.add(chkBox, "h 36!");
 
-        card.add(header, "growx");
-        card.add(divider, "h 1!, growx, gapy 6 6");
-        card.add(rName);
-        card.add(rPhone);
-        card.add(rDate);
-        card.add(footer, "growx, gapy 12 0");
+        infoBox.add(header, "growx");
+        infoBox.add(divider, "h 1!, growx, gapy 4 4");
+        infoBox.add(rName);
+        infoBox.add(rPhone);
+        infoBox.add(rDate);
+        infoBox.add(footer, "growx, gapy 6 0");
+
+        card.add(imgWrap, "grow");
+        card.add(infoBox, "grow");
 
         return card;
     }
@@ -429,7 +496,8 @@ public class CheckoutPanel extends JPanel {
     }
 
     private JPanel createStep2View() {
-        JPanel panel = new JPanel(new MigLayout(
+        JPanel panel = new VipBackgroundPanel();
+        panel.setLayout(new MigLayout(
                 "insets 16 24 20 24, gap 20, fill",
                 "[360!][grow,fill]",
                 "[][grow,fill]"
@@ -739,47 +807,93 @@ public class CheckoutPanel extends JPanel {
 
         leftPanel.add(submitBtn, "h 42!, gapy 10 0");
 
-        RoundedPanel rightPanel = new RoundedPanel(0, PAGE_BG, PAGE_BG, 0f);
+        RoundedPanel rightPanel = new RoundedPanel(
+                22,
+                new Color(255,255,255,45),
+                new Color(255,255,255,90),
+                1.5f
+        );
         rightPanel.setLayout(new MigLayout("wrap 1,insets 0", "[grow,fill]", "[]"));
 
         JLabel iTitle = new JLabel("Thông tin lưu trú");
         iTitle.setFont(iTitle.getFont().deriveFont(Font.BOLD, 16f));
-        iTitle.setForeground(new Color(24, 40, 66));
+        iTitle.setForeground(new Color(245, 210, 140));
         rightPanel.add(iTitle, "gapy 8 16");
 
-        RoundedPanel kvBox = new RoundedPanel(12, Color.WHITE, new Color(225, 231, 245), 1.5f);
-        kvBox.setLayout(new MigLayout("wrap 2,insets 20, gap 15", "[grow,fill][grow,fill]", "[]"));
+        RoundedPanel kvBox = new RoundedPanel(
+                20,
+                new Color(255, 255, 255, 245),
+                new Color(220, 228, 240),
+                1.5f
+        );
 
-        kvBox.add(makeSmallLabel("Khách hàng"));
-        kvBox.add(makeSmallLabel("Phòng hiện tại"));
+        kvBox.setLayout(new MigLayout(
+                "insets 22, fill",
+                "[grow,fill][grow,fill][180!]",
+                "[][][][]"
+        ));
 
-        kName.setFont(kName.getFont().deriveFont(Font.BOLD, 14f));
-        kRoom.setFont(kRoom.getFont().deriveFont(Font.BOLD, 14f));
-        kvBox.add(kName);
-        kvBox.add(kRoom);
+        JPanel infoGrid = new JPanel(new MigLayout(
+                "wrap 2,insets 0,gap 30 18, fill",
+                "[grow,fill][grow,fill]",
+                "[]"
+        ));
+        infoGrid.setOpaque(false);
 
-        kvBox.add(makeSmallLabel("Ngày nhận phòng thực tế"), "gapy 10 0");
-        kvBox.add(makeSmallLabel("Ngày trả phòng thực tế"), "gapy 10 0");
+        infoGrid.add(makeSmallLabel("Khách hàng"));
+        infoGrid.add(makeSmallLabel("Phòng hiện tại"));
+
+        kName.setFont(kName.getFont().deriveFont(Font.BOLD, 15f));
+        kRoom.setFont(kRoom.getFont().deriveFont(Font.BOLD, 15f));
+
+        kName.setForeground(new Color(15, 23, 42));
+        kRoom.setForeground(new Color(15, 23, 42));
+
+        infoGrid.add(kName);
+        infoGrid.add(kRoom);
+
+        infoGrid.add(makeSmallLabel("Ngày nhận phòng thực tế"));
+        infoGrid.add(makeSmallLabel("Ngày trả phòng thực tế"));
 
         kDateIn.setFont(kDateIn.getFont().deriveFont(Font.BOLD, 14f));
         kDateOut.setFont(kDateOut.getFont().deriveFont(Font.BOLD, 14f));
 
-        kvBox.add(kDateIn);
-        kvBox.add(kDateOut);
+        kDateIn.setForeground(new Color(15, 23, 42));
+        kDateOut.setForeground(new Color(15, 23, 42));
 
-        kvBox.add(makeSmallLabel("Mã khách hàng (CCCD/ID)"), "gapy 10 0");
-        kvBox.add(makeSmallLabel("Trạng thái"), "gapy 10 0");
+        infoGrid.add(kDateIn);
+        infoGrid.add(kDateOut);
+
+        infoGrid.add(makeSmallLabel("Mã khách hàng (CCCD/ID)"));
+        infoGrid.add(makeSmallLabel("Trạng thái"));
 
         kCID.setFont(kCID.getFont().deriveFont(Font.BOLD, 14f));
+        kCID.setForeground(new Color(15, 23, 42));
 
         JLabel kStatusLabel = new JLabel("Đang lưu trú");
         kStatusLabel.setFont(kStatusLabel.getFont().deriveFont(Font.BOLD, 14f));
         kStatusLabel.setForeground(ThemeColors.SUCCESS);
 
-        kvBox.add(kCID);
-        kvBox.add(kStatusLabel);
+        infoGrid.add(kCID);
+        infoGrid.add(kStatusLabel);
 
-        rightPanel.add(kvBox);
+        RoundedPanel imgWrap = new RoundedPanel(
+                18,
+                new Color(255,255,255,140),
+                new Color(255,255,255,180),
+                1f
+        );
+        imgWrap.setLayout(new BorderLayout());
+
+        detailRoomImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        detailRoomImageLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        imgWrap.add(detailRoomImageLabel, BorderLayout.CENTER);
+
+        kvBox.add(infoGrid, "cell 0 0 2 1, grow");
+        kvBox.add(imgWrap, "cell 2 0 1 1, w 180!, h 140!, aligny top");
+
+        rightPanel.add(kvBox, "growx");
 
         JScrollPane leftScroll = new JScrollPane(leftPanel);
         leftScroll.setBorder(BorderFactory.createEmptyBorder());
@@ -911,8 +1025,8 @@ public class CheckoutPanel extends JPanel {
 
     private JLabel makeSmallLabel(String text) {
         JLabel l = new JLabel(text);
-        l.setForeground(new Color(110, 125, 145));
-        l.setFont(l.getFont().deriveFont(12f));
+        l.setForeground(new Color(80, 95, 120));
+        l.setFont(l.getFont().deriveFont(Font.PLAIN, 12f));
         return l;
     }
 
@@ -959,6 +1073,7 @@ public class CheckoutPanel extends JPanel {
         kDateOut.setText(java.time.LocalDateTime.now().format(
                 java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
         ));
+        detailRoomImageLabel.setIcon(loadRoomImage(firstData.roomName, 160, 120));
         kCID.setText(firstData.id);
 
         loadPromotionOptions();
@@ -1016,6 +1131,65 @@ public class CheckoutPanel extends JPanel {
             }
         } catch (Exception ignored) {
         }
+        return null;
+    }
+
+    private ImageIcon loadRoomImage(String roomName, int w, int h) {
+        String lower = roomName.toLowerCase();
+
+        if (lower.contains("standard")) return loadRoomImageByFile("standard.png", w, h);
+        if (lower.contains("deluxe")) return loadRoomImageByFile("deluxe.png", w, h);
+        if (lower.contains("family")) return loadRoomImageByFile("family.png", w, h);
+        if (lower.contains("suite")) return loadRoomImageByFile("suite.png", w, h);
+
+        return loadRoomImageByFile("vip.png", w, h);
+    }
+
+    private ImageIcon loadRoomImageByFile(String fileName, int w, int h) {
+        try {
+            String[] paths = {
+                    "/kqlhotel/resources/icons/",
+                    "/kqlhotel/resources/images/",
+                    "/kqlhotel/resources/images/rooms/",
+                    "/kqlhotel/resources/"
+            };
+
+            URL resource = null;
+
+            for (String path : paths) {
+                resource = getClass().getResource(path + fileName);
+                if (resource != null) break;
+            }
+
+            if (resource == null) {
+                String[] filePaths = {
+                        "src/kqlhotel/resources/icons/" + fileName,
+                        "src/kqlhotel/resources/images/" + fileName,
+                        "src/kqlhotel/resources/images/rooms/" + fileName,
+                        "src/kqlhotel/resources/" + fileName
+                };
+
+                for (String p : filePaths) {
+                    java.io.File file = new java.io.File(p);
+                    if (file.exists()) {
+                        resource = file.toURI().toURL();
+                        break;
+                    }
+                }
+            }
+
+            if (resource != null) {
+                ImageIcon icon = new ImageIcon(resource);
+                Image img = icon.getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+
+            System.out.println("Không tìm thấy ảnh: " + fileName);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return null;
     }
 

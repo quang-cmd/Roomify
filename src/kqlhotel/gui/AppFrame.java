@@ -51,6 +51,8 @@ public class AppFrame extends JFrame {
     private final Map<String, JLabel> menuTextLabels = new LinkedHashMap<>();
     private final Map<String, String> pageTitles = new LinkedHashMap<>();
     private final Map<String, String> pageSubtitles = new LinkedHashMap<>();
+    private final CardLayout dashboardCards = new CardLayout();
+    private final JPanel dashboardWrap = new JPanel(dashboardCards);
     private String currentRoute = "booking";
     private String pendingCardName;
     private RoomManagementPanel roomManagementPanel;
@@ -100,7 +102,13 @@ public class AppFrame extends JFrame {
 
         screenPanel.setOpaque(false);
         DashboardPanel dashboardPanel = new DashboardPanel();
-        screenPanel.add(dashboardPanel, "dashboard");
+        EmployeeDashboardPanel employeeDashboardPanel = new EmployeeDashboardPanel();
+
+        dashboardWrap.setOpaque(false);
+        dashboardWrap.add(dashboardPanel, "manager-dashboard");
+        dashboardWrap.add(employeeDashboardPanel, "employee-dashboard");
+
+        screenPanel.add(dashboardWrap, "dashboard");
         bookingPanel = new BookingPanel();
         screenPanel.add(bookingPanel, "booking");
         screenPanel.add(new CheckInPanel(), "check-in");
@@ -729,6 +737,14 @@ public class AppFrame extends JFrame {
 
         currentRoute = route;
         screenCards.show(screenPanel, route);
+
+        if ("dashboard".equals(route)) {
+            if (Permission.isQuanLy()) {
+                dashboardCards.show(dashboardWrap, "manager-dashboard");
+            } else {
+                dashboardCards.show(dashboardWrap, "employee-dashboard");
+            }
+        }
 
         // Auto-refresh room management data when entering the tab
         if (route.equals("room-management")) {
