@@ -502,15 +502,18 @@ public class InvoicesPanel extends JPanel {
                 tienKhuyenMaiHienThi - tienKhuyenMaiMaHienThi
         );
 
-        tongSauKhuyenMai = Math.max(0, hd.getTongTienThanhToan());
+            tongSauKhuyenMai = Math.max(
+                    0,
+                    tongTruocGiam - tienKhuyenMaiMaHienThi - tienKhuyenMaiHangHienThi
+            );
 
-        if ("DaThanhToan".equals(computedStatus)) {
-            tienThanhToanThem = Math.max(0, tongSauKhuyenMai - tienCoc);
-            conPhaiThanhToan = 0;
-            tienHoanTra = 0;
-        } else {
-            tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
-            conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
+            if ("DaThanhToan".equals(computedStatus)) {
+                tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+                conPhaiThanhToan = 0;
+                tienHoanTra = 0;
+            } else {
+                tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
+                conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
 
             if (tongDaThanhToan > tongSauKhuyenMai) {
                 tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
