@@ -258,19 +258,28 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
             return 0;
         }
 
-        try {
-            Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT tienCoc FROM DatPhong WHERE maDatPhong = ?";
-            PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, maDatPhong);
+        String sql = """
+        SELECT ISNULL(tienCoc, 0) AS tienCoc
+        FROM DatPhong
+        WHERE maDatPhong = ?
+    """;
 
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getDouble("tienCoc");
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maDatPhong);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("tienCoc");
+                    }
+                }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
         return 0;
     }
 
@@ -398,6 +407,34 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
                 return rs.getDouble("tongDaThanhToan");
             }
         } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public double getSuccessfulPaymentByBooking(String maDatPhong) {
+        String sql = """
+        SELECT ISNULL(SUM(tt.soTienTT), 0) AS totalPaid
+        FROM ThanhToan tt
+        JOIN HoaDon hd ON tt.maHD = hd.maHD
+        WHERE hd.maDatPhong = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+    """;
+
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maDatPhong);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("totalPaid");
+                    }
+                }
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

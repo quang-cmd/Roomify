@@ -486,8 +486,8 @@ public class AppFrame extends JFrame {
         logoutBtn.setForeground(ThemeColors.DANGER);
         logoutBtn.setBackground(ThemeColors.PREMIUM_SURFACE);
         logoutBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
-            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+                BorderFactory.createLineBorder(ThemeColors.withAlpha(ThemeColors.DANGER, 90), 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)));
         logoutBtn.setFocusPainted(false);
         logoutBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         logoutBtn.setToolTipText("\u0110\u0103ng xu\u1ea5t kh\u1ecfi h\u1ec7 th\u1ed1ng");
@@ -588,11 +588,11 @@ public class AppFrame extends JFrame {
 
     private void logout() {
         int option = JOptionPane.showConfirmDialog(
-            this,
-            "B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n \u0111\u0103ng xu\u1ea5t?",
-            "X\u00e1c nh\u1eadn",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
+                this,
+                "B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n \u0111\u0103ng xu\u1ea5t?",
+                "X\u00e1c nh\u1eadn",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
         );
 
         if (option != JOptionPane.YES_OPTION) {
@@ -673,12 +673,12 @@ public class AppFrame extends JFrame {
         wrapper.setOpaque(false);
 
         RoundedPanel card = new RoundedPanel(
-            16,
-            ThemeColors.SURFACE,
-            ThemeColors.BORDER_SOFT,
-            1f,
-            new Color(17, 24, 39, 20),
-            6
+                16,
+                ThemeColors.SURFACE,
+                ThemeColors.BORDER_SOFT,
+                1f,
+                new Color(17, 24, 39, 20),
+                6
         );
         card.setLayout(new MigLayout("wrap 1,insets 24,gap 10", "[grow,fill]", "[]"));
         card.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));

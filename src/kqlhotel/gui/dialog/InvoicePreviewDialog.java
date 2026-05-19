@@ -1,6 +1,6 @@
 package kqlhotel.gui.dialog;
 
-import kqlhotel.bus.Invoice.InvoicesBUS;
+import kqlhotel.bus.invoice.InvoicesBUS;
 import kqlhotel.entity.Customer;
 import kqlhotel.entity.Invoice;
 import kqlhotel.entity.InvoiceDetail;
@@ -145,7 +145,8 @@ public class InvoicePreviewDialog extends JDialog {
 
             wrapper.add(cb, BorderLayout.NORTH);
             wrapper.add(invoicePanel, BorderLayout.CENTER);
-            wrapper.setPreferredSize(new Dimension(420, 760));
+            // Để panel tự cao theo nội dung
+            wrapper.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
 
             checkBoxes.add(cb);
             invoicePanels.add(wrapper);
@@ -301,55 +302,43 @@ public class InvoicePreviewDialog extends JDialog {
                 + phiPhatHienThi
                 + tongTienDichVuHienThi;
 
-        double tienThueHienThi = laHoaDonHuy
-                ? 0
-                : tongTinhThueHienThi * 0.10;
+        double tongTruocGiamHienThi;
+        double tienThueHienThi;
+        double tongKhuyenMaiHoaDon;
+        double tongThanhToanHienThi;
 
-        double tongTruocGiamHienThi = tongTinhThueHienThi + tienThueHienThi;
+        if (laHoaDonHuy) {
+            tienThueHienThi = 0;
+            tongKhuyenMaiHoaDon = 0;
+            tongTruocGiamHienThi = Math.max(0, tienCoc);
+            tongThanhToanHienThi = Math.max(0, tienCoc);
+        } else {
+            tienThueHienThi = Math.max(0, hd.getTienThue());
+            tongKhuyenMaiHoaDon = Math.max(0, hd.getTienKhuyenMai());
+            tongThanhToanHienThi = Math.max(0, hd.getTongTienThanhToan());
+
+            tongTruocGiamHienThi = Math.max(
+                    0,
+                    hd.getTienPhong()
+                            + hd.getTienDichVu()
+                            + hd.getTienThue()
+                            + phuThuHienThi
+                            + phiPhatHienThi
+            );
+        }
 
         double tyLeGiamHangThanhVien = laHoaDonHuy ? 0 : getMembershipDiscountRate(kh);
         String tenHangThanhVien = laHoaDonHuy ? "Đồng" : getMembershipRankName(kh);
 
-// Tổng trước giảm của cả hóa đơn
-        double tongTruocGiamHoaDon = Math.max(
-                0,
-                hd.getTienPhong() + hd.getTienDichVu() + hd.getTienThue()
-        );
-
-// Tổng khuyến mãi của cả hóa đơn
-        double tongKhuyenMaiHoaDon = laHoaDonHuy
-                ? 0
-                : Math.max(0, hd.getTienKhuyenMai());
-
-// Tách phần khuyến mãi mã ra khỏi tổng khuyến mãi hóa đơn.
-// Lý do: hd.getTienKhuyenMai() đang là tổng = khuyến mãi mã + khuyến mãi hạng.
-        double tongKhuyenMaiMaHoaDon = calculatePromotionOnlyDiscount(
-                tongTruocGiamHoaDon,
+        double tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
+                tongTruocGiamHienThi,
                 tongKhuyenMaiHoaDon,
                 tyLeGiamHangThanhVien
         );
 
-// Áp dụng khuyến mãi mã trực tiếp cho phòng đang in,
-// giống màn Trả phòng, không chia tỷ lệ.
-        double tienKhuyenMaiMaHienThi = Math.min(
-                tongKhuyenMaiMaHoaDon,
-                tongTruocGiamHienThi
-        );
-
-// Khuyến mãi hạng khách hàng tính sau khi trừ khuyến mãi mã.
         double tienKhuyenMaiHangHienThi = Math.max(
                 0,
-                (tongTruocGiamHienThi - tienKhuyenMaiMaHienThi) * tyLeGiamHangThanhVien
-        );
-
-// Tổng thanh toán riêng phòng, chưa trừ cọc.
-        double tongThanhToanHienThi = laHoaDonHuy
-                ? Math.max(0, tienCoc)
-                : Math.max(
-                0,
-                tongTruocGiamHienThi
-                - tienKhuyenMaiMaHienThi
-                - tienKhuyenMaiHangHienThi
+                tongKhuyenMaiHoaDon - tienKhuyenMaiMaHienThi
         );
 
         JLabel logo = centerLabel("KQL HOTEL", 28, true);
@@ -406,17 +395,15 @@ public class InvoicePreviewDialog extends JDialog {
                 ));
             }
         }
-
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
-        panel.add(line("Tổng tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
-        panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
-        panel.add(line("Thuế VAT", CurrencyUtils.formatVND(tienThueHienThi)));
+        panel.add(line("Tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
+        panel.add(line("Phụ thu", CurrencyUtils.formatVND(phuThuHienThi)));
+        panel.add(line("Phí trả phòng sớm / trễ", CurrencyUtils.formatVND(phiPhatHienThi)));
+        panel.add(line("Tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
+        panel.add(line("Thuế VAT (10%)", CurrencyUtils.formatVND(tienThueHienThi)));
 
         if (tienKhuyenMaiMaHienThi > 0) {
-            panel.add(line(
-                    "Khuyến mãi",
-                    "-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi)
-            ));
+            panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi)));
         }
 
         if (tienKhuyenMaiHangHienThi > 0) {
@@ -430,8 +417,7 @@ public class InvoicePreviewDialog extends JDialog {
             panel.add(line("Phí hủy (giữ cọc)", CurrencyUtils.formatVND(tienCoc)));
         }
 
-        panel.add(line("Tổng thanh toán (Phạt)", CurrencyUtils.formatVND(tongThanhToanHienThi)));
-
+        panel.add(line("Tổng hóa đơn", CurrencyUtils.formatVND(tongThanhToanHienThi)));
         if (!laHoaDonHuy) {
             double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
             if (refund > 0) {
