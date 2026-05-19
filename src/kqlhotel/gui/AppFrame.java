@@ -62,6 +62,8 @@ public class AppFrame extends JFrame {
     private LoginPanel loginPanel;
     private CancelRoomPanel cancelRoomPanel;
     private StatisticsPanel statisticsPanel;
+    private DashboardPanel dashboardPanel;
+    private EmployeeDashboardPanel employeeDashboardPanel;
 
     public AppFrame() {
         setTitle("KQL Hotel - UI Demo");
@@ -101,8 +103,8 @@ public class AppFrame extends JFrame {
         contentWrap.add(createTopbar(), BorderLayout.NORTH);
 
         screenPanel.setOpaque(false);
-        DashboardPanel dashboardPanel = new DashboardPanel();
-        EmployeeDashboardPanel employeeDashboardPanel = new EmployeeDashboardPanel();
+        dashboardPanel = new DashboardPanel();
+        employeeDashboardPanel = new EmployeeDashboardPanel();
 
         dashboardWrap.setOpaque(false);
         dashboardWrap.add(dashboardPanel, "manager-dashboard");
@@ -741,8 +743,14 @@ public class AppFrame extends JFrame {
         if ("dashboard".equals(route)) {
             if (Permission.isQuanLy()) {
                 dashboardCards.show(dashboardWrap, "manager-dashboard");
+                if (dashboardPanel != null) {
+                    dashboardPanel.refresh();
+                }
             } else {
                 dashboardCards.show(dashboardWrap, "employee-dashboard");
+                if (employeeDashboardPanel != null) {
+                    employeeDashboardPanel.refresh();
+                }
             }
         }
 

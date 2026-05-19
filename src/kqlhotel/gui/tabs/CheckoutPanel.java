@@ -30,7 +30,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.Session;
 import kqlhotel.utils.CurrencyUtils;
 import net.miginfocom.swing.MigLayout;
-import kqlhotel.bus.invoice.InvoicesBUS;
+import kqlhotel.bus.Invoice.InvoicesBUS;
 import kqlhotel.entity.InvoiceDetail;
 import kqlhotel.entity.ServiceDetail;
 import java.util.stream.Collectors;
