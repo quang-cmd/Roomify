@@ -44,6 +44,9 @@ public class RoomManagementPanel extends JPanel {
     private List<Phong> phongList;
     private JLabel subtitle;
     private JPanel statsRow;
+    
+    private PrimaryButton btnAdd;
+    private PrimaryButton btnAddRoomType;
 
     public List<Phong> getPhongList() { return phongList; }
     public List<Phong> getRoomList() { return phongList; }
@@ -90,7 +93,7 @@ public class RoomManagementPanel extends JPanel {
             dialog.setVisible(true);
         });
 
-        PrimaryButton btnAdd = new PrimaryButton("+ Thêm phòng");
+        btnAdd = new PrimaryButton("+ Thêm phòng");
         btnAdd.setBackground(new Color(17, 24, 39));
         btnAdd.setForeground(Color.WHITE);
         btnAdd.addActionListener(e -> {
@@ -99,7 +102,7 @@ public class RoomManagementPanel extends JPanel {
             dialog.setVisible(true);
         });
 
-        PrimaryButton btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
+        btnAddRoomType = new PrimaryButton("+ Thêm loại phòng");
         btnAddRoomType.setBackground(new Color(30, 41, 59));
         btnAddRoomType.setForeground(Color.WHITE);
         btnAddRoomType.addActionListener(e -> {
@@ -214,6 +217,13 @@ public class RoomManagementPanel extends JPanel {
     }
 
     public void reloadData() {
+        if (btnAdd != null) {
+            btnAdd.setVisible(kqlhotel.gui.Permission.isQuanLy());
+        }
+        if (btnAddRoomType != null) {
+            btnAddRoomType.setVisible(kqlhotel.gui.Permission.isQuanLy());
+        }
+        
         phongList = phongBUS.getAllRooms();
         
         long total = phongList.size();
