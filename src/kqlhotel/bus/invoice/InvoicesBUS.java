@@ -1,4 +1,4 @@
-package kqlhotel.bus.Invoice;
+package kqlhotel.bus.invoice;
 
 import kqlhotel.dao.customer.CustomerDAO;
 import kqlhotel.dao.invoice.InvoiceDAO;
@@ -59,7 +59,11 @@ public class InvoicesBUS {
     }
 
     public double getDepositAmount(String maDatPhong) {
-        return invoiceDAO.getDepositAmount(maDatPhong);
+        if (maDatPhong == null || maDatPhong.isBlank()) {
+            return 0;
+        }
+
+        return invoiceDAO.getSuccessfulPaymentByBooking(maDatPhong);
     }
 
     public String getComputedStatus(Invoice hd) {
