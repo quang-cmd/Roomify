@@ -10,6 +10,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -55,6 +56,10 @@ public class CheckInPanel extends BackgroundPanel {
     private final DatePicker fromPicker = new DatePicker();
     private final DatePicker toPicker = new DatePicker();
     private final JLabel summaryLabel = new JLabel();
+    private final JLabel totalMetric = new JLabel("0");
+    private final JLabel pendingMetric = new JLabel("0");
+    private final JLabel dueMetric = new JLabel("0");
+    private final JLabel overdueMetric = new JLabel("0");
 
     public CheckInPanel() {
         setLayout(new MigLayout("insets 24,wrap 1,gap 16", "[grow,fill]", "[][grow,fill]"));
@@ -63,17 +68,62 @@ public class CheckInPanel extends BackgroundPanel {
         // Default: arrivals expected today
         LocalDate today = LocalDate.now();
         fromPicker.setSelectedDate(today);
-        fromPicker.setMinDate(today);
         toPicker.setSelectedDate(today);
-        toPicker.setMinDate(today);
 
         fromPicker.addDateChangeListener(() -> {
             LocalDate from = fromPicker.getSelectedDate();
             if (from != null) {
-                toPicker.setMinDate(from);
+                LocalDate to = toPicker.getSelectedDate();
+                if (to == null || to.isBefore(from)) {
+                    toPicker.setSelectedDate(from);
+                }
             }
         });
         reload();
+    }
+
+    private static String safe(String value) {
+        return value == null || value.trim().isEmpty() ? "-" : value.trim();
+    }
+
+    private static boolean isOverdue(ArrivalDto arrival) {
+        return arrival != null
+            && !arrival.isCheckedIn()
+            && arrival.getNgayTraDuKien() != null
+            && LocalDateTime.now().isAfter(arrival.getNgayTraDuKien());
+    }
+
+    private static String resolveStatus(ArrivalDto arrival) {
+        if (arrival == null) return "";
+        if (arrival.isCheckedIn()) return "Đã nhận";
+        if (isOverdue(arrival)) return "Quá hạn";
+        LocalDate today = LocalDate.now();
+        LocalDate expected = arrival.getNgayNhanDuKien() == null ? today : arrival.getNgayNhanDuKien().toLocalDate();
+        if (expected.equals(today)) return "Đến hạn";
+        if (expected.isBefore(today)) return "Trễ nhận";
+        return "Sắp nhận";
+    }
+
+    private static Color statusForeground(String status) {
+        if ("Đã nhận".equals(status)) return ThemeColors.SUCCESS;
+        if ("Quá hạn".equals(status)) return new Color(220, 38, 38);
+        if ("Trễ nhận".equals(status) || "Đến hạn".equals(status)) return new Color(217, 119, 6);
+        return ThemeColors.PRIMARY;
+    }
+
+    private static Color statusBackground(String status) {
+        if ("Đã nhận".equals(status)) return ThemeColors.SUCCESS_SOFT;
+        if ("Quá hạn".equals(status)) return new Color(254, 226, 226);
+        if ("Trễ nhận".equals(status) || "Đến hạn".equals(status)) return new Color(255, 237, 213);
+        return ThemeColors.PRIMARY_SOFT;
+    }
+
+    private static Color rowBackground(ArrivalDto arrival, boolean selected) {
+        if (selected) return ThemeColors.PRIMARY_SOFT;
+        String status = resolveStatus(arrival);
+        if ("Quá hạn".equals(status)) return new Color(255, 247, 247);
+        if ("Trễ nhận".equals(status) || "Đến hạn".equals(status)) return new Color(255, 252, 242);
+        return ThemeColors.SURFACE;
     }
 
     // -----------------------------------------------------------
@@ -114,9 +164,7 @@ public class CheckInPanel extends BackgroundPanel {
         PrimaryButton refreshBtn = new PrimaryButton("Hôm nay");
         refreshBtn.addActionListener(e -> {
             LocalDate today = LocalDate.now();
-            fromPicker.setMinDate(today);
             fromPicker.setSelectedDate(today);
-            toPicker.setMinDate(today);
             toPicker.setSelectedDate(today);
             keywordField.setText("");
             reload();
@@ -147,10 +195,17 @@ public class CheckInPanel extends BackgroundPanel {
     // -----------------------------------------------------------
     private RoundedPanel buildTableCard() {
         RoundedPanel card = new RoundedPanel(14, ThemeColors.SURFACE, ThemeColors.BORDER_SOFT, 1f);
-        card.setLayout(new MigLayout("insets 18 22,wrap 1,gap 12", "[grow,fill]", "[][grow,fill][]"));
+        card.setLayout(new MigLayout("insets 18 22,wrap 1,gap 12", "[grow,fill]", "[][][grow,fill]"));
 
         summaryLabel.setForeground(ThemeColors.TEXT_MUTED);
         summaryLabel.setFont(summaryLabel.getFont().deriveFont(12f));
+
+        JPanel metrics = new JPanel(new MigLayout("insets 0,gap 10", "[fill][fill][fill][fill]", "[]"));
+        metrics.setOpaque(false);
+        metrics.add(metricCard("Tổng booking", totalMetric, new Color(235, 248, 255), new Color(49, 130, 206)));
+        metrics.add(metricCard("Chưa nhận", pendingMetric, new Color(238, 246, 255), new Color(30, 64, 175)));
+        metrics.add(metricCard("Đến hạn", dueMetric, new Color(255, 247, 237), new Color(217, 119, 6)));
+        metrics.add(metricCard("Quá hạn", overdueMetric, new Color(254, 242, 242), new Color(220, 38, 38)));
 
         JTable table = new JTable(tableModel);
         table.setRowHeight(44);
@@ -165,18 +220,22 @@ public class CheckInPanel extends BackgroundPanel {
         table.getTableHeader().setForeground(ThemeColors.TEXT_SECONDARY);
 
         // Column widths
-        int[] widths = {110, 200, 130, 150, 80, 90, 130, 100, 130};
+        int[] widths = {100, 180, 120, 150, 75, 80, 130, 120, 110, 130};
         for (int i = 0; i < widths.length && i < table.getColumnModel().getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
 
-        DefaultTableCellRenderer center = new DefaultTableCellRenderer();
-        center.setHorizontalAlignment(SwingConstants.CENTER);
-        for (int col : new int[]{0, 4, 5, 6, 7}) {
+        ArrivalCellRenderer standardRenderer = new ArrivalCellRenderer(SwingConstants.LEFT);
+        ArrivalCellRenderer centerRenderer = new ArrivalCellRenderer(SwingConstants.CENTER);
+        for (int col = 0; col < table.getColumnModel().getColumnCount(); col++) {
             if (col < table.getColumnModel().getColumnCount()) {
-                table.getColumnModel().getColumn(col).setCellRenderer(center);
+                table.getColumnModel().getColumn(col).setCellRenderer(standardRenderer);
             }
         }
+        for (int col : new int[]{0, 4, 5, 6, 7}) {
+            table.getColumnModel().getColumn(col).setCellRenderer(centerRenderer);
+        }
+        table.getColumnModel().getColumn(8).setCellRenderer(new StatusBadgeRenderer());
 
         // Action button column
         int actionCol = tableModel.getColumnCount() - 1;
@@ -188,7 +247,21 @@ public class CheckInPanel extends BackgroundPanel {
         scroll.getViewport().setBackground(ThemeColors.SURFACE);
 
         card.add(summaryLabel);
+        card.add(metrics, "growx");
         card.add(scroll, "grow,push");
+        return card;
+    }
+
+    private RoundedPanel metricCard(String title, JLabel valueLabel, Color bg, Color fg) {
+        RoundedPanel card = new RoundedPanel(12, bg, new Color(fg.getRed(), fg.getGreen(), fg.getBlue(), 70), 1f);
+        card.setLayout(new MigLayout("insets 10 14,wrap 1,gap 2", "[110!]", "[][]"));
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.PLAIN, 12f));
+        titleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
+        valueLabel.setFont(valueLabel.getFont().deriveFont(Font.BOLD, 20f));
+        valueLabel.setForeground(fg);
+        card.add(titleLabel);
+        card.add(valueLabel);
         return card;
     }
 
@@ -215,6 +288,12 @@ public class CheckInPanel extends BackgroundPanel {
         List<ArrivalDto> arrivals = checkInService.findArrivals(from, to, keywordField.getText());
         tableModel.setData(arrivals);
         long pending = arrivals.stream().filter(a -> !a.isCheckedIn()).count();
+        long due = arrivals.stream().filter(a -> "Đến hạn".equals(resolveStatus(a))).count();
+        long overdue = arrivals.stream().filter(a -> "Quá hạn".equals(resolveStatus(a))).count();
+        totalMetric.setText(String.valueOf(arrivals.size()));
+        pendingMetric.setText(String.valueOf(pending));
+        dueMetric.setText(String.valueOf(due));
+        overdueMetric.setText(String.valueOf(overdue));
         summaryLabel.setText(String.format(
             "Tìm thấy %d booking trong khoảng %s — %s · %d chưa nhận phòng",
             arrivals.size(),
@@ -228,6 +307,14 @@ public class CheckInPanel extends BackgroundPanel {
             JOptionPane.showMessageDialog(this,
                 "Booking này đã nhận phòng rồi.",
                 "Đã nhận phòng", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (isOverdue(arrival)) {
+            JOptionPane.showMessageDialog(this,
+                "<html>Booking <b>" + arrival.getMaDatPhong() + "</b> đã quá ngày trả dự kiến.<br>" +
+                "Vui lòng kiểm tra lại lịch đặt phòng, hủy booking hoặc tạo booking mới.</html>",
+                "Booking quá hạn",
+                JOptionPane.WARNING_MESSAGE);
             return;
         }
         int ok = JOptionPane.showConfirmDialog(this,
@@ -286,16 +373,22 @@ public class CheckInPanel extends BackgroundPanel {
         ArrivalDto rowAt(int idx) { return data.get(idx); }
 
         @Override public int getRowCount() { return data.size(); }
-        @Override public int getColumnCount() { return cols.length; }
-        @Override public String getColumnName(int c) { return cols[c]; }
+        @Override public int getColumnCount() { return cols.length + 1; }
+        @Override public String getColumnName(int c) {
+            if (c == 8) return "Trạng thái";
+            if (c == 9) return cols[8];
+            return cols[c];
+        }
 
         @Override public boolean isCellEditable(int r, int c) {
-            return c == cols.length - 1; // action column
+            return c == getColumnCount() - 1; // action column
         }
 
         @Override
         public Object getValueAt(int r, int c) {
             ArrivalDto a = data.get(r);
+            if (c == 8) return resolveStatus(a);
+            if (c == 9) return a.isCheckedIn() ? "Đã nhận" : (isOverdue(a) ? "Kiểm tra" : "Nhận phòng");
             switch (c) {
                 case 0: return a.getMaDatPhong();
                 case 1: return a.getTenKH();
@@ -308,6 +401,50 @@ public class CheckInPanel extends BackgroundPanel {
                 case 8: return a.isCheckedIn() ? "Đã nhận" : "Nhận phòng";
                 default: return "";
             }
+        }
+    }
+
+    // -----------------------------------------------------------
+    // Table rendering
+    // -----------------------------------------------------------
+    private class ArrivalCellRenderer extends DefaultTableCellRenderer {
+        ArrivalCellRenderer(int alignment) {
+            setHorizontalAlignment(alignment);
+            setBorder(new EmptyBorder(0, 10, 0, 10));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            ArrivalDto arrival = tableModel.rowAt(row);
+            setBackground(rowBackground(arrival, isSelected));
+            setForeground(ThemeColors.TEXT_PRIMARY);
+            setBorder(new EmptyBorder(0, 10, 0, 10));
+            return this;
+        }
+    }
+
+    private class StatusBadgeRenderer extends DefaultTableCellRenderer {
+        StatusBadgeRenderer() {
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setFont(getFont().deriveFont(Font.BOLD, 12f));
+            setBorder(new EmptyBorder(7, 8, 7, 8));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String status = String.valueOf(value == null ? "" : value);
+            setText(status);
+            setOpaque(true);
+            setForeground(statusForeground(status));
+            setBackground(isSelected ? rowBackground(tableModel.rowAt(row), true) : statusBackground(status));
+            setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(statusForeground(status), 1, true),
+                new EmptyBorder(3, 8, 3, 8)));
+            return this;
         }
     }
 
@@ -329,6 +466,11 @@ public class CheckInPanel extends BackgroundPanel {
                 setBackground(ThemeColors.SUCCESS_SOFT);
                 setForeground(ThemeColors.SUCCESS);
                 setBorder(BorderFactory.createLineBorder(ThemeColors.SUCCESS, 1, true));
+            } else if (isOverdue(a)) {
+                setText("Kiểm tra");
+                setBackground(new Color(254, 226, 226));
+                setForeground(new Color(185, 28, 28));
+                setBorder(BorderFactory.createLineBorder(new Color(220, 38, 38), 1, true));
             } else {
                 setText("Nhận phòng");
                 setBackground(ThemeColors.ACCENT);
@@ -364,6 +506,11 @@ public class CheckInPanel extends BackgroundPanel {
                 button.setBackground(ThemeColors.SUCCESS_SOFT);
                 button.setForeground(ThemeColors.SUCCESS);
                 button.setEnabled(false);
+            } else if (isOverdue(current)) {
+                button.setText("Kiểm tra");
+                button.setBackground(new Color(254, 226, 226));
+                button.setForeground(new Color(185, 28, 28));
+                button.setEnabled(true);
             } else {
                 button.setText("Nhận phòng");
                 button.setBackground(ThemeColors.ACCENT);
