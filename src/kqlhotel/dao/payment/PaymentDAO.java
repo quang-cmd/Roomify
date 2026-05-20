@@ -32,8 +32,8 @@ public class PaymentDAO {
         }
 
         String sql = "INSERT INTO ThanhToan " +
-                "(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV, loaiGD) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, payment.getMaTT());
@@ -45,6 +45,7 @@ public class PaymentDAO {
             ps.setString(7, payment.getMaHD());
             ps.setString(8, payment.getMaPC());
             ps.setString(9, payment.getMaNV());
+            ps.setString(10, payment.getLoaiGD() != null ? payment.getLoaiGD() : "Thu");
             return ps.executeUpdate() > 0;
         }
     }
@@ -112,7 +113,7 @@ public class PaymentDAO {
         }
 
         String sql =
-                "SELECT maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV " +
+                "SELECT maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV, loaiGD " +
                 "FROM ThanhToan WHERE maHD = ? ORDER BY ngayTT ASC, maTT ASC";
 
         try {
@@ -220,7 +221,8 @@ public class PaymentDAO {
                 rs.getString("trangThaiTT"),
                 rs.getString("maHD"),
                 rs.getString("maPC"),
-                rs.getString("maNV")
+                rs.getString("maNV"),
+                rs.getString("loaiGD")
         );
     }
 }

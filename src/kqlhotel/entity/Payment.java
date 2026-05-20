@@ -12,6 +12,7 @@ public class Payment {
     private String maHD;
     private String maPC;
     private String maNV;
+    private String loaiGD = "Thu";
 
     public Payment() {}
 
@@ -26,6 +27,13 @@ public class Payment {
         this.maHD = maHD;
         this.maPC = maPC;
         this.maNV = maNV;
+        this.loaiGD = "Thu";
+    }
+
+    public Payment(String maTT, LocalDateTime ngayTT, double soTienTT, String ghiChu,
+                   String phuongThucTT, String trangThaiTT, String maHD, String maPC, String maNV, String loaiGD) {
+        this(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV);
+        this.loaiGD = loaiGD;
     }
 
     public String getMaTT() { return maTT; }
@@ -54,4 +62,7 @@ public class Payment {
 
     public String getMaNV() { return maNV; }
     public void setMaNV(String maNV) { this.maNV = maNV; }
+
+    public String getLoaiGD() { return loaiGD; }
+    public void setLoaiGD(String loaiGD) { this.loaiGD = loaiGD; }
 }

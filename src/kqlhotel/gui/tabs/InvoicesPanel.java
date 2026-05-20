@@ -439,7 +439,7 @@ public class InvoicesPanel extends JPanel {
         double tongTruocGiam;
         double tongSauKhuyenMai;
         double conPhaiThanhToan;
-        double tienHoanTra = 0;
+        double tienHoanTra = invoicesBUS.getRefundAmount(hd.getMaHD());
 
 // Tổng tiền khách đã trả thành công: gồm tiền cọc + các lần thanh toán trả phòng.
         double tongDaThanhToan = invoicesBUS.getTotalPaidAmount(hd.getMaHD());
@@ -469,7 +469,6 @@ public class InvoicesPanel extends JPanel {
             tongSauKhuyenMai = Math.max(0, tienCoc);
 
             conPhaiThanhToan = 0;
-            tienHoanTra = 0;
         } else {
             tongTienPhongThuan = Math.max(0, hd.getTienPhong());
             tongPhuThu = calculateTotalSurcharge(roomDetails);
@@ -510,16 +509,9 @@ public class InvoicesPanel extends JPanel {
             if ("DaThanhToan".equals(computedStatus)) {
                 tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
                 conPhaiThanhToan = 0;
-                tienHoanTra = 0;
             } else {
                 tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
                 conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
-
-                if (tongDaThanhToan > tongSauKhuyenMai) {
-                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
-                } else {
-                    tienHoanTra = 0;
-                }
             }
         }
 
