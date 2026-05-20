@@ -102,6 +102,11 @@ public class ShiftDAO {
 
             // Nếu chính nhân viên này đã có ca đang mở thì coi như thành công,
             // không tạo thêm dòng PhanCongCa mới.
+            String assignedMaNV = getAssignedStaffForCurrentShift(con, maCa);
+            if (assignedMaNV != null && !assignedMaNV.isBlank() && !assignedMaNV.equals(maNV)) {
+                return false;
+            }
+
             if (hasOpenShift(con, maNV, maCa)) return true;
 
             // Uu tien kich hoat ca da duoc phan cong san trong ngay.
@@ -155,6 +160,28 @@ public class ShiftDAO {
             ps.setString(3, maCa);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    private String getAssignedStaffForCurrentShift(Connection con, String maCa) throws SQLException {
+        String sql = """
+            SELECT TOP 1 maNV
+            FROM PhanCongCa
+            WHERE maCa = ?
+              AND trangThai = N'DaPhanCong'
+              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+            ORDER BY maPC ASC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maCa);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("maNV");
+                }
+            }
+        }
+
+        return null;
     }
 
     private boolean hasOpenShift(Connection con, String maNV, String maCa) throws SQLException {

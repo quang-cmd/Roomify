@@ -309,6 +309,7 @@ public class SqlBookingService implements BookingService {
                 note,
                 command.getPaymentMethod(),
                 "ThanhToanThanhCong",
+                "Thu",
                 maHD,
                 maPC,
                 maNV
