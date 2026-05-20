@@ -10,6 +10,7 @@ IF OBJECT_ID('dbo.ThanhToan', 'U')      IS NOT NULL DROP TABLE dbo.ThanhToan;
 IF OBJECT_ID('dbo.ChiTietDichVu', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietDichVu;
 IF OBJECT_ID('dbo.ChiTietHoaDon', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietHoaDon;
 IF OBJECT_ID('dbo.HoaDon', 'U')         IS NOT NULL DROP TABLE dbo.HoaDon;
+IF OBJECT_ID('dbo.ChiTietKhachO', 'U')  IS NOT NULL DROP TABLE dbo.ChiTietKhachO;
 IF OBJECT_ID('dbo.ChiTietDatPhong', 'U')IS NOT NULL DROP TABLE dbo.ChiTietDatPhong;
 IF OBJECT_ID('dbo.DatPhong', 'U')       IS NOT NULL DROP TABLE dbo.DatPhong;
 IF OBJECT_ID('dbo.PhanCongCa', 'U')     IS NOT NULL DROP TABLE dbo.PhanCongCa;
@@ -77,14 +78,18 @@ CREATE TABLE CaLam (
 GO
 
 CREATE TABLE PhanCongCa (
-                            maPC       CHAR(5)       PRIMARY KEY,
-                            ngay       DATETIME2     NOT NULL,
-                            tienMoCa   DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
-                            tienKetCa  DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
-                            maNV       CHAR(5)       NOT NULL,
-                            maCa       CHAR(5)       NOT NULL,
-                            CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
-                            CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
+						maPC           CHAR(5)        PRIMARY KEY,
+						ngay           DATETIME2      NOT NULL,
+						tienMoCa       DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienMoCa >= 0),
+						tienKetCa      DECIMAL(18,2)  NOT NULL DEFAULT 0 CHECK (tienKetCa >= 0),
+						thoiGianMoCa   DATETIME2      NULL,
+						thoiGianKetCa  DATETIME2      NULL,
+						trangThai      NVARCHAR(20)   NOT NULL DEFAULT N'DaPhanCong'
+							CHECK (trangThai IN (N'DaPhanCong', N'DangMo', N'DaKet')),
+						maNV           CHAR(5)        NOT NULL,
+						maCa           CHAR(5)        NOT NULL,
+						CONSTRAINT FK_PhanCongCa_NhanVien FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+						CONSTRAINT FK_PhanCongCa_CaLam    FOREIGN KEY (maCa) REFERENCES CaLam(maCa)
 );
 GO
 
@@ -181,6 +186,18 @@ CREATE TABLE ChiTietDatPhong (
                                  CONSTRAINT FK_CTDatPhong_DatPhong FOREIGN KEY (maDatPhong) REFERENCES DatPhong(maDatPhong),
                                  CONSTRAINT FK_CTDatPhong_Phong    FOREIGN KEY (maPhong)    REFERENCES Phong(maPhong),
                                  CONSTRAINT CK_CTDatPhong_Ngay CHECK (ngayTraDuKien > ngayNhanDuKien)
+);
+GO
+
+CREATE TABLE ChiTietKhachO (
+    maDatPhong CHAR(5) NOT NULL,
+    maPhong    CHAR(4) NOT NULL,
+    hoTen      NVARCHAR(100) NOT NULL,
+    cccd       VARCHAR(20) NOT NULL,
+    sdt        VARCHAR(15) NULL,
+    vaiTro     NVARCHAR(50) DEFAULT N'Khách lưu trú',
+    CONSTRAINT PK_ChiTietKhachO PRIMARY KEY (maDatPhong, maPhong, cccd),
+    CONSTRAINT FK_CTKhachO_CTDatPhong FOREIGN KEY (maDatPhong, maPhong) REFERENCES ChiTietDatPhong(maDatPhong, maPhong)
 );
 GO
 
@@ -327,12 +344,17 @@ INSERT INTO CaLam (maCa, gioBatDau, gioKetThuc, ghiChu, loaiCa) VALUES
 ('CA003', '22:00:00', '06:00:00', N'Ca toi',  'CaToi');
 GO
 
-INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa, maNV, maCa) VALUES
-('PC001', '2026-04-23', 500000.00,  3500000.00, 'NV002', 'CA001'),
-('PC002', '2026-04-23', 500000.00,  4200000.00, 'NV003', 'CA002'),
-('PC003', '2026-04-24', 500000.00,  3800000.00, 'NV004', 'CA001'),
-('PC004', '2026-04-24', 500000.00,  4500000.00, 'NV005', 'CA002'),
-('PC005', '2026-04-25', 500000.00,        0.00, 'NV002', 'CA001'); -- ca dang mo
+INSERT INTO PhanCongCa (maPC, ngay, tienMoCa, tienKetCa,thoiGianMoCa, thoiGianKetCa, trangThai, maNV, maCa) VALUES
+('PC001', '2026-04-23', 500000.00, 3500000.00, '2026-04-23 06:00:00', '2026-04-23 14:00:00', N'DaKet',      'NV002', 'CA001'),
+('PC002', '2026-04-23', 500000.00, 4200000.00, '2026-04-23 14:00:00', '2026-04-23 22:00:00', N'DaKet',      'NV003', 'CA002'),
+('PC003', '2026-04-24', 500000.00, 3800000.00, '2026-04-24 06:00:00', '2026-04-24 14:00:00', N'DaKet',      'NV004', 'CA001'),
+('PC004', '2026-04-24', 500000.00, 4500000.00, '2026-04-24 14:00:00', '2026-04-24 22:00:00', N'DaKet',      'NV005', 'CA002'),
+-- ca đang mở hôm nay
+('PC005', '2026-04-25', 500000.00, 0.00,       '2026-04-25 06:00:00', NULL,                  N'DangMo',     'NV002', 'CA001'),
+
+-- ca đã phân công nhưng chưa mở
+('PC006', '2026-04-25', 0.00,      0.00,       NULL,                  NULL,                  N'DaPhanCong', 'NV003', 'CA002'),
+('PC007', '2026-04-25', 0.00,      0.00,       NULL,                  NULL,                  N'DaPhanCong', 'NV004', 'CA003');
 GO
 
 -- ----- LoaiPhong (6 loai) + Phong (12 phong) -----
@@ -426,6 +448,17 @@ INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien,
 ('DP009', 'P102', '2026-04-22 14:00', '2026-04-25 12:00',  500000.00, 2, NULL),
 -- DP010: 1 Superior
 ('DP010', 'P103', '2026-04-19 14:00', '2026-04-21 12:00',  750000.00, 2, NULL);
+GO
+
+INSERT INTO ChiTietKhachO (maDatPhong, maPhong, hoTen, cccd, sdt, vaiTro) VALUES
+-- DP004 - Phong P201 co 2 khach (KhachHang 5 la chu)
+('DP004', 'P201', N'Vo Minh Duc', '079085000005', '0820000005', N'Người đại diện'),
+('DP004', 'P201', N'Le Thu Ha', '079085000099', '0912345678', N'Khách lưu trú'),
+-- DP005 - Phong P203 co 4 khach (KhachHang 8 la chu)
+('DP005', 'P203', N'Phan Tuan Khang', '079087000008', '0820000008', N'Người đại diện'),
+('DP005', 'P203', N'Nguyen Thi Bao', '079087000011', '0901111111', N'Khách lưu trú'),
+('DP005', 'P203', N'Phan Tuan Kiet', '079087000022', NULL, N'Khách lưu trú (Trẻ em)'),
+('DP005', 'P203', N'Phan Bao Ngoc', '079087000033', NULL, N'Khách lưu trú (Trẻ em)');
 GO
 
 -- ----- HoaDon -----
@@ -541,6 +574,7 @@ UNION ALL SELECT 'DichVu',           COUNT(*) FROM DichVu
 UNION ALL SELECT 'KhuyenMai',        COUNT(*) FROM KhuyenMai
 UNION ALL SELECT 'DatPhong',         COUNT(*) FROM DatPhong
 UNION ALL SELECT 'ChiTietDatPhong',  COUNT(*) FROM ChiTietDatPhong
+UNION ALL SELECT 'ChiTietKhachO',    COUNT(*) FROM ChiTietKhachO
 UNION ALL SELECT 'ChiPhi',           COUNT(*) FROM ChiPhi
 UNION ALL SELECT 'HoaDon',           COUNT(*) FROM HoaDon
 UNION ALL SELECT 'ChiTietHoaDon',    COUNT(*) FROM ChiTietHoaDon

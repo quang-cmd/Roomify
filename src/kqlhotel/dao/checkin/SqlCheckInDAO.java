@@ -18,8 +18,10 @@ import java.util.Map;
 import kqlhotel.bus.checkin.model.ArrivalDto;
 import kqlhotel.bus.checkin.model.RoomCheckInCommand;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.dao.payment.PaymentDAO;
 
 public class SqlCheckInDAO implements CheckInDAO {
+    private final PaymentDAO paymentDAO = new PaymentDAO();
 
     @Override
     public List<ArrivalDto> findArrivals(LocalDate from, LocalDate to, String keyword) {
@@ -40,6 +42,7 @@ public class SqlCheckInDAO implements CheckInDAO {
                         "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
                         "LEFT JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
                         "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
+                        "  AND dp.trangThaiDatPhong = 'DaDat' " +
                         "  AND (hd.trangThai IS NULL OR hd.trangThai <> 'DaHuy') " +
                         (isBlank(keyword) ? "" :
                                 "AND (dp.maDatPhong LIKE ? OR hd.maHD LIKE ? OR kh.hoTenKH LIKE ? OR kh.sdt LIKE ? OR kh.CCCD LIKE ?) ") +
@@ -95,21 +98,27 @@ public class SqlCheckInDAO implements CheckInDAO {
                 int nights = (int) Math.max(1,
                         ChronoUnit.DAYS.between(ngayNhan.toLocalDate(), ngayTra.toLocalDate()));
 
+                String maHD = (String) r[0];
                 BigDecimal tienCoc = (BigDecimal) r[4];
+                long paidAmount = tienCoc == null ? 0L : tienCoc.longValue();
+                double paymentTotal = paymentDAO.getTotalPaidByInvoice(maHD);
+                if (paymentTotal > 0) {
+                    paidAmount = Math.round(paymentTotal);
+                }
 
                 arrivals.add(new ArrivalDto(
                         maDP,
-                        (String) r[0],
+                        maHD,
                         ngayDat,
                         ngayNhan,
                         ngayTra,
-                        tienCoc == null ? 0L : tienCoc.longValue(),
+                        paidAmount,
                         (String) r[5],
                         (String) r[6],
                         (String) r[7],
                         roomMap.getOrDefault(maDP, Collections.emptyList()),
                         nights,
-                        ((Integer) r[8]) > 0
+                        false
                 ));
             }
 
@@ -147,6 +156,43 @@ public class SqlCheckInDAO implements CheckInDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() && rs.getInt(1) > 0;
             }
+        }
+    }
+
+    @Override
+    public boolean syncExistingCheckIn(String maDatPhong, String maHD) throws Exception {
+        Connection con = openConnection();
+        if (con == null) throw new SQLException("Khong the ket noi CSDL.");
+
+        boolean oldAutoCommit = con.getAutoCommit();
+        try {
+            con.setAutoCommit(false);
+
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE Phong SET trangThaiPhong = 'DangSuDung' " +
+                            "WHERE maPhong IN (" +
+                            "    SELECT maPhong FROM ChiTietHoaDon " +
+                            "    WHERE maHD = ? AND ngayNhanPhong IS NOT NULL AND ngayTraThucTe IS NULL" +
+                            ")")) {
+                ps.setString(1, maHD);
+                ps.executeUpdate();
+            }
+
+            int updatedBooking;
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE DatPhong SET trangThaiDatPhong = 'DangO' " +
+                            "WHERE maDatPhong = ? AND trangThaiDatPhong = 'DaDat'")) {
+                ps.setString(1, maDatPhong);
+                updatedBooking = ps.executeUpdate();
+            }
+
+            con.commit();
+            return updatedBooking > 0;
+        } catch (SQLException e) {
+            con.rollback();
+            throw e;
+        } finally {
+            con.setAutoCommit(oldAutoCommit);
         }
     }
 
@@ -193,7 +239,7 @@ public class SqlCheckInDAO implements CheckInDAO {
     }
 
     @Override
-    public void executeCheckInTransaction(String maHD, List<RoomCheckInCommand> rooms, BigDecimal totalRoom) throws Exception {
+    public void executeCheckInTransaction(String maDatPhong, String maHD, List<RoomCheckInCommand> rooms, BigDecimal totalRoom) throws Exception {
         Connection con = openConnection();
         if (con == null) throw new SQLException("Không thể kết nối CSDL.");
         
@@ -227,6 +273,15 @@ public class SqlCheckInDAO implements CheckInDAO {
                     ps.addBatch();
                 }
                 ps.executeBatch();
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE DatPhong SET trangThaiDatPhong = 'DangO' WHERE maDatPhong = ? AND trangThaiDatPhong = 'DaDat'")) {
+                ps.setString(1, maDatPhong);
+                int updated = ps.executeUpdate();
+                if (updated == 0) {
+                    throw new SQLException("Khong the cap nhat trang thai dat phong sang DangO.");
+                }
             }
 
             updateInvoiceMoney(con, maHD, totalRoom);
@@ -278,13 +333,17 @@ public class SqlCheckInDAO implements CheckInDAO {
 
         BigDecimal tax = beforeTax.multiply(BigDecimal.valueOf(0.1));
         BigDecimal finalTotal = beforeTax.add(tax);
+        BigDecimal totalPaid = BigDecimal.valueOf(paymentDAO.getTotalPaidByInvoice(con, maHD));
+        boolean fullyPaid = totalPaid.compareTo(finalTotal) >= 0;
 
         String updateSql =
                 "UPDATE HoaDon SET " +
                         "tienPhong = ?, " +
                         "tienDichVu = ?, " +
                         "tienThue = ?, " +
-                        "tongTienThanhToan = ? " +
+                        "tongTienThanhToan = ?, " +
+                        "trangThai = ?, " +
+                        "ngayThanhToan = CASE WHEN ? = 1 THEN COALESCE(ngayThanhToan, GETDATE()) ELSE NULL END " +
                         "WHERE maHD = ?";
 
         try (PreparedStatement ps = con.prepareStatement(updateSql)) {
@@ -292,7 +351,9 @@ public class SqlCheckInDAO implements CheckInDAO {
             ps.setBigDecimal(2, totalService);
             ps.setBigDecimal(3, tax);
             ps.setBigDecimal(4, finalTotal);
-            ps.setString(5, maHD);
+            ps.setString(5, fullyPaid ? "DaThanhToan" : "ChuaThanhToan");
+            ps.setInt(6, fullyPaid ? 1 : 0);
+            ps.setString(7, maHD);
             ps.executeUpdate();
         }
     }

@@ -59,6 +59,10 @@ public class InvoicesBUS {
     }
 
     public double getDepositAmount(String maDatPhong) {
+        if (maDatPhong == null || maDatPhong.isBlank()) {
+            return 0;
+        }
+
         return invoiceDAO.getDepositAmount(maDatPhong);
     }
 
@@ -134,5 +138,13 @@ public class InvoicesBUS {
 
     public double getTotalPaidAmount(String maHD) {
         return invoiceDAO.getTotalSuccessfulPaymentByInvoice(maHD);
+    }
+
+    public String getPaymentStaffName(String maHD) {
+        return invoiceDAO.getPaymentStaffName(maHD);
+    }
+
+    public String getPaymentStaffId(String maHD) {
+        return invoiceDAO.getPaymentStaffId(maHD);
     }
 }

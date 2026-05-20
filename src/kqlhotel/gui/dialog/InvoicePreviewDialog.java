@@ -49,7 +49,7 @@ public class InvoicePreviewDialog extends JDialog {
         this.services = services == null ? new ArrayList<>() : services;
         this.invoicesBUS = invoicesBUS;
 
-        setSize(1000, 740);
+        setSize(1200, 820);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
 
@@ -60,19 +60,41 @@ public class InvoicePreviewDialog extends JDialog {
 
     private JPanel createHeader() {
         JPanel header = new JPanel(new BorderLayout());
-        header.setBorder(BorderFactory.createEmptyBorder(16, 24, 12, 24));
-        header.setBackground(Color.WHITE);
+        header.setBackground(new Color(250, 248, 244));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(225, 220, 210)),
+                BorderFactory.createEmptyBorder(18, 28, 18, 28)
+        ));
 
-        JLabel title = new JLabel("Xem trước hóa đơn chi tiết từng phòng");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+
+        JLabel hotel = new JLabel("KQL HOTEL");
+        hotel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        hotel.setForeground(new Color(196, 142, 45));
+
+        JLabel subtitle = new JLabel("Luxury Stay • Perfect Experience");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(new Color(120, 120, 120));
+
+        JLabel title = new JLabel("XEM TRƯỚC HÓA ĐƠN");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(new Color(24, 40, 66));
 
-        header.add(title, BorderLayout.WEST);
+        left.add(hotel);
+        left.add(Box.createVerticalStrut(4));
+        left.add(subtitle);
+        left.add(Box.createVerticalStrut(14));
+        left.add(title);
+
+        header.add(left, BorderLayout.WEST);
+
         return header;
     }
 
     private JScrollPane createBody() {
-        invoiceListPanel.setLayout(new GridLayout(0, 2, 18, 18));
+        invoiceListPanel.setLayout(new GridLayout(0, 2, 22, 22));
         invoiceListPanel.setBackground(new Color(245, 248, 252));
         invoiceListPanel.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
 
@@ -112,14 +134,19 @@ public class InvoicePreviewDialog extends JDialog {
             JPanel invoicePanel = createInvoicePanel(room);
 
             JPanel wrapper = new JPanel(new BorderLayout());
-            wrapper.setBackground(Color.WHITE);
+            wrapper.setBackground(new Color(255,255,255));
             wrapper.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(statusColor, 2),
-                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                    BorderFactory.createLineBorder(
+                            new Color(statusColor.getRed(),
+                                    statusColor.getGreen(),
+                                    statusColor.getBlue(), 120), 2),
+                    BorderFactory.createEmptyBorder(16,16,16,16)
             ));
 
             wrapper.add(cb, BorderLayout.NORTH);
             wrapper.add(invoicePanel, BorderLayout.CENTER);
+            // Để panel tự cao theo nội dung
+            wrapper.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
 
             checkBoxes.add(cb);
             invoicePanels.add(wrapper);
@@ -136,7 +163,7 @@ public class InvoicePreviewDialog extends JDialog {
 
     private JPanel createFooter() {
         JPanel footer = new JPanel(new BorderLayout());
-        footer.setBackground(Color.WHITE);
+        footer.setBackground(new Color(250,248,244));
         footer.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
@@ -191,6 +218,9 @@ public class InvoicePreviewDialog extends JDialog {
         right.setOpaque(false);
 
         JButton closeBtn = new JButton("Đóng");
+        closeBtn.setBackground(Color.WHITE);
+        closeBtn.setFocusPainted(false);
+        closeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         closeBtn.setPreferredSize(new Dimension(120, 36));
         closeBtn.setFocusPainted(false);
         closeBtn.addActionListener(e -> dispose());
@@ -206,8 +236,11 @@ public class InvoicePreviewDialog extends JDialog {
     private JPanel createInvoicePanel(InvoiceDetail room) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        panel.setBackground(new Color(252,250,247));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(235,225,210)),
+                BorderFactory.createEmptyBorder(22,22,22,22)
+        ));
 
         String computedStatus = invoicesBUS.getComputedStatus(hd);
         boolean laHoaDonHuy = "DaHuy".equals(computedStatus);
@@ -269,59 +302,59 @@ public class InvoicePreviewDialog extends JDialog {
                 + phiPhatHienThi
                 + tongTienDichVuHienThi;
 
-        double tienThueHienThi = laHoaDonHuy
-                ? 0
-                : tongTinhThueHienThi * 0.10;
+        double tongTruocGiamHienThi;
+        double tienThueHienThi;
+        double tongKhuyenMaiHoaDon;
+        double tongThanhToanHienThi;
 
-        double tongTruocGiamHienThi = tongTinhThueHienThi + tienThueHienThi;
+        if (laHoaDonHuy) {
+            tienThueHienThi = 0;
+            tongKhuyenMaiHoaDon = 0;
+            tongTruocGiamHienThi = Math.max(0, tienCoc);
+            tongThanhToanHienThi = Math.max(0, tienCoc);
+        } else {
+            tienThueHienThi = Math.max(0, hd.getTienThue());
+            tongKhuyenMaiHoaDon = Math.max(0, hd.getTienKhuyenMai());
+            tongThanhToanHienThi = Math.max(0, hd.getTongTienThanhToan());
+
+            tongTruocGiamHienThi = Math.max(
+                    0,
+                    hd.getTienPhong()
+                            + hd.getTienDichVu()
+                            + hd.getTienThue()
+                            + phuThuHienThi
+                            + phiPhatHienThi
+            );
+        }
 
         double tyLeGiamHangThanhVien = laHoaDonHuy ? 0 : getMembershipDiscountRate(kh);
         String tenHangThanhVien = laHoaDonHuy ? "Đồng" : getMembershipRankName(kh);
 
-// Tổng trước giảm của cả hóa đơn
-        double tongTruocGiamHoaDon = Math.max(
-                0,
-                hd.getTienPhong() + hd.getTienDichVu() + hd.getTienThue()
-        );
-
-// Tổng khuyến mãi của cả hóa đơn
-        double tongKhuyenMaiHoaDon = laHoaDonHuy
-                ? 0
-                : Math.max(0, hd.getTienKhuyenMai());
-
-// Tách phần khuyến mãi mã ra khỏi tổng khuyến mãi hóa đơn.
-// Lý do: hd.getTienKhuyenMai() đang là tổng = khuyến mãi mã + khuyến mãi hạng.
-        double tongKhuyenMaiMaHoaDon = calculatePromotionOnlyDiscount(
-                tongTruocGiamHoaDon,
+        double tienKhuyenMaiMaHienThi = calculatePromotionOnlyDiscount(
+                tongTruocGiamHienThi,
                 tongKhuyenMaiHoaDon,
                 tyLeGiamHangThanhVien
         );
 
-// Áp dụng khuyến mãi mã trực tiếp cho phòng đang in,
-// giống màn Trả phòng, không chia tỷ lệ.
-        double tienKhuyenMaiMaHienThi = Math.min(
-                tongKhuyenMaiMaHoaDon,
-                tongTruocGiamHienThi
-        );
-
-// Khuyến mãi hạng khách hàng tính sau khi trừ khuyến mãi mã.
         double tienKhuyenMaiHangHienThi = Math.max(
                 0,
-                (tongTruocGiamHienThi - tienKhuyenMaiMaHienThi) * tyLeGiamHangThanhVien
+                tongKhuyenMaiHoaDon - tienKhuyenMaiMaHienThi
         );
 
-// Tổng thanh toán riêng phòng, chưa trừ cọc.
-        double tongThanhToanHienThi = laHoaDonHuy
-                ? Math.max(0, tienCoc)
-                : Math.max(
-                0,
-                tongTruocGiamHienThi
-                - tienKhuyenMaiMaHienThi
-                - tienKhuyenMaiHangHienThi
-        );
+        JLabel logo = centerLabel("KQL HOTEL", 28, true);
+        logo.setForeground(new Color(196,142,45));
+        panel.add(logo);
 
-        panel.add(centerLabel("KQL HOTEL", 24, true));
-        panel.add(centerLabel(title, 16, true));
+        JLabel slogan = centerLabel("Luxury Stay • Perfect Experience", 12, false);
+        slogan.setForeground(new Color(120,120,120));
+        panel.add(slogan);
+
+        panel.add(Box.createVerticalStrut(10));
+
+        JLabel invoiceTitle = centerLabel(title, 18, true);
+        invoiceTitle.setForeground(new Color(24,40,66));
+        panel.add(invoiceTitle);
+
         panel.add(Box.createVerticalStrut(10));
 
         panel.add(line("Mã hóa đơn", hd.getMaHD()));
@@ -362,17 +395,15 @@ public class InvoicePreviewDialog extends JDialog {
                 ));
             }
         }
-
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
-        panel.add(line("Tổng tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
-        panel.add(line("Tổng tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
-        panel.add(line("Thuế VAT", CurrencyUtils.formatVND(tienThueHienThi)));
+        panel.add(line("Tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
+        panel.add(line("Phụ thu", CurrencyUtils.formatVND(phuThuHienThi)));
+        panel.add(line("Phí trả phòng sớm / trễ", CurrencyUtils.formatVND(phiPhatHienThi)));
+        panel.add(line("Tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
+        panel.add(line("Thuế VAT (10%)", CurrencyUtils.formatVND(tienThueHienThi)));
 
         if (tienKhuyenMaiMaHienThi > 0) {
-            panel.add(line(
-                    "Khuyến mãi",
-                    "-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi)
-            ));
+            panel.add(line("Khuyến mãi", "-" + CurrencyUtils.formatVND(tienKhuyenMaiMaHienThi)));
         }
 
         if (tienKhuyenMaiHangHienThi > 0) {
@@ -386,8 +417,7 @@ public class InvoicePreviewDialog extends JDialog {
             panel.add(line("Phí hủy (giữ cọc)", CurrencyUtils.formatVND(tienCoc)));
         }
 
-        panel.add(line("Tổng thanh toán (Phạt)", CurrencyUtils.formatVND(tongThanhToanHienThi)));
-
+        panel.add(line("Tổng hóa đơn", CurrencyUtils.formatVND(tongThanhToanHienThi)));
         if (!laHoaDonHuy) {
             double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
             if (refund > 0) {
@@ -405,36 +435,51 @@ public class InvoicePreviewDialog extends JDialog {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
         label.setFont(label.getFont().deriveFont(bold ? Font.BOLD : Font.PLAIN, (float) size));
-        label.setForeground(new Color(24, 40, 66));
+        label.setForeground(new Color(24,40,66));
+        label.setFont(new Font("Segoe UI",
+                bold ? Font.BOLD : Font.PLAIN,
+                size));
         return label;
     }
 
     private JLabel sectionTitle(String text) {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 14f));
-        label.setForeground(new Color(49, 106, 210));
-        label.setBorder(BorderFactory.createEmptyBorder(14, 0, 8, 0));
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(new Color(196, 142, 45));
+
+        label.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(
+                        0, 0, 2, 0,
+                        new Color(196, 142, 45)
+                ),
+                BorderFactory.createEmptyBorder(12, 20, 6, 20)
+        ));
+
+        label.setMaximumSize(new Dimension(220, 40));
+        label.setPreferredSize(new Dimension(220, 40));
+
         return label;
     }
 
     private JPanel line(String left, String right) {
-        JPanel row = new JPanel(new GridLayout(1, 2));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
-        row.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
+        row.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 2));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
 
         JLabel l = new JLabel(left);
-        l.setForeground(new Color(80, 95, 115));
-        l.setFont(l.getFont().deriveFont(13f));
+        l.setForeground(new Color(90, 100, 120));
+        l.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         JLabel r = new JLabel(right == null ? "" : right);
         r.setForeground(new Color(24, 40, 66));
-        r.setFont(r.getFont().deriveFont(Font.BOLD, 13f));
-        r.setHorizontalAlignment(SwingConstants.RIGHT);
+        r.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        row.add(l);
-        row.add(r);
+        row.add(l, BorderLayout.WEST);
+        row.add(r, BorderLayout.EAST);
 
         return row;
     }

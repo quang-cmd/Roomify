@@ -50,24 +50,33 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
 
     public Invoice getActiveByRoom(String maPhong) {
         Invoice invoice = null;
+
         try {
             Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT hd.* " +
-                    "FROM HoaDon hd " +
-                    "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
-                    "WHERE cthd.maPhong = ? AND hd.trangThai = ? " +
-                    "ORDER BY hd.ngayLapHD DESC";
+
+            String sql =
+                    "SELECT TOP 1 hd.* " +
+                            "FROM HoaDon hd " +
+                            "JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD " +
+                            "WHERE cthd.maPhong = ? " +
+                            "AND cthd.ngayNhanPhong IS NOT NULL " +
+                            "AND cthd.ngayTraThucTe IS NULL " +
+                            "AND hd.trangThai <> 'DaHuy' " +
+                            "ORDER BY hd.ngayLapHD DESC";
+
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maPhong);
-            pstmt.setString(2, "ChuaThanhToan");
 
             ResultSet rs = pstmt.executeQuery();
+
             if (rs.next()) {
                 invoice = mapResultSetToInvoice(rs);
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return invoice;
     }
 
@@ -249,19 +258,28 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
             return 0;
         }
 
-        try {
-            Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT tienCoc FROM DatPhong WHERE maDatPhong = ?";
-            PreparedStatement pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, maDatPhong);
+        String sql = """
+        SELECT ISNULL(tienCoc, 0) AS tienCoc
+        FROM DatPhong
+        WHERE maDatPhong = ?
+    """;
 
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getDouble("tienCoc");
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maDatPhong);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("tienCoc");
+                    }
+                }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
         return 0;
     }
 
@@ -393,6 +411,91 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         }
 
         return 0;
+    }
+
+    public double getSuccessfulPaymentByBooking(String maDatPhong) {
+        String sql = """
+        SELECT ISNULL(SUM(tt.soTienTT), 0) AS totalPaid
+        FROM ThanhToan tt
+        JOIN HoaDon hd ON tt.maHD = hd.maHD
+        WHERE hd.maDatPhong = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+    """;
+
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maDatPhong);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("totalPaid");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public String getPaymentStaffName(String maHD) {
+        String sql = """
+        SELECT TOP 1 nv.hoTenNV
+        FROM ThanhToan tt
+        JOIN NhanVien nv ON tt.maNV = nv.maNV
+        WHERE tt.maHD = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+        ORDER BY tt.ngayTT DESC
+    """;
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maHD);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("hoTenNV");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public String getPaymentStaffId(String maHD) {
+        String sql = """
+        SELECT TOP 1 tt.maNV
+        FROM ThanhToan tt
+        WHERE tt.maHD = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+        ORDER BY tt.ngayTT DESC
+    """;
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maHD);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("maNV");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     @Override

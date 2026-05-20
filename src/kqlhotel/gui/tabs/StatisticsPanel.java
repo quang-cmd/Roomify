@@ -842,9 +842,18 @@ public class StatisticsPanel extends JPanel {
     private Color colorForStatus(String s) {
         if (s == null) return new Color(124, 142, 171);
         switch (s) {
-            case "Đang ở":  return new Color(34, 197, 94);
-            case "Sắp đến": return new Color(59, 130, 246);
-            case "Đã xong": return new Color(124, 142, 171);
+            case "Đang ở":
+            case "Dang o":
+                return new Color(34, 197, 94);
+            case "Sắp nhận":
+            case "Sap nhan":
+                return new Color(59, 130, 246);
+            case "Đã trả":
+            case "Da tra":
+                return new Color(124, 142, 171);
+            case "Đã hủy":
+            case "Da huy":
+                return new Color(239, 68, 68);
             default:        return new Color(124, 142, 171);
         }
     }
