@@ -69,8 +69,10 @@ public class ShiftDAO {
         "  CONVERT(VARCHAR(5), cl.gioBatDau, 108) AS gioBatDau, " +
         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
         "  nv.hoTenNV, pc.tienMoCa, " +
-                "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
+                "  COALESCE(SUM(CASE " +
+                "    WHEN tt.trangThaiTT = 'ThanhToanThanhCong' AND tt.loaiGD = 'HoanTien' THEN -tt.soTienTT " +
+                "    WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT " +
+                "    ELSE 0 END), 0) AS doanhThu, " +
                 "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
         "FROM PhanCongCa pc " +
         "JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -327,8 +329,10 @@ public class ShiftDAO {
                         "  CONVERT(VARCHAR(5), cl.gioBatDau, 108) AS gioBatDau, " +
                         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
                         "  nv.hoTenNV, pc.tienMoCa, " +
-                        "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                        "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
+                        "  COALESCE(SUM(CASE " +
+                        "    WHEN tt.trangThaiTT = 'ThanhToanThanhCong' AND tt.loaiGD = 'HoanTien' THEN -tt.soTienTT " +
+                        "    WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT " +
+                        "    ELSE 0 END), 0) AS doanhThu, " +
                         "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
                         "FROM PhanCongCa pc " +
                         "JOIN CaLam cl ON pc.maCa = cl.maCa " +
@@ -397,11 +401,17 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' AND tt.loaiGD = 'HoanTien'
+                       THEN -tt.soTienTT
                        WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
                        THEN tt.soTienTT
                        ELSE 0
                    END), 0) AS doanhThuHeThong,
                    COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                            AND tt.loaiGD = 'HoanTien'
+                       THEN -tt.soTienTT
                        WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
                             AND tt.phuongThucTT = 'TienMat'
                        THEN tt.soTienTT
@@ -462,11 +472,17 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' AND tt.loaiGD = 'HoanTien'
+                       THEN -tt.soTienTT
                        WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
                        THEN tt.soTienTT
                        ELSE 0
                    END), 0) AS doanhThuHeThong,
                    COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                            AND tt.loaiGD = 'HoanTien'
+                       THEN -tt.soTienTT
                        WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
                             AND tt.phuongThucTT = 'TienMat'
                        THEN tt.soTienTT
