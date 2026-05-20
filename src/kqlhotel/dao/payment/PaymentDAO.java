@@ -32,8 +32,8 @@ public class PaymentDAO {
         }
 
         String sql = "INSERT INTO ThanhToan " +
-                "(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, loaiGiaoDich, maHD, maPC, maNV) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, payment.getMaTT());
@@ -42,9 +42,10 @@ public class PaymentDAO {
             ps.setString(4, payment.getGhiChu());
             ps.setString(5, payment.getPhuongThucTT());
             ps.setString(6, payment.getTrangThaiTT());
-            ps.setString(7, payment.getMaHD());
-            ps.setString(8, payment.getMaPC());
-            ps.setString(9, payment.getMaNV());
+            ps.setString(7, payment.getLoaiGiaoDich());
+            ps.setString(8, payment.getMaHD());
+            ps.setString(9, payment.getMaPC());
+            ps.setString(10, payment.getMaNV());
             return ps.executeUpdate() > 0;
         }
     }
@@ -112,7 +113,7 @@ public class PaymentDAO {
         }
 
         String sql =
-                "SELECT maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV " +
+                "SELECT maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, loaiGiaoDich, maHD, maPC, maNV " +
                 "FROM ThanhToan WHERE maHD = ? ORDER BY ngayTT ASC, maTT ASC";
 
         try {
@@ -134,7 +135,9 @@ public class PaymentDAO {
 
     public double getSuccessfulRevenue(LocalDateTime start, LocalDateTime end) {
         String sql =
-                "SELECT COALESCE(SUM(soTienTT), 0) AS total " +
+                "SELECT COALESCE(SUM(CASE " +
+                "  WHEN loaiGiaoDich = 'HoanTien' THEN -soTienTT " +
+                "  ELSE soTienTT END), 0) AS total " +
                 "FROM ThanhToan " +
                 "WHERE ngayTT >= ? AND ngayTT < ? " +
                 "  AND trangThaiTT = 'ThanhToanThanhCong'";
@@ -159,7 +162,8 @@ public class PaymentDAO {
     public Map<LocalDate, Double> getSuccessfulDailyRevenue(LocalDate start, LocalDate end) {
         Map<LocalDate, Double> revenueByDate = new LinkedHashMap<>();
         String sql =
-                "SELECT CAST(ngayTT AS DATE) AS dt, COALESCE(SUM(soTienTT), 0) AS total " +
+                "SELECT CAST(ngayTT AS DATE) AS dt, " +
+                "COALESCE(SUM(CASE WHEN loaiGiaoDich = 'HoanTien' THEN -soTienTT ELSE soTienTT END), 0) AS total " +
                 "FROM ThanhToan " +
                 "WHERE ngayTT >= ? AND ngayTT < ? " +
                 "  AND trangThaiTT = 'ThanhToanThanhCong' " +
@@ -185,7 +189,8 @@ public class PaymentDAO {
     public Map<String, Double> getSuccessfulMonthlyRevenue(LocalDate start, LocalDate end) {
         Map<String, Double> revenueByMonth = new LinkedHashMap<>();
         String sql =
-                "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, COALESCE(SUM(soTienTT), 0) AS total " +
+                "SELECT YEAR(ngayTT) AS yr, MONTH(ngayTT) AS mo, " +
+                "COALESCE(SUM(CASE WHEN loaiGiaoDich = 'HoanTien' THEN -soTienTT ELSE soTienTT END), 0) AS total " +
                 "FROM ThanhToan " +
                 "WHERE ngayTT >= ? AND ngayTT < ? " +
                 "  AND trangThaiTT = 'ThanhToanThanhCong' " +
@@ -218,6 +223,7 @@ public class PaymentDAO {
                 rs.getString("ghiChu"),
                 rs.getString("phuongThucTT"),
                 rs.getString("trangThaiTT"),
+                rs.getString("loaiGiaoDich"),
                 rs.getString("maHD"),
                 rs.getString("maPC"),
                 rs.getString("maNV")
