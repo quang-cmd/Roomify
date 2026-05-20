@@ -6,22 +6,32 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Component;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.ScrollPaneConstants;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.bus.statistics.StatisticsBUS;
 import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
+import kqlhotel.dao.shift.ShiftDAO.ShiftReconciliationRow;
 import kqlhotel.entity.statistics.KpiSummary;
 import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.gui.theme.ThemeColors;
@@ -52,15 +62,26 @@ public class DashboardPanel extends JPanel {
         "7 ngày", "1 tháng", "Quý 1", "Quý 2", "Quý 3", "Quý 4"
     });
     private final RevenueChartPanel revenueChartPanel = new RevenueChartPanel();
+    private final DefaultTableModel shiftTableModel = new DefaultTableModel(
+        new Object[] {"Mã ca", "Nhân viên", "Ca", "Mở ca", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
+        0
+    ) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    private final JTable shiftTable = new JTable(shiftTableModel);
     private boolean loadedOnce;
+    private volatile boolean refreshInProgress;
     private final JLabel lblTrangThai   = new JLabel("Đang tải...");
 
     public DashboardPanel() {
-        setLayout(new MigLayout("insets 24, gap 16, fill", "[grow 42,fill][grow 58,fill]", "[]12[240!,fill]16[grow,fill]"));
+        setLayout(new MigLayout("insets 24, gap 16, fill", "[grow 70,fill][grow 30,fill]", "[]12[240!,fill]16[grow,fill]"));
         setBackground(ThemeColors.PREMIUM_BG);
 
         add(buildHeader(), "span 2,growx,wrap");
-        add(buildCompactShiftSection(), "grow");
+        add(buildShiftReconciliationSection(), "grow");
         add(buildVisualOverviewSection(), "grow,wrap");
         add(buildRevenueChartSection(), "span 2,grow");
 
@@ -154,6 +175,73 @@ public class DashboardPanel extends JPanel {
         return section;
     }
 
+    private JPanel buildShiftReconciliationSection() {
+        JPanel section = new JPanel(new MigLayout("insets 14, gap 8, fill", "[grow,fill]", "[]8[grow,fill]"));
+        section.setBackground(ThemeColors.PREMIUM_SURFACE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ThemeColors.PREMIUM_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+
+        JPanel titleRow = new JPanel(new MigLayout("insets 0, gap 8", "[grow,fill][]", "[]"));
+        titleRow.setOpaque(false);
+
+        JLabel sectionTitle = new JLabel("Đối soát ca làm việc");
+        sectionTitle.setFont(sectionTitle.getFont().deriveFont(Font.BOLD, 15f));
+        sectionTitle.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
+
+        JButton viewAllBtn = new JButton("Xem tất cả");
+        viewAllBtn.setFocusPainted(false);
+        viewAllBtn.setBorder(BorderFactory.createEmptyBorder(7, 12, 7, 12));
+        viewAllBtn.setBackground(new Color(248, 250, 252));
+        viewAllBtn.setForeground(new Color(15, 23, 42));
+        viewAllBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        viewAllBtn.addActionListener(e -> showAllShiftReconciliationsDialog());
+
+        titleRow.add(sectionTitle, "aligny center");
+        titleRow.add(viewAllBtn, "aligny center");
+        section.add(titleRow, "wrap");
+
+        configureShiftTable();
+        JScrollPane scroll = new JScrollPane(shiftTable);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        section.add(scroll, "grow");
+
+        return section;
+    }
+
+    private void configureShiftTable() {
+        shiftTable.setRowHeight(32);
+        shiftTable.setFillsViewportHeight(true);
+        shiftTable.setShowGrid(true);
+        shiftTable.setGridColor(new Color(226, 232, 240));
+        shiftTable.setSelectionBackground(new Color(219, 234, 254));
+        shiftTable.setSelectionForeground(new Color(15, 23, 42));
+        shiftTable.getTableHeader().setReorderingAllowed(false);
+        shiftTable.getTableHeader().setBackground(new Color(241, 245, 249));
+        shiftTable.getTableHeader().setForeground(new Color(15, 23, 42));
+        shiftTable.getTableHeader().setFont(shiftTable.getTableHeader().getFont().deriveFont(Font.BOLD, 12f));
+        shiftTable.setFont(shiftTable.getFont().deriveFont(12f));
+
+        DefaultTableCellRenderer renderer = new ShiftTableRenderer();
+        for (int i = 0; i < shiftTable.getColumnCount(); i++) {
+            shiftTable.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
+
+        shiftTable.getColumnModel().getColumn(0).setPreferredWidth(58);
+        shiftTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+        shiftTable.getColumnModel().getColumn(2).setPreferredWidth(76);
+        shiftTable.getColumnModel().getColumn(3).setPreferredWidth(94);
+        shiftTable.getColumnModel().getColumn(4).setPreferredWidth(88);
+        shiftTable.getColumnModel().getColumn(5).setPreferredWidth(88);
+        shiftTable.getColumnModel().getColumn(6).setPreferredWidth(88);
+        shiftTable.getColumnModel().getColumn(7).setPreferredWidth(84);
+        shiftTable.getColumnModel().getColumn(8).setPreferredWidth(88);
+    }
+
     private JPanel buildOverviewSection() {
         JPanel section = new JPanel(new MigLayout("insets 20, gap 12, wrap 1", "[grow,fill]", "[]12[]"));
         section.setBackground(ThemeColors.PREMIUM_SURFACE);
@@ -181,7 +269,7 @@ public class DashboardPanel extends JPanel {
     }
 
     private JPanel buildVisualOverviewSection() {
-        JPanel section = new JPanel(new MigLayout("insets 14, gap 12, fill", "[grow 38,fill][grow 62,fill]", "[]8[grow,fill]"));
+        JPanel section = new JPanel(new MigLayout("insets 14, gap 10, fill", "[grow,fill]", "[]8[]8[]"));
         section.setBackground(ThemeColors.PREMIUM_SURFACE);
         section.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(ThemeColors.PREMIUM_BORDER, 1, true),
@@ -191,11 +279,11 @@ public class DashboardPanel extends JPanel {
         JLabel sectionTitle = new JLabel("Tổng quan vận hành");
         sectionTitle.setFont(sectionTitle.getFont().deriveFont(Font.BOLD, 15f));
         sectionTitle.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
-        section.add(sectionTitle, "span 2, wrap");
+        section.add(sectionTitle, "wrap");
 
         JPanel arrivalPanel = visualPanel(new Color(0xF0F9FF), new Color(0x0EA5E9));
-        arrivalPanel.setLayout(new MigLayout("insets 14, gap 6, wrap 1", "[grow,fill]", "[]6[]2[]10[]"));
-        lblPhongSapNhan.setFont(lblPhongSapNhan.getFont().deriveFont(Font.BOLD, 26f));
+        arrivalPanel.setLayout(new MigLayout("insets 12, gap 5, wrap 1", "[grow,fill]", "[]4[]1[]8[]"));
+        lblPhongSapNhan.setFont(lblPhongSapNhan.getFont().deriveFont(Font.BOLD, 22f));
         lblBookingSapNhan.setFont(lblBookingSapNhan.getFont().deriveFont(Font.BOLD, 13f));
         arrivalPanel.add(sectionHeading("Nhịp nhận phòng hôm nay", new Color(0x075985)));
         arrivalPanel.add(lblPhongSapNhan);
@@ -204,8 +292,8 @@ public class DashboardPanel extends JPanel {
         arrivalPanel.add(subtleText("Theo lịch đặt phòng còn chờ nhận phòng"));
 
         JPanel financePanel = visualPanel(new Color(0xF8FAFC), new Color(0x64748B));
-        financePanel.setLayout(new MigLayout("insets 14, gap 7, wrap 1", "[grow,fill]", "[]4[]2[]8[]8[]8[]"));
-        lblLoiNhuanThang.setFont(lblLoiNhuanThang.getFont().deriveFont(Font.BOLD, 25f));
+        financePanel.setLayout(new MigLayout("insets 12, gap 6, wrap 1", "[grow,fill]", "[]3[]1[]6[]6[]6[]"));
+        lblLoiNhuanThang.setFont(lblLoiNhuanThang.getFont().deriveFont(Font.BOLD, 22f));
         lblSoSanhLoiNhuan.setFont(lblSoSanhLoiNhuan.getFont().deriveFont(Font.BOLD, 13f));
         financePanel.add(sectionHeading("Hiệu quả tài chính tháng", new Color(0x0F172A)));
         financePanel.add(lblLoiNhuanThang);
@@ -214,8 +302,8 @@ public class DashboardPanel extends JPanel {
         financePanel.add(barRow("Chi phí", lblChiPhiThang, barChiPhi));
         financePanel.add(barRow("Lợi nhuận", lblLoiNhuanBar, barLoiNhuan));
 
-        section.add(arrivalPanel, "grow");
-        section.add(financePanel, "grow");
+        section.add(arrivalPanel, "growx");
+        section.add(financePanel, "growx");
         return section;
     }
 
@@ -314,15 +402,35 @@ public class DashboardPanel extends JPanel {
     }
 
     public void refresh() {
+        if (refreshInProgress) {
+            return;
+        }
+        refreshInProgress = true;
         lblTrangThai.setText("Đang tải...");
         new Thread(() -> {
-            ShiftInfo info = shiftBUS.getCurrentShift();
-            DashboardMetrics metrics = loadDashboardMetrics();
-            SwingUtilities.invokeLater(() -> {
-                applyShiftInfo(info);
-                applyDashboardMetrics(metrics);
-            });
-        }).start();
+            try {
+                ShiftInfo info = shiftBUS.getCurrentShift();
+                DashboardMetrics metrics = loadDashboardMetrics();
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        applyShiftInfo(info);
+                        applyDashboardMetrics(metrics);
+                        revalidate();
+                        repaint();
+                    } finally {
+                        refreshInProgress = false;
+                    }
+                });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                SwingUtilities.invokeLater(() -> {
+                    lblTrangThai.setText("Khong tai duoc dashboard: " + ex.getMessage());
+                    revalidate();
+                    repaint();
+                    refreshInProgress = false;
+                });
+            }
+        }, "dashboard-refresh").start();
     }
 
     private DashboardMetrics loadDashboardMetrics() {
@@ -343,7 +451,8 @@ public class DashboardPanel extends JPanel {
             current.getExpenses(),
             current.getProfit(),
             previous.getProfit(),
-            revenuePoints
+            revenuePoints,
+            shiftBUS.getActiveAndAssignedShiftReconciliations(5)
         );
     }
 
@@ -439,6 +548,88 @@ public class DashboardPanel extends JPanel {
         }
 
         revenueChartPanel.setData(metrics.revenuePoints);
+        applyShiftReconciliationRows(metrics.shiftRows);
+    }
+
+    private void applyShiftReconciliationRows(List<ShiftReconciliationRow> rows) {
+        fillShiftRows(shiftTableModel, rows);
+    }
+
+    private void showAllShiftReconciliationsDialog() {
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Tất cả đối soát ca làm việc");
+        dialog.setModal(false);
+        dialog.setSize(1080, 560);
+        dialog.setLocationRelativeTo(this);
+
+        DefaultTableModel model = new DefaultTableModel(
+            new Object[] {"Mã ca", "Nhân viên", "Ca", "Mở ca", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
+            0
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        JTable table = new JTable(model);
+        table.setRowHeight(34);
+        table.setFillsViewportHeight(true);
+        table.setShowGrid(true);
+        table.setGridColor(new Color(226, 232, 240));
+        table.setCellSelectionEnabled(false);
+        table.setRowSelectionAllowed(false);
+        table.setColumnSelectionAllowed(false);
+        table.setFocusable(false);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setBackground(new Color(241, 245, 249));
+        table.getTableHeader().setFont(table.getTableHeader().getFont().deriveFont(Font.BOLD, 12f));
+
+        DefaultTableCellRenderer renderer = new ShiftTableRenderer();
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
+
+        List<ShiftReconciliationRow> rows = shiftBUS.getRecentShiftReconciliations(200);
+        fillShiftRows(model, rows);
+
+        JPanel content = new JPanel(new MigLayout("insets 16, gap 10, fill", "[grow,fill]", "[]8[grow,fill]"));
+        content.setBackground(ThemeColors.PREMIUM_BG);
+        JLabel title = new JLabel("Tất cả đối soát ca làm việc");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
+        title.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
+        content.add(title, "wrap");
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+        scroll.getViewport().setBackground(Color.WHITE);
+        content.add(scroll, "grow");
+
+        dialog.setContentPane(content);
+        dialog.setVisible(true);
+    }
+
+    private void fillShiftRows(DefaultTableModel model, List<ShiftReconciliationRow> rows) {
+        model.setRowCount(0);
+        if (rows == null || rows.isEmpty()) {
+            model.addRow(new Object[] {"--", "Chưa có dữ liệu", "--", "--", "--", "--", "--", "--", "--"});
+            return;
+        }
+
+        for (ShiftReconciliationRow row : rows) {
+            boolean closed = "DaKet".equalsIgnoreCase(row.trangThai);
+            double expectedCash = row.tienMoCa + row.doanhThuHeThong;
+            double diff = row.tienKetCa - expectedCash;
+            model.addRow(new Object[] {
+                row.maPC,
+                row.hoTenNV,
+                displayShiftName(row.loaiCa),
+                formatDateTime(row.thoiGianMoCa),
+                formatVND(row.tienMoCa),
+                formatVND(row.doanhThuHeThong),
+                closed ? formatVND(row.tienKetCa) : "--",
+                closed ? formatSignedVND(diff) : "--",
+                displayShiftStatus(row.trangThai)
+            });
+        }
     }
 
     private static void setProgress(JProgressBar bar, double value, double max) {
@@ -460,6 +651,46 @@ public class DashboardPanel extends JPanel {
     private static String formatVND(double amount) {
         return String.format("%,.0f đ", amount).replace(',', '.');
     }
+    private static String formatSignedVND(double amount) {
+        if (amount == 0) {
+            return "0 đ";
+        }
+        return (amount > 0 ? "+" : "-") + formatVND(Math.abs(amount));
+    }
+
+    private static String formatDateTime(LocalDateTime value) {
+        if (value == null) {
+            return "--";
+        }
+        return value.format(DateTimeFormatter.ofPattern("dd/MM HH:mm"));
+    }
+
+    private static String displayShiftName(String loaiCa) {
+        if ("CaSang".equals(loaiCa)) {
+            return "Ca sáng";
+        }
+        if ("CaChieu".equals(loaiCa)) {
+            return "Ca chiều";
+        }
+        if ("CaToi".equals(loaiCa)) {
+            return "Ca tối";
+        }
+        return loaiCa == null ? "--" : loaiCa;
+    }
+
+    private static String displayShiftStatus(String trangThai) {
+        if ("DangMo".equalsIgnoreCase(trangThai)) {
+            return "Đang mở";
+        }
+        if ("DaKet".equalsIgnoreCase(trangThai)) {
+            return "Đã kết";
+        }
+        if ("DaPhanCong".equalsIgnoreCase(trangThai)) {
+            return "Đã phân công";
+        }
+        return trangThai == null ? "--" : trangThai;
+    }
+
     private static String formatCompactVND(double amount) {
         double abs = Math.abs(amount);
         String sign = amount < 0 ? "-" : "";
@@ -467,6 +698,42 @@ public class DashboardPanel extends JPanel {
         if (abs >= 1_000_000) return sign + String.format("%.1f tr", abs / 1_000_000.0);
         if (abs >= 1_000) return sign + String.format("%.0fK", abs / 1_000.0);
         return sign + String.format("%.0f", abs);
+    }
+
+    private static final class ShiftTableRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+            setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+            setHorizontalAlignment(column >= 4 && column <= 7 ? SwingConstants.RIGHT : SwingConstants.LEFT);
+
+            if (!isSelected) {
+                c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                c.setForeground(new Color(15, 23, 42));
+            }
+
+            String text = value == null ? "" : value.toString();
+            if (column == 7 && !"--".equals(text)) {
+                if (text.startsWith("-")) {
+                    c.setForeground(new Color(220, 38, 38));
+                } else if (text.startsWith("+")) {
+                    c.setForeground(new Color(217, 119, 6));
+                } else {
+                    c.setForeground(new Color(22, 163, 74));
+                }
+            }
+            if (column == 8) {
+                if (text.contains("Đang")) {
+                    c.setForeground(new Color(37, 99, 235));
+                } else if (text.contains("kết")) {
+                    c.setForeground(new Color(22, 163, 74));
+                } else {
+                    c.setForeground(new Color(100, 116, 139));
+                }
+            }
+            return c;
+        }
     }
 
     private static final class RevenueChartPanel extends JPanel {
@@ -604,10 +871,12 @@ public class DashboardPanel extends JPanel {
         private final double currentProfit;
         private final double previousProfit;
         private final List<RevenuePoint> revenuePoints;
+        private final List<ShiftReconciliationRow> shiftRows;
 
         private DashboardMetrics(int upcomingRooms, int upcomingBookings, int totalRooms, double currentRevenue,
                                  double currentExpenses, double currentProfit, double previousProfit,
-                                 List<RevenuePoint> revenuePoints) {
+                                 List<RevenuePoint> revenuePoints,
+                                 List<ShiftReconciliationRow> shiftRows) {
             this.upcomingRooms = upcomingRooms;
             this.upcomingBookings = upcomingBookings;
             this.totalRooms = totalRooms;
@@ -616,6 +885,7 @@ public class DashboardPanel extends JPanel {
             this.currentProfit = currentProfit;
             this.previousProfit = previousProfit;
             this.revenuePoints = revenuePoints == null ? Collections.emptyList() : revenuePoints;
+            this.shiftRows = shiftRows == null ? Collections.emptyList() : shiftRows;
         }
     }
 }

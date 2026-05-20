@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import kqlhotel.dao.ConnectDB;
 
 public class ShiftDAO {
@@ -30,6 +32,33 @@ public class ShiftDAO {
             this.tienMoCa = tienMoCa;
             this.doanhThu = doanhThu;
             this.soGiaoDich = soGiaoDich;
+        }
+    }
+
+    public static class ShiftReconciliationRow {
+        public final String maPC;
+        public final String hoTenNV;
+        public final String loaiCa;
+        public final LocalDateTime thoiGianMoCa;
+        public final LocalDateTime thoiGianKetCa;
+        public final double tienMoCa;
+        public final double tienKetCa;
+        public final double doanhThuHeThong;
+        public final String trangThai;
+
+        public ShiftReconciliationRow(String maPC, String hoTenNV, String loaiCa,
+                                      LocalDateTime thoiGianMoCa, LocalDateTime thoiGianKetCa,
+                                      double tienMoCa, double tienKetCa,
+                                      double doanhThuHeThong, String trangThai) {
+            this.maPC = maPC;
+            this.hoTenNV = hoTenNV;
+            this.loaiCa = loaiCa;
+            this.thoiGianMoCa = thoiGianMoCa;
+            this.thoiGianKetCa = thoiGianKetCa;
+            this.tienMoCa = tienMoCa;
+            this.tienKetCa = tienKetCa;
+            this.doanhThuHeThong = doanhThuHeThong;
+            this.trangThai = trangThai;
         }
     }
 
@@ -74,6 +103,12 @@ public class ShiftDAO {
             // không tạo thêm dòng PhanCongCa mới.
             if (hasOpenShift(con, maNV, maCa)) return true;
 
+            // Uu tien kich hoat ca da duoc phan cong san trong ngay.
+            // Neu khong co lich phan cong phu hop moi tao ca phat sinh.
+            if (activateAssignedShift(con, maNV, maCa, tienMoCa)) {
+                return true;
+            }
+
             String maPC = nextMaPC(con);
             String sql = """
                 INSERT INTO PhanCongCa (
@@ -97,6 +132,27 @@ public class ShiftDAO {
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
+        }
+    }
+
+    private boolean activateAssignedShift(Connection con, String maNV, String maCa, long tienMoCa) throws SQLException {
+        String sql = """
+            UPDATE PhanCongCa
+            SET tienMoCa = ?,
+                thoiGianMoCa = GETDATE(),
+                thoiGianKetCa = NULL,
+                trangThai = N'DangMo'
+            WHERE maNV = ?
+              AND maCa = ?
+              AND trangThai = N'DaPhanCong'
+              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBigDecimal(1, java.math.BigDecimal.valueOf(tienMoCa));
+            ps.setString(2, maNV);
+            ps.setString(3, maCa);
+            return ps.executeUpdate() > 0;
         }
     }
 
@@ -204,6 +260,130 @@ public class ShiftDAO {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    public List<ShiftReconciliationRow> getRecentShiftReconciliations(int limit) {
+        List<ShiftReconciliationRow> rows = new ArrayList<>();
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return rows;
+        }
+
+        String sql = """
+            SELECT TOP (?) pc.maPC, nv.hoTenNV, cl.loaiCa,
+                   pc.thoiGianMoCa, pc.thoiGianKetCa,
+                   pc.tienMoCa, pc.tienKetCa, pc.trangThai,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuHeThong
+            FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
+            JOIN NhanVien nv ON pc.maNV = nv.maNV
+            LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC
+            GROUP BY pc.maPC, pc.ngay, nv.hoTenNV, cl.loaiCa,
+                     pc.thoiGianMoCa, pc.thoiGianKetCa,
+                     pc.tienMoCa, pc.tienKetCa, pc.trangThai
+            ORDER BY
+                CASE WHEN pc.thoiGianMoCa IS NULL THEN 1 ELSE 0 END,
+                pc.thoiGianMoCa DESC,
+                pc.ngay DESC,
+                pc.maPC DESC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, Math.max(1, limit));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp openedAt = rs.getTimestamp("thoiGianMoCa");
+                    Timestamp closedAt = rs.getTimestamp("thoiGianKetCa");
+
+                    rows.add(new ShiftReconciliationRow(
+                        rs.getString("maPC"),
+                        rs.getString("hoTenNV"),
+                        rs.getString("loaiCa"),
+                        openedAt == null ? null : openedAt.toLocalDateTime(),
+                        closedAt == null ? null : closedAt.toLocalDateTime(),
+                        rs.getDouble("tienMoCa"),
+                        rs.getDouble("tienKetCa"),
+                        rs.getDouble("doanhThuHeThong"),
+                        rs.getString("trangThai")
+                    ));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return rows;
+    }
+
+    public List<ShiftReconciliationRow> getActiveAndAssignedShiftReconciliations(int limit) {
+        List<ShiftReconciliationRow> rows = new ArrayList<>();
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return rows;
+        }
+
+        String sql = """
+            SELECT TOP (?) pc.maPC, nv.hoTenNV, cl.loaiCa,
+                   pc.thoiGianMoCa, pc.thoiGianKetCa,
+                   pc.tienMoCa, pc.tienKetCa, pc.trangThai,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuHeThong
+            FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
+            JOIN NhanVien nv ON pc.maNV = nv.maNV
+            LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC
+            WHERE pc.trangThai IN (N'DangMo', N'DaPhanCong')
+            GROUP BY pc.maPC, pc.ngay, nv.hoTenNV, cl.loaiCa,
+                     pc.thoiGianMoCa, pc.thoiGianKetCa,
+                     pc.tienMoCa, pc.tienKetCa, pc.trangThai
+            ORDER BY
+                CASE
+                    WHEN pc.trangThai = N'DangMo' THEN 0
+                    WHEN pc.trangThai = N'DaPhanCong' THEN 1
+                    ELSE 2
+                END,
+                pc.ngay ASC,
+                CASE cl.loaiCa
+                    WHEN 'CaSang' THEN 1
+                    WHEN 'CaChieu' THEN 2
+                    WHEN 'CaToi' THEN 3
+                    ELSE 4
+                END,
+                pc.maPC ASC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, Math.max(1, limit));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp openedAt = rs.getTimestamp("thoiGianMoCa");
+                    Timestamp closedAt = rs.getTimestamp("thoiGianKetCa");
+
+                    rows.add(new ShiftReconciliationRow(
+                        rs.getString("maPC"),
+                        rs.getString("hoTenNV"),
+                        rs.getString("loaiCa"),
+                        openedAt == null ? null : openedAt.toLocalDateTime(),
+                        closedAt == null ? null : closedAt.toLocalDateTime(),
+                        rs.getDouble("tienMoCa"),
+                        rs.getDouble("tienKetCa"),
+                        rs.getDouble("doanhThuHeThong"),
+                        rs.getString("trangThai")
+                    ));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return rows;
     }
 
     public boolean hasOpenShiftNow(String maNV) {

@@ -2,6 +2,9 @@ package kqlhotel.bus.shift;
 
 import kqlhotel.dao.shift.ShiftDAO;
 import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
+import kqlhotel.dao.shift.ShiftDAO.ShiftReconciliationRow;
+
+import java.util.List;
 
 public class ShiftBUS {
     private final ShiftDAO shiftDAO = new ShiftDAO();
@@ -28,6 +31,14 @@ public class ShiftBUS {
 
     public ShiftInfo getCurrentShift() {
         return shiftDAO.getCurrentShift();
+    }
+
+    public List<ShiftReconciliationRow> getRecentShiftReconciliations(int limit) {
+        return shiftDAO.getRecentShiftReconciliations(limit);
+    }
+
+    public List<ShiftReconciliationRow> getActiveAndAssignedShiftReconciliations(int limit) {
+        return shiftDAO.getActiveAndAssignedShiftReconciliations(limit);
     }
 
     public String getOpenShiftIdByStaff(String maNV) {
