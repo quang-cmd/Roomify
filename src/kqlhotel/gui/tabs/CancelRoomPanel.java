@@ -928,6 +928,42 @@ public class CancelRoomPanel extends JPanel {
             double refund  = Math.max(0, tienHoan);
             double penalty = Math.max(0, tienCocPhong - refund);
 
+            // Fetch total deposit of the booking
+            double totalDeposit = 0;
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT ISNULL(tienCoc, 0) FROM HoaDon WHERE maHD = ?")) {
+                pst.setString(1, maHD);
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        totalDeposit = rs.getDouble(1);
+                    }
+                }
+            }
+            if (totalDeposit <= 0) {
+                try (PreparedStatement pst = con.prepareStatement(
+                        "SELECT ISNULL(tienCoc, 0) FROM DatPhong WHERE maDatPhong = ?")) {
+                    pst.setString(1, maDatPhong);
+                    try (ResultSet rs = pst.executeQuery()) {
+                        if (rs.next()) {
+                            totalDeposit = rs.getDouble(1);
+                        }
+                    }
+                }
+            }
+
+            // Fetch total refund so far
+            double previousRefund = 0;
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT ISNULL(SUM(soTienTT), 0) FROM ThanhToan WHERE maHD = ? AND trangThaiTT = 'DaHuy'")) {
+                pst.setString(1, maHD);
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        previousRefund = rs.getDouble(1);
+                    }
+                }
+            }
+            double totalRefund = previousRefund + refund;
+
             // 0. Xóa phòng này khỏi ChiTietKhachO để không bị lỗi FK constraint
             try (PreparedStatement pst = con.prepareStatement(
                     "DELETE FROM ChiTietKhachO WHERE maDatPhong = ? AND maPhong = ?")) {
@@ -965,11 +1001,13 @@ public class CancelRoomPanel extends JPanel {
                 try (PreparedStatement pst = con.prepareStatement(
                         "UPDATE HoaDon SET trangThai = 'DaHuy', ngayThanhToan = ?," +
                         " tienPhong = 0, tienThue = 0, tienKhuyenMai = 0," +
-                        " tienDichVu = ?, tongTienThanhToan = ? WHERE maHD = ?")) {
+                        " tienDichVu = ?, tongTienThanhToan = ?, tienCoc = ?, tienHoanTra = ? WHERE maHD = ?")) {
                     pst.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
                     pst.setDouble(2, penalty);
                     pst.setDouble(3, penalty);
-                    pst.setString(4, maHD);
+                    pst.setDouble(4, totalDeposit);
+                    pst.setDouble(5, totalRefund);
+                    pst.setString(6, maHD);
                     pst.executeUpdate();
                 }
                 // Xóa toàn bộ dịch vụ
@@ -1009,12 +1047,14 @@ public class CancelRoomPanel extends JPanel {
 
                 try (PreparedStatement pst = con.prepareStatement(
                         "UPDATE HoaDon SET tienPhong = ?, tienDichVu = ?," +
-                        " tienThue = ?, tongTienThanhToan = ? WHERE maHD = ?")) {
+                        " tienThue = ?, tongTienThanhToan = ?, tienCoc = ?, tienHoanTra = ? WHERE maHD = ?")) {
                     pst.setDouble(1, newTienPhong);
                     pst.setDouble(2, newTienDV);
                     pst.setDouble(3, newThue);
                     pst.setDouble(4, newTotal);
-                    pst.setString(5, maHD);
+                    pst.setDouble(5, totalDeposit);
+                    pst.setDouble(6, totalRefund);
+                    pst.setString(7, maHD);
                     pst.executeUpdate();
                 }
             }

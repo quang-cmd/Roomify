@@ -159,6 +159,25 @@ public class Invoice {
         this.maDatPhong = maDatPhong;
     }
 
+    private double tienCoc;
+    private double tienHoanTra;
+
+    public double getTienCoc() {
+        return tienCoc;
+    }
+
+    public void setTienCoc(double tienCoc) {
+        this.tienCoc = tienCoc;
+    }
+
+    public double getTienHoanTra() {
+        return tienHoanTra;
+    }
+
+    public void setTienHoanTra(double tienHoanTra) {
+        this.tienHoanTra = tienHoanTra;
+    }
+
     public String getTinhTrang() { return trangThai; }
     public void setTinhTrang(String tinhTrang) { this.trangThai = tinhTrang; }
 }

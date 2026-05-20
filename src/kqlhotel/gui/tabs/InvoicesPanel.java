@@ -416,8 +416,8 @@ public class InvoicesPanel extends JPanel {
         List<InvoiceDetail> roomDetails = invoicesBUS.getRoomDetails(hd.getMaHD());
         List<ServiceDetail> serviceDetails = invoicesBUS.getServiceDetails(hd.getMaHD());
 
-        double tienCoc = 0;
-        if (hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
+        double tienCoc = hd.getTienCoc() > 0 ? hd.getTienCoc() : 0;
+        if (tienCoc <= 0 && hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
             tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
         }
 
@@ -469,7 +469,7 @@ public class InvoicesPanel extends JPanel {
             tongSauKhuyenMai = Math.max(0, tienCoc);
 
             conPhaiThanhToan = 0;
-            tienHoanTra = 0;
+            tienHoanTra = hd.getTienHoanTra() > 0 ? hd.getTienHoanTra() : invoicesBUS.getRefundAmount(hd.getMaHD());
         } else {
             tongTienPhongThuan = Math.max(0, hd.getTienPhong());
             tongPhuThu = calculateTotalSurcharge(roomDetails);
@@ -510,15 +510,18 @@ public class InvoicesPanel extends JPanel {
             if ("DaThanhToan".equals(computedStatus)) {
                 tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
                 conPhaiThanhToan = 0;
-                tienHoanTra = 0;
+                tienHoanTra = hd.getTienHoanTra() > 0 ? hd.getTienHoanTra() : invoicesBUS.getRefundAmount(hd.getMaHD());
             } else {
                 tienThanhToanThem = Math.max(0, tongDaThanhToan - tienCoc);
                 conPhaiThanhToan = Math.max(0, tongSauKhuyenMai - tongDaThanhToan);
 
-                if (tongDaThanhToan > tongSauKhuyenMai) {
-                    tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
-                } else {
-                    tienHoanTra = 0;
+                tienHoanTra = hd.getTienHoanTra() > 0 ? hd.getTienHoanTra() : 0;
+                if (tienHoanTra <= 0) {
+                    if (tongDaThanhToan > tongSauKhuyenMai) {
+                        tienHoanTra = tongDaThanhToan - tongSauKhuyenMai;
+                    } else {
+                        tienHoanTra = invoicesBUS.getRefundAmount(hd.getMaHD());
+                    }
                 }
             }
         }

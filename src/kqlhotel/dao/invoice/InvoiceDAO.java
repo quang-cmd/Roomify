@@ -87,7 +87,8 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
             String sql = "UPDATE HoaDon SET " +
                     "ngayThanhToan = ?, tienPhong = ?, tienDichVu = ?, " +
                     "tienKhuyenMai = ?, tienThue = ?, tongTienThanhToan = ?, " +
-                    "phiDoiPhong = ?, maKM = ?, phuongThucTT = ?, trangThai = ?, ghiChu = ? " +
+                    "phiDoiPhong = ?, maKM = ?, phuongThucTT = ?, trangThai = ?, ghiChu = ?, " +
+                    "tienCoc = ?, tienHoanTra = ? " +
                     "WHERE maHD = ?";
 
             PreparedStatement pstmt = con.prepareStatement(sql);
@@ -112,7 +113,9 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
             pstmt.setString(9, invoice.getPhuongThucTT());
             pstmt.setString(10, invoice.getTrangThai());
             pstmt.setString(11, invoice.getGhiChu());
-            pstmt.setString(12, invoice.getMaHD());
+            pstmt.setDouble(12, invoice.getTienCoc());
+            pstmt.setDouble(13, invoice.getTienHoanTra());
+            pstmt.setString(14, invoice.getMaHD());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -145,6 +148,8 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         invoice.setPhuongThucTT(rs.getString("phuongThucTT"));
         invoice.setTrangThai(rs.getString("trangThai"));
         invoice.setMaDatPhong(rs.getString("maDatPhong"));
+        invoice.setTienCoc(rs.getDouble("tienCoc"));
+        invoice.setTienHoanTra(rs.getDouble("tienHoanTra"));
         return invoice;
     }
 

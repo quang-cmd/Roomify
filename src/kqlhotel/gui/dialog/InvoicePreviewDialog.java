@@ -245,8 +245,8 @@ public class InvoicePreviewDialog extends JDialog {
         String computedStatus = invoicesBUS.getComputedStatus(hd);
         boolean laHoaDonHuy = "DaHuy".equals(computedStatus);
 
-        double tienCoc = 0;
-        if (hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
+        double tienCoc = hd.getTienCoc() > 0 ? hd.getTienCoc() : 0;
+        if (tienCoc <= 0 && hd.getMaDatPhong() != null && !hd.getMaDatPhong().isBlank()) {
             tienCoc = invoicesBUS.getDepositAmount(hd.getMaDatPhong());
         }
 
@@ -414,15 +414,14 @@ public class InvoicePreviewDialog extends JDialog {
         }
 
         if (laHoaDonHuy) {
-            panel.add(line("Phí hủy (giữ cọc)", CurrencyUtils.formatVND(tienCoc)));
+            panel.add(line("Tiền cọc", CurrencyUtils.formatVND(tienCoc)));
         }
 
         panel.add(line("Tổng hóa đơn", CurrencyUtils.formatVND(tongThanhToanHienThi)));
-        if (!laHoaDonHuy) {
-            double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
-            if (refund > 0) {
-                panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
-            }
+        
+        double refund = hd.getTienHoanTra() > 0 ? hd.getTienHoanTra() : invoicesBUS.getRefundAmount(hd.getMaHD());
+        if (refund > 0) {
+            panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
         }
 
         panel.add(Box.createVerticalStrut(12));

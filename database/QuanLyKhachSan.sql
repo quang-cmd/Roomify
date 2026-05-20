@@ -223,6 +223,8 @@ CREATE TABLE HoaDon (
                         trangThai           VARCHAR(20)    NOT NULL DEFAULT 'ChuaThanhToan'
                             CHECK (trangThai IN ('ChuaThanhToan', 'DaThanhToan', 'DaHuy')),
                         maDatPhong          CHAR(5)        NULL,
+                        tienCoc             DECIMAL(18,2)  NOT NULL DEFAULT 0,
+                        tienHoanTra         DECIMAL(18,2)  NOT NULL DEFAULT 0,
                         CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (maKM)        REFERENCES KhuyenMai(maKM),
                         CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKH)        REFERENCES KhachHang(maKH),
                         CONSTRAINT FK_HoaDon_NhanVien  FOREIGN KEY (maNV)        REFERENCES NhanVien(maNV),
