@@ -41,6 +41,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.gui.Session;
+import kqlhotel.bus.shift.ShiftBUS;
 
 public class CancelRoomPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
@@ -1024,8 +1025,8 @@ public class CancelRoomPanel extends JPanel {
             String newMaTT = getNextMaTT(con);
             try (PreparedStatement pst = con.prepareStatement(
                     "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu," +
-                    " phuongThucTT, trangThaiTT, maHD, maNV, loaiGD)" +
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    " phuongThucTT, trangThaiTT, maHD, maNV, loaiGD, maPC)" +
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                 pst.setString(1, newMaTT);
                 pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
                 pst.setDouble(3, refund);
@@ -1042,6 +1043,10 @@ public class CancelRoomPanel extends JPanel {
                 String maNV = Session.currentStaff != null ? Session.currentStaff.getMaNV() : "NV001";
                 pst.setString(8, maNV);
                 pst.setString(9, "HoanTien");
+                
+                String maPC = new ShiftBUS().getOpenShiftIdByStaff(maNV);
+                pst.setString(10, maPC);
+                
                 pst.executeUpdate();
             }
 
