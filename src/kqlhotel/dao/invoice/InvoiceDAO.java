@@ -371,7 +371,7 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
 
         try {
             Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "SELECT SUM(soTienTT) FROM ThanhToan WHERE maHD = ? AND trangThaiTT = 'DaHuy'";
+            String sql = "SELECT SUM(soTienTT) FROM ThanhToan WHERE maHD = ? AND loaiGD = 'HoanTien'";
             PreparedStatement pstmt = con.prepareStatement(sql);
             pstmt.setString(1, maHD);
 

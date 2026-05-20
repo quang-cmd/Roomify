@@ -1024,8 +1024,8 @@ public class CancelRoomPanel extends JPanel {
                 String newMaTT = getNextMaTT(con);
                 try (PreparedStatement pst = con.prepareStatement(
                         "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu," +
-                        " phuongThucTT, trangThaiTT, maHD, maNV)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        " phuongThucTT, trangThaiTT, maHD, maNV, loaiGD)" +
+                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     pst.setString(1, newMaTT);
                     pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
                     pst.setDouble(3, refund);
@@ -1035,6 +1035,7 @@ public class CancelRoomPanel extends JPanel {
                     pst.setString(6, "DaHuy");
                     pst.setString(7, maHD);
                     pst.setString(8, "NV001");
+                    pst.setString(9, "HoanTien");
                     pst.executeUpdate();
                 }
             }

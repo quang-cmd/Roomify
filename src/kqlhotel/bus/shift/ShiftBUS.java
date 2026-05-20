@@ -13,6 +13,10 @@ public class ShiftBUS {
         return shiftDAO.openShift(maNV, tienMoCa);
     }
 
+    public boolean canOpenShift(String maNV) {
+        return shiftDAO.canOpenShift(maNV);
+    }
+
     public boolean hasOpenShiftNow(String maNV) {
         return shiftDAO.hasOpenShiftNow(maNV);
     }

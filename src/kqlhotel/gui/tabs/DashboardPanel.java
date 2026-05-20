@@ -616,7 +616,7 @@ public class DashboardPanel extends JPanel {
 
         for (ShiftReconciliationRow row : rows) {
             boolean closed = "DaKet".equalsIgnoreCase(row.trangThai);
-            double expectedCash = row.tienMoCa + row.doanhThuHeThong;
+            double expectedCash = row.tienMoCa + row.doanhThuTienMat;
             double diff = row.tienKetCa - expectedCash;
             model.addRow(new Object[] {
                 row.maPC,

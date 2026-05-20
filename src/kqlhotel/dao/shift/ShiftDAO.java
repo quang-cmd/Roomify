@@ -44,12 +44,13 @@ public class ShiftDAO {
         public final double tienMoCa;
         public final double tienKetCa;
         public final double doanhThuHeThong;
+        public final double doanhThuTienMat;
         public final String trangThai;
 
         public ShiftReconciliationRow(String maPC, String hoTenNV, String loaiCa,
                                       LocalDateTime thoiGianMoCa, LocalDateTime thoiGianKetCa,
                                       double tienMoCa, double tienKetCa,
-                                      double doanhThuHeThong, String trangThai) {
+                                      double doanhThuHeThong, double doanhThuTienMat, String trangThai) {
             this.maPC = maPC;
             this.hoTenNV = hoTenNV;
             this.loaiCa = loaiCa;
@@ -58,6 +59,7 @@ public class ShiftDAO {
             this.tienMoCa = tienMoCa;
             this.tienKetCa = tienKetCa;
             this.doanhThuHeThong = doanhThuHeThong;
+            this.doanhThuTienMat = doanhThuTienMat;
             this.trangThai = trangThai;
         }
     }
@@ -68,7 +70,6 @@ public class ShiftDAO {
         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
         "  nv.hoTenNV, pc.tienMoCa, " +
                 "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                "                    AND tt.phuongThucTT = 'TienMat' " +
                 "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
                 "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
         "FROM PhanCongCa pc " +
@@ -95,18 +96,41 @@ public class ShiftDAO {
             if (activeMaNV != null && !activeMaNV.isBlank() && !activeMaNV.equals(maNV)) {
                 return false;
             }
+            if (activeMaNV != null && activeMaNV.equals(maNV)) {
+                return true;
+            }
+
+            AssignedShift assignedShift = getNextAssignedShiftToday(con);
+            if (assignedShift != null) {
+                if (!assignedShift.maNV.equals(maNV)) {
+                    return false;
+                }
+
+                return activateAssignedShift(con, maNV, assignedShift.maCa, tienMoCa);
+            }
 
             String maCa = findCurrentMaCa(con);
             if (maCa == null) return false;
 
             // Nếu chính nhân viên này đã có ca đang mở thì coi như thành công,
             // không tạo thêm dòng PhanCongCa mới.
+            String assignedMaNV = getAssignedStaffForCurrentShift(con, maCa);
+            if (assignedMaNV != null && !assignedMaNV.isBlank() && !assignedMaNV.equals(maNV)) {
+                return false;
+            }
+
             if (hasOpenShift(con, maNV, maCa)) return true;
 
             // Uu tien kich hoat ca da duoc phan cong san trong ngay.
             // Neu khong co lich phan cong phu hop moi tao ca phat sinh.
             if (activateAssignedShift(con, maNV, maCa, tienMoCa)) {
                 return true;
+            }
+
+            // Khi trong ngay da co lich phan cong san, khong cho tao ca phat sinh
+            // de tranh nhan vien ca cu mo chen vao ca sap toi cua nguoi khac.
+            if (hasAssignedShiftToday(con)) {
+                return false;
             }
 
             String maPC = nextMaPC(con);
@@ -135,6 +159,30 @@ public class ShiftDAO {
         }
     }
 
+    public boolean canOpenShift(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+
+        String activeMaNV = getLatestOpenShiftStaffId();
+        if (activeMaNV != null && !activeMaNV.isBlank()) {
+            return activeMaNV.equals(maNV);
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return false;
+        }
+
+        try {
+            AssignedShift assignedShift = getNextAssignedShiftToday(con);
+            return assignedShift == null || assignedShift.maNV.equals(maNV);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
     private boolean activateAssignedShift(Connection con, String maNV, String maCa, long tienMoCa) throws SQLException {
         String sql = """
             UPDATE PhanCongCa
@@ -153,6 +201,72 @@ public class ShiftDAO {
             ps.setString(2, maNV);
             ps.setString(3, maCa);
             return ps.executeUpdate() > 0;
+        }
+    }
+
+    private String getAssignedStaffForCurrentShift(Connection con, String maCa) throws SQLException {
+        String sql = """
+            SELECT TOP 1 maNV
+            FROM PhanCongCa
+            WHERE maCa = ?
+              AND trangThai = N'DaPhanCong'
+              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+            ORDER BY maPC ASC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maCa);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("maNV");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private AssignedShift getNextAssignedShiftToday(Connection con) throws SQLException {
+        String sql = """
+            SELECT TOP 1 pc.maNV, pc.maCa
+            FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
+            WHERE pc.trangThai = N'DaPhanCong'
+              AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE)
+            ORDER BY
+                CASE cl.loaiCa
+                    WHEN 'CaSang' THEN 1
+                    WHEN 'CaChieu' THEN 2
+                    WHEN 'CaToi' THEN 3
+                    ELSE 4
+                END,
+                pc.maPC ASC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new AssignedShift(
+                    rs.getString("maNV"),
+                    rs.getString("maCa")
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private boolean hasAssignedShiftToday(Connection con) throws SQLException {
+        String sql = """
+            SELECT COUNT(*)
+            FROM PhanCongCa
+            WHERE trangThai = N'DaPhanCong'
+              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt(1) > 0;
         }
     }
 
@@ -188,6 +302,16 @@ public class ShiftDAO {
         return "PC001";
     }
 
+    private static class AssignedShift {
+        private final String maNV;
+        private final String maCa;
+
+        private AssignedShift(String maNV, String maCa) {
+            this.maNV = maNV;
+            this.maCa = maCa;
+        }
+    }
+
     public ShiftInfo getOpenShiftByStaff(String maNV) {
         if (maNV == null || maNV.isBlank()) {
             return null;
@@ -204,7 +328,6 @@ public class ShiftDAO {
                         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
                         "  nv.hoTenNV, pc.tienMoCa, " +
                         "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                        "                    AND tt.phuongThucTT = 'TienMat' " +
                         "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
                         "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
                         "FROM PhanCongCa pc " +
@@ -274,9 +397,16 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
-                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                       THEN tt.soTienTT
                        ELSE 0
-                   END), 0) AS doanhThuHeThong
+                   END), 0) AS doanhThuHeThong,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                       THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuTienMat
             FROM PhanCongCa pc
             JOIN CaLam cl ON pc.maCa = cl.maCa
             JOIN NhanVien nv ON pc.maNV = nv.maNV
@@ -308,6 +438,7 @@ public class ShiftDAO {
                         rs.getDouble("tienMoCa"),
                         rs.getDouble("tienKetCa"),
                         rs.getDouble("doanhThuHeThong"),
+                        rs.getDouble("doanhThuTienMat"),
                         rs.getString("trangThai")
                     ));
                 }
@@ -331,9 +462,16 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
-                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                       THEN tt.soTienTT
                        ELSE 0
-                   END), 0) AS doanhThuHeThong
+                   END), 0) AS doanhThuHeThong,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                       THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuTienMat
             FROM PhanCongCa pc
             JOIN CaLam cl ON pc.maCa = cl.maCa
             JOIN NhanVien nv ON pc.maNV = nv.maNV
@@ -375,6 +513,7 @@ public class ShiftDAO {
                         rs.getDouble("tienMoCa"),
                         rs.getDouble("tienKetCa"),
                         rs.getDouble("doanhThuHeThong"),
+                        rs.getDouble("doanhThuTienMat"),
                         rs.getString("trangThai")
                     ));
                 }

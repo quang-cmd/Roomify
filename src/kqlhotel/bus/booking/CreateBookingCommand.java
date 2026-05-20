@@ -18,6 +18,7 @@ public class CreateBookingCommand {
     private final double paymentRatio;
     private final String paymentMethod;
     private final String paymentReference;
+    private final String staffId;
 
     public CreateBookingCommand(
         LocalDate checkInDate,
@@ -27,7 +28,7 @@ public class CreateBookingCommand {
         List<GuestInfoDto> guestInfos,
         List<RoomOptionDto> selectedRooms
     ) {
-        this(checkInDate, checkOutDate, adults, children, guestInfos, selectedRooms, 0L, 1.0, "TienMat", "");
+        this(checkInDate, checkOutDate, adults, children, guestInfos, selectedRooms, 0L, 1.0, "TienMat", "", null);
     }
 
     public CreateBookingCommand(
@@ -42,6 +43,23 @@ public class CreateBookingCommand {
         String paymentMethod,
         String paymentReference
     ) {
+        this(checkInDate, checkOutDate, adults, children, guestInfos, selectedRooms,
+            totalAmount, paymentRatio, paymentMethod, paymentReference, null);
+    }
+
+    public CreateBookingCommand(
+        LocalDate checkInDate,
+        LocalDate checkOutDate,
+        int adults,
+        int children,
+        List<GuestInfoDto> guestInfos,
+        List<RoomOptionDto> selectedRooms,
+        long totalAmount,
+        double paymentRatio,
+        String paymentMethod,
+        String paymentReference,
+        String staffId
+    ) {
         this.checkInDate = checkInDate;
         this.checkOutDate = checkOutDate;
         this.adults = adults;
@@ -52,6 +70,7 @@ public class CreateBookingCommand {
         this.paymentRatio = paymentRatio;
         this.paymentMethod = paymentMethod == null ? "TienMat" : paymentMethod;
         this.paymentReference = paymentReference == null ? "" : paymentReference;
+        this.staffId = staffId;
     }
 
     public long getTotalAmount() {
@@ -68,6 +87,10 @@ public class CreateBookingCommand {
 
     public String getPaymentReference() {
         return paymentReference;
+    }
+
+    public String getStaffId() {
+        return staffId;
     }
 
     public long getPaymentAmount() {
