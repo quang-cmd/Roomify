@@ -31,6 +31,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
@@ -59,6 +60,7 @@ public class SwapRoomPanel extends JPanel {
     private final JPanel resultListPanel = new JPanel();
     private final JPanel detailPanel = new JPanel(new BorderLayout());
     private final JLabel resultCountLabel = new JLabel("Chưa có kết quả");
+    private final JTextArea txtReason = new JTextArea();
 
     private List<SwapRoomSearchResult> currentResults = new ArrayList<>();
     private SwapRoomSearchResult selectedResult;
@@ -507,6 +509,8 @@ public class SwapRoomPanel extends JPanel {
         content.add(Box.createVerticalStrut(18));
         content.add(createBookingSummary(selectedResult));
         content.add(Box.createVerticalStrut(18));
+        content.add(createReasonSection());
+        content.add(Box.createVerticalStrut(18));
         content.add(createAvailableRoomsSection(selectedResult));
 
         card.add(content, BorderLayout.NORTH);
@@ -529,6 +533,45 @@ public class SwapRoomPanel extends JPanel {
         wrap.add(createInfoItem("Ngày nhận", formatDateTime(result.getCheckInDate())));
         wrap.add(createInfoItem("Ngày trả", formatDateTime(result.getCheckOutDate())));
 
+        return wrap;
+    }
+
+    private JPanel createReasonSection() {
+        RoundedBlockPanel wrap = new RoundedBlockPanel(18, new Color(255, 251, 235), new Color(251, 191, 36), 1f, new Color(15, 23, 42, 0), 0);
+        wrap.setLayout(new BorderLayout(0, 10));
+        wrap.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JLabel label = new JLabel("Lý do đổi phòng (Bắt buộc)");
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(new Color(146, 64, 14));
+        
+        txtReason.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtReason.setLineWrap(true);
+        txtReason.setWrapStyleWord(true);
+        txtReason.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(252, 211, 77)),
+            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
+        
+        if (txtReason.getText().isEmpty()) {
+            txtReason.setText("Khách muốn đổi sang phòng view đẹp hơn / đổi tầng...");
+            txtReason.setForeground(Color.LIGHT_GRAY);
+            txtReason.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusGained(java.awt.event.FocusEvent evt) {
+                    if (txtReason.getText().equals("Khách muốn đổi sang phòng view đẹp hơn / đổi tầng...")) {
+                        txtReason.setText("");
+                        txtReason.setForeground(TEXT_PRIMARY);
+                    }
+                }
+            });
+        }
+
+        JScrollPane scroll = new JScrollPane(txtReason);
+        scroll.setPreferredSize(new Dimension(0, 80));
+        scroll.setBorder(null);
+
+        wrap.add(label, BorderLayout.NORTH);
+        wrap.add(scroll, BorderLayout.CENTER);
         return wrap;
     }
 
@@ -684,9 +727,16 @@ public class SwapRoomPanel extends JPanel {
     }
 
     private void confirmChangeRoom(SwapRoomSearchResult result, SwapRoomOption room) {
+        String reason = txtReason.getText().trim();
+        if (reason.isEmpty() || reason.equals("Khách muốn đổi sang phòng view đẹp hơn / đổi tầng...")) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập lý do đổi phòng trước khi xác nhận.", "Yêu cầu", JOptionPane.WARNING_MESSAGE);
+            txtReason.requestFocus();
+            return;
+        }
+
         int confirmed = JOptionPane.showConfirmDialog(
             this,
-            "Đổi phòng từ " + result.getCurrentRoomId() + " sang " + room.getRoomId() + "?",
+            "Đổi phòng từ " + result.getCurrentRoomId() + " sang " + room.getRoomId() + "?\nLý do: " + reason,
             "Xác nhận đổi phòng",
             JOptionPane.YES_NO_OPTION
         );
@@ -694,7 +744,7 @@ public class SwapRoomPanel extends JPanel {
             return;
         }
 
-        boolean success = bus.changeRoom(result.getBookingId(), result.getCurrentRoomId(), room.getRoomId());
+        boolean success = bus.changeRoom(result.getBookingId(), result.getCurrentRoomId(), room.getRoomId(), reason);
         if (!success) {
             JOptionPane.showMessageDialog(this, "Không thể đổi phòng. Vui lòng kiểm tra cơ sở dữ liệu.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
