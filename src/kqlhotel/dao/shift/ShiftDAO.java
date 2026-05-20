@@ -44,12 +44,13 @@ public class ShiftDAO {
         public final double tienMoCa;
         public final double tienKetCa;
         public final double doanhThuHeThong;
+        public final double doanhThuTienMat;
         public final String trangThai;
 
         public ShiftReconciliationRow(String maPC, String hoTenNV, String loaiCa,
                                       LocalDateTime thoiGianMoCa, LocalDateTime thoiGianKetCa,
                                       double tienMoCa, double tienKetCa,
-                                      double doanhThuHeThong, String trangThai) {
+                                      double doanhThuHeThong, double doanhThuTienMat, String trangThai) {
             this.maPC = maPC;
             this.hoTenNV = hoTenNV;
             this.loaiCa = loaiCa;
@@ -58,6 +59,7 @@ public class ShiftDAO {
             this.tienMoCa = tienMoCa;
             this.tienKetCa = tienKetCa;
             this.doanhThuHeThong = doanhThuHeThong;
+            this.doanhThuTienMat = doanhThuTienMat;
             this.trangThai = trangThai;
         }
     }
@@ -68,7 +70,6 @@ public class ShiftDAO {
         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
         "  nv.hoTenNV, pc.tienMoCa, " +
                 "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                "                    AND tt.phuongThucTT = 'TienMat' " +
                 "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
                 "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
         "FROM PhanCongCa pc " +
@@ -204,7 +205,6 @@ public class ShiftDAO {
                         "  CONVERT(VARCHAR(5), cl.gioKetThuc, 108) AS gioKetThuc, " +
                         "  nv.hoTenNV, pc.tienMoCa, " +
                         "  COALESCE(SUM(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' " +
-                        "                    AND tt.phuongThucTT = 'TienMat' " +
                         "                   THEN tt.soTienTT ELSE 0 END), 0) AS doanhThu, " +
                         "  COUNT(CASE WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 1 END) AS soGiaoDich " +
                         "FROM PhanCongCa pc " +
@@ -274,9 +274,16 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
-                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                       THEN tt.soTienTT
                        ELSE 0
-                   END), 0) AS doanhThuHeThong
+                   END), 0) AS doanhThuHeThong,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                       THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuTienMat
             FROM PhanCongCa pc
             JOIN CaLam cl ON pc.maCa = cl.maCa
             JOIN NhanVien nv ON pc.maNV = nv.maNV
@@ -308,6 +315,7 @@ public class ShiftDAO {
                         rs.getDouble("tienMoCa"),
                         rs.getDouble("tienKetCa"),
                         rs.getDouble("doanhThuHeThong"),
+                        rs.getDouble("doanhThuTienMat"),
                         rs.getString("trangThai")
                     ));
                 }
@@ -331,9 +339,16 @@ public class ShiftDAO {
                    pc.thoiGianMoCa, pc.thoiGianKetCa,
                    pc.tienMoCa, pc.tienKetCa, pc.trangThai,
                    COALESCE(SUM(CASE
-                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN tt.soTienTT
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                       THEN tt.soTienTT
                        ELSE 0
-                   END), 0) AS doanhThuHeThong
+                   END), 0) AS doanhThuHeThong,
+                   COALESCE(SUM(CASE
+                       WHEN tt.trangThaiTT = 'ThanhToanThanhCong'
+                            AND tt.phuongThucTT = 'TienMat'
+                       THEN tt.soTienTT
+                       ELSE 0
+                   END), 0) AS doanhThuTienMat
             FROM PhanCongCa pc
             JOIN CaLam cl ON pc.maCa = cl.maCa
             JOIN NhanVien nv ON pc.maNV = nv.maNV
@@ -375,6 +390,7 @@ public class ShiftDAO {
                         rs.getDouble("tienMoCa"),
                         rs.getDouble("tienKetCa"),
                         rs.getDouble("doanhThuHeThong"),
+                        rs.getDouble("doanhThuTienMat"),
                         rs.getString("trangThai")
                     ));
                 }
