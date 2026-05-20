@@ -262,8 +262,8 @@ public class SqlBookingService implements BookingService {
 
             // 6. Insert HoaDon
             String maHD = nextId(con, "HoaDon", "maHD", "HD", 5);
-            String insertHoaDon = "INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong, tienCoc, tienHoanTra) " +
-                "VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 0, NULL, ?, ?, ?, ?, ?, ?, ?)";
+            String insertHoaDon = "INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 0, NULL, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(insertHoaDon)) {
                 ps.setString(1, maHD);
                 ps.setTimestamp(2, Timestamp.valueOf(now));
@@ -282,8 +282,6 @@ public class SqlBookingService implements BookingService {
                 ps.setString(11, command.getPaymentMethod());
                 ps.setString(12, trangThaiHD);
                 ps.setString(13, maDatPhong);
-                ps.setBigDecimal(14, java.math.BigDecimal.valueOf(tienCocBooking));
-                ps.setBigDecimal(15, java.math.BigDecimal.valueOf(0.0));
                 ps.executeUpdate();
             }
 
