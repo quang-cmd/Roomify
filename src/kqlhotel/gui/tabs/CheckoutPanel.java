@@ -1356,11 +1356,16 @@ public class CheckoutPanel extends JPanel {
         java.util.List<ServiceDetail> services =
                 invoicesBUS.getServiceDetails(currentHoaDon.getMaHD());
 
+        String checkoutStaffName =
+                Session.currentStaff != null
+                        ? Session.currentStaff.getFullName()
+                        : invoicesBUS.getStaffName(currentHoaDon.getMaNhanVien());
+
         new kqlhotel.gui.dialog.InvoicePreviewDialog(
                 owner,
                 currentHoaDon,
                 invoicesBUS.getCustomerInfo(currentHoaDon.getMaKhachHang()),
-                invoicesBUS.getStaffName(currentHoaDon.getMaNhanVien()),
+                checkoutStaffName,
                 paidCurrentRooms,
                 services,
                 invoicesBUS

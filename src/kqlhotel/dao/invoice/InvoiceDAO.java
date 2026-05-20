@@ -441,6 +441,63 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         return 0;
     }
 
+    public String getPaymentStaffName(String maHD) {
+        String sql = """
+        SELECT TOP 1 nv.hoTenNV
+        FROM ThanhToan tt
+        JOIN NhanVien nv ON tt.maNV = nv.maNV
+        WHERE tt.maHD = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+        ORDER BY tt.ngayTT DESC
+    """;
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maHD);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("hoTenNV");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public String getPaymentStaffId(String maHD) {
+        String sql = """
+        SELECT TOP 1 tt.maNV
+        FROM ThanhToan tt
+        WHERE tt.maHD = ?
+          AND tt.trangThaiTT = 'ThanhToanThanhCong'
+        ORDER BY tt.ngayTT DESC
+    """;
+
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, maHD);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("maNV");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     @Override
     public boolean delete(String id) {
         return false;
