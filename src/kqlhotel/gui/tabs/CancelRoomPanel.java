@@ -40,6 +40,7 @@ import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.utils.IconLoader;
 import net.miginfocom.swing.MigLayout;
+import kqlhotel.gui.Session;
 
 public class CancelRoomPanel extends JPanel {
     private static final Color PAGE_BG = new Color(245, 248, 252);
@@ -1037,7 +1038,9 @@ public class CancelRoomPanel extends JPanel {
                 pst.setString(5, "TienMat");
                 pst.setString(6, "DaHuy");
                 pst.setString(7, maHD);
-                pst.setString(8, "NV001");
+                
+                String maNV = Session.currentStaff != null ? Session.currentStaff.getMaNV() : "NV001";
+                pst.setString(8, maNV);
                 pst.setString(9, "HoanTien");
                 pst.executeUpdate();
             }
