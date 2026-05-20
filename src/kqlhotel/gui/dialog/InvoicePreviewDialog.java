@@ -418,11 +418,9 @@ public class InvoicePreviewDialog extends JDialog {
         }
 
         panel.add(line("Tổng hóa đơn", CurrencyUtils.formatVND(tongThanhToanHienThi)));
-        if (!laHoaDonHuy) {
-            double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
-            if (refund > 0) {
-                panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
-            }
+        double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
+        if (refund > 0) {
+            panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
         }
 
         panel.add(Box.createVerticalStrut(12));

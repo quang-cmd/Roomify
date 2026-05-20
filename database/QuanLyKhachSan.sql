@@ -271,6 +271,7 @@ CREATE TABLE ThanhToan (
                            maHD          CHAR(5)        NOT NULL,
                            maPC          CHAR(5)        NULL,         -- Ca lam thu tien (de doi soat ca)
                            maNV          CHAR(5)        NULL,         -- Le tan thu tien
+                           loaiGD        VARCHAR(10)    NOT NULL DEFAULT 'Thu' CONSTRAINT CK_ThanhToan_loaiGD CHECK (loaiGD IN ('Thu', 'HoanTien')),
                            CONSTRAINT FK_ThanhToan_HoaDon     FOREIGN KEY (maHD) REFERENCES HoaDon(maHD),
                            CONSTRAINT FK_ThanhToan_PhanCongCa FOREIGN KEY (maPC) REFERENCES PhanCongCa(maPC),
                            CONSTRAINT FK_ThanhToan_NhanVien   FOREIGN KEY (maNV) REFERENCES NhanVien(maNV)
@@ -526,28 +527,28 @@ GO
 -- ----- ThanhToan -----
 -- Quy tac: moi giao dich tien (coc / phan con lai / thanh toan full) tao 1 record.
 -- Booking huy van co record ThanhToan cua cọc da hoan tra (DaHuy).
-INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV) VALUES
+INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, maHD, maPC, maNV, loaiGD) VALUES
 -- DP001: coc 30% (450k) + phan con lai (1.332tr)
-('TT001', '2026-04-10 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD001', NULL,    'NV002'),
-('TT002', '2026-04-18 12:25', 1332000.00, N'Thanh toan phan con lai','TienMat',   'ThanhToanThanhCong', 'HD001', 'PC001', 'NV002'),
+('TT001', '2026-04-10 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD001', NULL,    'NV002', 'Thu'),
+('TT002', '2026-04-18 12:25', 1332000.00, N'Thanh toan phan con lai','TienMat',   'ThanhToanThanhCong', 'HD001', 'PC001', 'NV002', 'Thu'),
 -- DP002: coc 30% + phan con lai
-('TT003', '2026-04-12 10:15',  675000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD002', NULL,    'NV003'),
-('TT004', '2026-04-20 12:25', 4836000.00, N'Thanh toan phan con lai','ChuyenKhoan','ThanhToanThanhCong', 'HD002', 'PC002', 'NV003'),
+('TT003', '2026-04-12 10:15',  675000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD002', NULL,    'NV003', 'Thu'),
+('TT004', '2026-04-20 12:25', 4836000.00, N'Thanh toan phan con lai','ChuyenKhoan','ThanhToanThanhCong', 'HD002', 'PC002', 'NV003', 'Thu'),
 -- DP003: chi co coc, chua tra phan con lai
-('TT005', '2026-04-18 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD003', NULL,    'NV004'),
+('TT005', '2026-04-18 09:15',  450000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD003', NULL,    'NV004', 'Thu'),
 -- DP004: chi co coc
-('TT006', '2026-04-20 11:15',  900000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD004', NULL,    'NV002'),
+('TT006', '2026-04-20 11:15',  900000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD004', NULL,    'NV002', 'Thu'),
 -- DP005: chi co coc
-('TT007', '2026-04-21 14:15', 1350000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD005', NULL,    'NV003'),
+('TT007', '2026-04-21 14:15', 1350000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD005', NULL,    'NV003', 'Thu'),
 -- DP006-DP008: coc cho future bookings
-('TT008', '2026-04-23 16:15',  450000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD006', 'PC002', 'NV004'),
-('TT009', '2026-04-24 09:15', 1500000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD007', 'PC003', 'NV002'),
-('TT010', '2026-04-25 10:15',  675000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD008', 'PC005', 'NV005'),
+('TT008', '2026-04-23 16:15',  450000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD006', 'PC002', 'NV004', 'Thu'),
+('TT009', '2026-04-24 09:15', 1500000.00, N'Dat coc 30%',          'ChuyenKhoan', 'ThanhToanThanhCong', 'HD007', 'PC003', 'NV002', 'Thu'),
+('TT010', '2026-04-25 10:15',  675000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD008', 'PC005', 'NV005', 'Thu'),
 -- DP009: coc da hoan tra (huy)
-('TT011', '2026-04-15 11:15',  300000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD009', NULL,    'NV003'),
-('TT012', '2026-04-22 09:00',  300000.00, N'Hoan tien coc do huy', 'TienMat',     'DaHuy',              'HD009', NULL,    'NV003'),
+('TT011', '2026-04-15 11:15',  300000.00, N'Dat coc 30%',          'TienMat',     'ThanhToanThanhCong', 'HD009', NULL,    'NV003', 'Thu'),
+('TT012', '2026-04-22 09:00',  300000.00, N'Hoan tien coc do huy', 'TienMat',     'DaHuy',              'HD009', NULL,    'NV003', 'HoanTien'),
 -- DP010: thanh toan 100% ngay khi dat
-('TT013', '2026-04-19 13:25', 1683000.00, N'Thanh toan 100%',      'TienMat',     'ThanhToanThanhCong', 'HD010', NULL,    'NV002');
+('TT013', '2026-04-19 13:25', 1683000.00, N'Thanh toan 100%',      'TienMat',     'ThanhToanThanhCong', 'HD010', NULL,    'NV002', 'Thu');
 GO
 
 -- ----- ChiPhi -----
