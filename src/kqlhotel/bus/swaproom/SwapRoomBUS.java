@@ -21,7 +21,7 @@ public class SwapRoomBUS {
         return dao.getAvailableRooms(booking);
     }
 
-    public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom) {
-        return dao.changeRoom(maDatPhong, oldRoom, newRoom);
+    public boolean changeRoom(String maDatPhong, String oldRoom, String newRoom, String reason) {
+        return dao.changeRoom(maDatPhong, oldRoom, newRoom, reason);
     }
 }
