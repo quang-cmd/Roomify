@@ -313,18 +313,27 @@ public class InvoicePreviewDialog extends JDialog {
             tongTruocGiamHienThi = Math.max(0, tienCoc);
             tongThanhToanHienThi = Math.max(0, tienCoc);
         } else {
-            tienThueHienThi = Math.max(0, hd.getTienThue());
-            tongKhuyenMaiHoaDon = Math.max(0, hd.getTienKhuyenMai());
-            tongThanhToanHienThi = Math.max(0, hd.getTongTienThanhToan());
-
-            tongTruocGiamHienThi = Math.max(
-                    0,
-                    hd.getTienPhong()
-                            + hd.getTienDichVu()
-                            + hd.getTienThue()
-                            + phuThuHienThi
-                            + phiPhatHienThi
-            );
+            double globalPhuThu = 0;
+            double globalPhiPhat = 0;
+            for (InvoiceDetail r : rooms) {
+                globalPhuThu += Math.max(0, r.getPhuThu());
+                globalPhiPhat += Math.max(0, r.getPhiPhat());
+            }
+            double globalBaseAmount = Math.max(0, hd.getTienPhong()) + Math.max(0, hd.getTienDichVu()) + globalPhuThu + globalPhiPhat;
+            
+            double ratio = 1.0;
+            if (globalBaseAmount > 0) {
+                ratio = tongTinhThueHienThi / globalBaseAmount;
+                if (ratio > 1.0) ratio = 1.0;
+            } else if (!rooms.isEmpty()) {
+                ratio = 1.0 / rooms.size();
+            }
+            
+            tienThueHienThi = Math.max(0, hd.getTienThue()) * ratio;
+            tongKhuyenMaiHoaDon = Math.max(0, hd.getTienKhuyenMai()) * ratio;
+            
+            tongTruocGiamHienThi = tongTinhThueHienThi + tienThueHienThi;
+            tongThanhToanHienThi = Math.max(0, tongTruocGiamHienThi - tongKhuyenMaiHoaDon);
         }
 
         double tyLeGiamHangThanhVien = laHoaDonHuy ? 0 : getMembershipDiscountRate(kh);
@@ -421,7 +430,22 @@ public class InvoicePreviewDialog extends JDialog {
         if (!laHoaDonHuy) {
             double refund = invoicesBUS.getRefundAmount(hd.getMaHD());
             if (refund > 0) {
-                panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund)));
+                double globalPhuThu = 0;
+                double globalPhiPhat = 0;
+                for (InvoiceDetail r : rooms) {
+                    globalPhuThu += Math.max(0, r.getPhuThu());
+                    globalPhiPhat += Math.max(0, r.getPhiPhat());
+                }
+                double globalBaseAmount = Math.max(0, hd.getTienPhong()) + Math.max(0, hd.getTienDichVu()) + globalPhuThu + globalPhiPhat;
+                
+                double ratio = 1.0;
+                if (globalBaseAmount > 0) {
+                    ratio = tongTinhThueHienThi / globalBaseAmount;
+                    if (ratio > 1.0) ratio = 1.0;
+                } else if (!rooms.isEmpty()) {
+                    ratio = 1.0 / rooms.size();
+                }
+                panel.add(line("Tiền hoàn trả cho khách", "+" + CurrencyUtils.formatVND(refund * ratio)));
             }
         }
 

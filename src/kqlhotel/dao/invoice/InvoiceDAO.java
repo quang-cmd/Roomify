@@ -447,8 +447,13 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         FROM ThanhToan tt
         JOIN NhanVien nv ON tt.maNV = nv.maNV
         WHERE tt.maHD = ?
-          AND tt.trangThaiTT = 'ThanhToanThanhCong'
-        ORDER BY tt.ngayTT DESC
+        ORDER BY
+            CASE
+                WHEN tt.trangThaiTT = 'DaHuy' THEN 1
+                WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 2
+                ELSE 3
+            END,
+            tt.ngayTT DESC
     """;
 
         try {
@@ -475,8 +480,13 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
         SELECT TOP 1 tt.maNV
         FROM ThanhToan tt
         WHERE tt.maHD = ?
-          AND tt.trangThaiTT = 'ThanhToanThanhCong'
-        ORDER BY tt.ngayTT DESC
+        ORDER BY
+            CASE
+                WHEN tt.trangThaiTT = 'DaHuy' THEN 1
+                WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 2
+                ELSE 3
+            END,
+            tt.ngayTT DESC
     """;
 
         try {
