@@ -50,17 +50,10 @@ public class EmployeeDashboardDAO {
 
     public int countNeedPayment() {
         String sql = """
-            SELECT COUNT(*)
-            FROM HoaDon hd
-            OUTER APPLY (
-                SELECT ISNULL(SUM(tt.soTienTT), 0) AS daThanhToan
-                FROM ThanhToan tt
-                WHERE tt.maHD = hd.maHD
-                  AND tt.trangThaiTT = 'ThanhToanThanhCong'
-            ) paid
-            WHERE hd.trangThai <> 'DaHuy'
-              AND paid.daThanhToan < hd.tongTienThanhToan
-        """;
+        SELECT COUNT(maHD)
+        FROM HoaDon
+        WHERE trangThai NOT IN ('DaThanhToan', 'DaHuy')
+    """;
 
         return count(sql);
     }

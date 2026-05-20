@@ -1340,6 +1340,15 @@ public class CheckoutPanel extends JPanel {
             return;
         }
 
+        CheckoutBUS.CheckoutTotals totals =
+                checkoutBUS.previewTotals(currentHoaDon, currentRoomCodes, selectedPromotionCode);
+
+        currentHoaDon.setTienPhong(totals.roomFee);
+        currentHoaDon.setTienDichVu(totals.serviceFee);
+        currentHoaDon.setTienThue(totals.tax);
+        currentHoaDon.setTienKhuyenMai(totals.totalDiscount);
+        currentHoaDon.setTongTienThanhToan(totals.total);
+
         java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(this);
 
         java.util.List<String> selectedRoomCodesSnapshot =
