@@ -1037,7 +1037,7 @@ public class CancelRoomPanel extends JPanel {
                 
                 pst.setString(4, note);
                 pst.setString(5, "TienMat");
-                pst.setString(6, "DaHuy");
+                pst.setString(6, "ThanhToanThanhCong");
                 pst.setString(7, maHD);
                 
                 String maNV = Session.currentStaff != null ? Session.currentStaff.getMaNV() : "NV001";
