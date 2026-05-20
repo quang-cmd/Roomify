@@ -1692,6 +1692,8 @@ public class BookingPanel extends JPanel {
         if (!validateSelectedRoomCapacity()) {
             return;
         }
+        updateSelectionSummary();
+        syncGuestForms();
         bookingCards.show(bookingContent, "customer-info");
         setStep(2);
     }

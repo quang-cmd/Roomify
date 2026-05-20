@@ -162,6 +162,14 @@ public class SqlBookingService implements BookingService {
             String leadCustomerId = null;
             for (int i = 0; i < command.getGuestInfos().size(); i++) {
                 GuestInfoDto guest = command.getGuestInfos().get(i);
+                String phoneConflict = findCustomerNameByPhoneWithDifferentId(con, guest.getPhone(), guest.getIdNo());
+                if (phoneConflict != null) {
+                    con.rollback();
+                    return fail("So dien thoai " + guest.getPhone().trim()
+                        + " da thuoc khach hang khac (" + phoneConflict
+                        + "). Vui long kiem tra lai CCCD hoac dung so dien thoai khac.");
+                }
+
                 String maKH = upsertCustomer(con, guest);
                 if (maKH == null) {
                     con.rollback();
@@ -471,6 +479,34 @@ public class SqlBookingService implements BookingService {
             ps.executeUpdate();
         }
         return maKH;
+    }
+
+    private String findCustomerNameByPhoneWithDifferentId(Connection con, String phone, String idNo) throws SQLException {
+        String normalizedPhone = normalizeNullable(phone);
+        if (normalizedPhone == null) {
+            return null;
+        }
+
+        String normalizedId = normalizeNullable(idNo);
+        String sql = """
+            SELECT TOP 1 hoTenKH
+            FROM KhachHang
+            WHERE sdt = ?
+              AND (? IS NULL OR CCCD <> ?)
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, normalizedPhone);
+            ps.setString(2, normalizedId);
+            ps.setString(3, normalizedId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("hoTenKH");
+                }
+            }
+        }
+
+        return null;
     }
 
     private void updateCustomerContact(Connection con, String maKH, GuestInfoDto guest) throws SQLException {
