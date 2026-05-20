@@ -420,8 +420,16 @@ public class CheckoutBUS {
         if (actualIn == null) actualIn = LocalDateTime.now();
         if (actualOut == null) actualOut = LocalDateTime.now();
 
+        LocalDateTime billingIn = actualIn;
+
+        // Nếu khách nhận phòng muộn hơn dự kiến thì vẫn tính tiền từ ngày nhận dự kiến
+        // để không làm giảm tiền phòng đã đặt.
+        if (expectedIn != null && actualIn.isAfter(expectedIn)) {
+            billingIn = expectedIn;
+        }
+
         int actualNights = (int) ChronoUnit.DAYS.between(
-                actualIn.toLocalDate(),
+                billingIn.toLocalDate(),
                 actualOut.toLocalDate()
         );
 

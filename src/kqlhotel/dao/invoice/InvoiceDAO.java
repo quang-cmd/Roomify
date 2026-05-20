@@ -442,19 +442,19 @@ public class InvoiceDAO implements DAO_Interface<Invoice> {
     }
 
     public String getPaymentStaffName(String maHD) {
-        String sql = """
-        SELECT TOP 1 nv.hoTenNV
-        FROM ThanhToan tt
-        JOIN NhanVien nv ON tt.maNV = nv.maNV
-        WHERE tt.maHD = ?
-        ORDER BY
-            CASE
-                WHEN tt.trangThaiTT = 'DaHuy' THEN 1
-                WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 2
-                ELSE 3
-            END,
-            tt.ngayTT DESC
-    """;
+            String sql = """
+            SELECT TOP 1 nv.hoTenNV
+            FROM ThanhToan tt
+            JOIN NhanVien nv ON tt.maNV = nv.maNV
+            WHERE tt.maHD = ?
+            ORDER BY
+                CASE
+                    WHEN tt.trangThaiTT = 'DaHuy' THEN 1
+                    WHEN tt.trangThaiTT = 'ThanhToanThanhCong' THEN 2
+                    ELSE 3
+                END,
+                tt.ngayTT DESC
+        """;
 
         try {
             Connection con = ConnectDB.getInstance().getConnection();
