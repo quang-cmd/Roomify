@@ -326,7 +326,7 @@ public class ShiftOpeningPanel extends BackgroundPanel {
             if (!success) {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Mở ca thất bại.",
+                        "Mở ca thất bại. Vui lòng kiểm tra ca hiện tại có được phân công cho tài khoản này không.",
                         "Lỗi",
                         JOptionPane.ERROR_MESSAGE
                 );

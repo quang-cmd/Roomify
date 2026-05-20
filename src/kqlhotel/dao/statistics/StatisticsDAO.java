@@ -38,16 +38,15 @@ public class StatisticsDAO {
     }
 
     public int countOccupiedRooms() {
-        return countQuery(
-            "SELECT COUNT(DISTINCT ctdp.maPhong) " +
-            "FROM DatPhong dp " +
-            "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
-            "WHERE dp.trangThaiDatPhong = 'DangO'"
-        );
+        return countQuery("SELECT COUNT(*) FROM Phong WHERE trangThaiPhong = 'DangSuDung'");
     }
 
     public int countBookings(LocalDateTime start, LocalDateTime end) {
-        String sql = "SELECT COUNT(*) FROM DatPhong WHERE ngayDat BETWEEN ? AND ?";
+        String sql =
+            "SELECT COUNT(*) " +
+            "FROM DatPhong " +
+            "WHERE ngayDat >= ? AND ngayDat < ? " +
+            "  AND trangThaiDatPhong <> 'DaHuy'";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -451,7 +450,9 @@ public class StatisticsDAO {
             "    FROM ChiTietHoaDon cthd " +
             "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "    JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
-            "    WHERE cthd.ngayNhanPhong IS NOT NULL AND dp.trangThaiDatPhong <> 'DaHuy' " +
+            "    WHERE cthd.ngayNhanPhong IS NOT NULL " +
+            "      AND dp.trangThaiDatPhong <> 'DaHuy' " +
+            "      AND hd.trangThai <> 'DaHuy' " +
             "    UNION " +
             "    SELECT CAST(ctdp.ngayNhanDuKien AS DATE) AS inDate, " +
             "           CAST(ctdp.ngayTraDuKien AS DATE) AS outDate, " +
@@ -513,6 +514,7 @@ public class StatisticsDAO {
             "    JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "    WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "      AND dp.trangThaiDatPhong <> 'DaHuy'" +
+            "      AND hd.trangThai <> 'DaHuy'" +
             "    GROUP BY CAST(cthd.ngayNhanPhong AS DATE)" +
             ")" +
             "SELECT ds.dt AS date, " +
@@ -557,7 +559,8 @@ public class StatisticsDAO {
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND dp.trangThaiDatPhong <> 'DaHuy'";
+            "  AND dp.trangThaiDatPhong <> 'DaHuy' " +
+            "  AND hd.trangThai <> 'DaHuy'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -599,7 +602,8 @@ public class StatisticsDAO {
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "  AND dp.trangThaiDatPhong <> 'DaHuy'";
+            "  AND dp.trangThaiDatPhong <> 'DaHuy' " +
+            "  AND hd.trangThai <> 'DaHuy'";
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {

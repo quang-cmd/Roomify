@@ -96,6 +96,18 @@ public class ShiftDAO {
             if (activeMaNV != null && !activeMaNV.isBlank() && !activeMaNV.equals(maNV)) {
                 return false;
             }
+            if (activeMaNV != null && activeMaNV.equals(maNV)) {
+                return true;
+            }
+
+            AssignedShift assignedShift = getNextAssignedShiftToday(con);
+            if (assignedShift != null) {
+                if (!assignedShift.maNV.equals(maNV)) {
+                    return false;
+                }
+
+                return activateAssignedShift(con, maNV, assignedShift.maCa, tienMoCa);
+            }
 
             String maCa = findCurrentMaCa(con);
             if (maCa == null) return false;
@@ -113,6 +125,12 @@ public class ShiftDAO {
             // Neu khong co lich phan cong phu hop moi tao ca phat sinh.
             if (activateAssignedShift(con, maNV, maCa, tienMoCa)) {
                 return true;
+            }
+
+            // Khi trong ngay da co lich phan cong san, khong cho tao ca phat sinh
+            // de tranh nhan vien ca cu mo chen vao ca sap toi cua nguoi khac.
+            if (hasAssignedShiftToday(con)) {
+                return false;
             }
 
             String maPC = nextMaPC(con);
@@ -135,6 +153,30 @@ public class ShiftDAO {
             }
 
             return true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean canOpenShift(String maNV) {
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+
+        String activeMaNV = getLatestOpenShiftStaffId();
+        if (activeMaNV != null && !activeMaNV.isBlank()) {
+            return activeMaNV.equals(maNV);
+        }
+
+        Connection con = ConnectDB.getConnection();
+        if (con == null) {
+            return false;
+        }
+
+        try {
+            AssignedShift assignedShift = getNextAssignedShiftToday(con);
+            return assignedShift == null || assignedShift.maNV.equals(maNV);
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
@@ -184,6 +226,50 @@ public class ShiftDAO {
         return null;
     }
 
+    private AssignedShift getNextAssignedShiftToday(Connection con) throws SQLException {
+        String sql = """
+            SELECT TOP 1 pc.maNV, pc.maCa
+            FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
+            WHERE pc.trangThai = N'DaPhanCong'
+              AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE)
+            ORDER BY
+                CASE cl.loaiCa
+                    WHEN 'CaSang' THEN 1
+                    WHEN 'CaChieu' THEN 2
+                    WHEN 'CaToi' THEN 3
+                    ELSE 4
+                END,
+                pc.maPC ASC
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new AssignedShift(
+                    rs.getString("maNV"),
+                    rs.getString("maCa")
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private boolean hasAssignedShiftToday(Connection con) throws SQLException {
+        String sql = """
+            SELECT COUNT(*)
+            FROM PhanCongCa
+            WHERE trangThai = N'DaPhanCong'
+              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt(1) > 0;
+        }
+    }
+
     private boolean hasOpenShift(Connection con, String maNV, String maCa) throws SQLException {
         String sql = "SELECT COUNT(*) FROM PhanCongCa WHERE maNV = ? AND maCa = ? AND trangThai = N'DangMo'";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -214,6 +300,16 @@ public class ShiftDAO {
             }
         }
         return "PC001";
+    }
+
+    private static class AssignedShift {
+        private final String maNV;
+        private final String maCa;
+
+        private AssignedShift(String maNV, String maCa) {
+            this.maNV = maNV;
+            this.maCa = maCa;
+        }
     }
 
     public ShiftInfo getOpenShiftByStaff(String maNV) {
