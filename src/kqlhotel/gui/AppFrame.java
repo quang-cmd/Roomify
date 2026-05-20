@@ -631,6 +631,18 @@ public class AppFrame extends JFrame {
         ShiftBUS shiftBUS = new ShiftBUS();
         String activeMaNV = shiftBUS.getLatestOpenShiftStaffId();
 
+        if (!shiftBUS.canOpenShift(maNV)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Tài khoản này không được phân công cho ca đang chờ mở gần nhất.",
+                    "Không thể mở ca",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            Session.clear();
+            showCleanLoginScreen();
+            return;
+        }
+
         if (activeMaNV == null || activeMaNV.isBlank()) {
             showTransition("shift", "Đăng nhập thành công", "Đang mở màn hình kiểm kê tiền đầu ca...");
             return;
