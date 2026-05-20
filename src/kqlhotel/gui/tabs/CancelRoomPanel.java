@@ -1019,25 +1019,27 @@ public class CancelRoomPanel extends JPanel {
                 }
             }
 
-            // 4. Ghi nhận hoàn tiền cọc (theo phần phòng này)
-            if (refund > 0) {
-                String newMaTT = getNextMaTT(con);
-                try (PreparedStatement pst = con.prepareStatement(
-                        "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu," +
-                        " phuongThucTT, trangThaiTT, maHD, maNV, loaiGD)" +
-                        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-                    pst.setString(1, newMaTT);
-                    pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-                    pst.setDouble(3, refund);
-                    pst.setString(4, "Hoàn cọc hủy phòng " + maPhong
-                                     + (remainingRooms > 0 ? " (còn " + remainingRooms + " phòng)" : " (hủy toàn bộ)"));
-                    pst.setString(5, "TienMat");
-                    pst.setString(6, "DaHuy");
-                    pst.setString(7, maHD);
-                    pst.setString(8, "NV001");
-                    pst.setString(9, "HoanTien");
-                    pst.executeUpdate();
-                }
+            // 4. Ghi nhận giao dịch hoàn tiền/hủy cọc (luôn ghi nhận để lưu vết giao dịch hủy phòng)
+            String newMaTT = getNextMaTT(con);
+            try (PreparedStatement pst = con.prepareStatement(
+                    "INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu," +
+                    " phuongThucTT, trangThaiTT, maHD, maNV, loaiGD)" +
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                pst.setString(1, newMaTT);
+                pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+                pst.setDouble(3, refund);
+                
+                String note = refund > 0
+                        ? "Hoàn cọc hủy phòng " + maPhong + (remainingRooms > 0 ? " (còn " + remainingRooms + " phòng)" : " (hủy toàn bộ)")
+                        : "Hủy phòng " + maPhong + " - Không hoàn cọc" + (remainingRooms > 0 ? " (còn " + remainingRooms + " phòng)" : " (hủy toàn bộ)");
+                
+                pst.setString(4, note);
+                pst.setString(5, "TienMat");
+                pst.setString(6, "DaHuy");
+                pst.setString(7, maHD);
+                pst.setString(8, "NV001");
+                pst.setString(9, "HoanTien");
+                pst.executeUpdate();
             }
 
             con.commit();
