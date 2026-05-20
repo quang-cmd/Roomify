@@ -352,7 +352,7 @@ public class CancelRoomPanel extends JPanel {
 
         JPanel polGrid = new JPanel(new MigLayout("insets 0, gap 6", "[grow,fill][grow,fill]", "[]4[]"));
         polGrid.setOpaque(false);
-        polGrid.add(createMoneyBox("Tiền cọc đã nhận", lblTienCoc));
+        polGrid.add(createMoneyBox((selectedBooking != null && selectedBooking.isFullyPaid) ? "Tiền phòng đã nhận" : "Tiền cọc đã nhận", lblTienCoc));
         polGrid.add(createMoneyBox("Tiền bị trừ", lblTienTru), "wrap");
         polGrid.add(createMoneyBox("Tiền hoàn lại", lblTienHoan));
         polGrid.add(createMoneyBox("Trạng thái phòng", lblTrangThai));
@@ -425,40 +425,30 @@ public class CancelRoomPanel extends JPanel {
         lblTienCoc.setText(df.format(deposit));
         lblTrangThai.setText("Trống");
 
-        if (isFullyPaid) {
-            lblTienTru.setText("0đ");
-            lblTienHoan.setText("0đ");
-            lblTrangThai.setText("Giữ nguyên");
-            polSub.setText("Đã thanh toán toàn bộ: Phòng được giữ nguyên.");
-            polEnd.setText("Khách hàng thanh toán toàn bộ tiền phòng trước sẽ không bị hủy hay mất phòng.");
-            return;
-        }
-
         long daysBefore = java.time.temporal.ChronoUnit.DAYS.between(cancelTime.toLocalDate(), checkInTime.toLocalDate());
-
         double penalty = 0;
+        String typeText = isFullyPaid ? "tiền phòng" : "cọc";
 
         if (cancelTime.isAfter(checkInTime)) {
             penalty = deposit;
-            polSub.setText("Hủy sau giờ nhận phòng: Phạt 100% cọc.");
-            polEnd.setText("Quá giờ nhận phòng quy định, khách bị phạt toàn bộ tiền cọc.");
+            polSub.setText("Hủy sau giờ nhận phòng: Phạt 100% " + typeText + ".");
+            polEnd.setText("Quá giờ nhận phòng quy định, khách bị phạt toàn bộ " + (isFullyPaid ? "tiền phòng" : "tiền cọc") + ".");
         } else if (daysBefore <= 5) {
-            // Bao gồm cả hủy trong ngày (daysBefore = 0) và 1-5 ngày trước
             penalty = deposit;
-            polSub.setText("Hủy trong vòng 1-5 ngày trước check-in: Phạt 100% cọc.");
-            polEnd.setText("Thời điểm hủy quá sát ngày nhận phòng, phạt 100% số tiền cọc.");
+            polSub.setText("Hủy trong vòng 1-5 ngày trước check-in: Phạt 100% " + typeText + ".");
+            polEnd.setText("Thời điểm hủy quá sát ngày nhận phòng, phạt 100% số " + (isFullyPaid ? "tiền phòng" : "tiền cọc") + ".");
         } else if (daysBefore <= 10) {
             penalty = deposit * 0.5;
-            polSub.setText("Hủy trong vòng 6-10 ngày trước check-in: Phạt 50% cọc.");
-            polEnd.setText("Thời điểm hủy nằm trong khoảng 6-10 ngày, phạt 50% số tiền cọc.");
+            polSub.setText("Hủy trong vòng 6-10 ngày trước check-in: Phạt 50% " + typeText + ".");
+            polEnd.setText("Thời điểm hủy nằm trong khoảng 6-10 ngày, phạt 50% số " + (isFullyPaid ? "tiền phòng" : "tiền cọc") + ".");
         } else if (daysBefore <= 15) {
             penalty = 0;
             polSub.setText("Hủy trong vòng 11-15 ngày trước check-in: Không mất phí.");
-            polEnd.setText("Thời điểm hủy nằm trong khoảng 11-15 ngày, khách được hoàn 100% cọc.");
+            polEnd.setText("Thời điểm hủy nằm trong khoảng 11-15 ngày, khách được hoàn 100% " + typeText + ".");
         } else {
             penalty = 0;
             polSub.setText("Hủy trước trên 15 ngày: Không mất phí.");
-            polEnd.setText("Khách thông báo hủy sớm trên 15 ngày, được hoàn lại toàn bộ tiền cọc.");
+            polEnd.setText("Khách thông báo hủy sớm trên 15 ngày, được hoàn lại toàn bộ " + typeText + ".");
         }
 
         this.computedPenalty = penalty;
@@ -590,7 +580,7 @@ public class CancelRoomPanel extends JPanel {
         JPanel moneyRow = new JPanel(new MigLayout("insets 0, gap 8", "[grow,fill][grow,fill]", "[]"));
         moneyRow.setOpaque(false);
         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###đ");
-        moneyRow.add(createMoneyBox("Tiền cọc", df.format(b.tienCoc)));
+        moneyRow.add(createMoneyBox(b.isFullyPaid ? "Tiền phòng" : "Tiền cọc", df.format(b.tienCoc)));
         moneyRow.add(createMoneyBox("Đã thanh toán", b.isFullyPaid ? "Toàn bộ" : df.format(b.tienCoc)));
         card.add(moneyRow, "gapy 4 4");
 
@@ -881,7 +871,7 @@ public class CancelRoomPanel extends JPanel {
                 "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
                 "JOIN KhachHang kh ON dp.maKH = kh.maKH " +
                 "JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
-                "WHERE hd.trangThai = 'ChuaThanhToan' " +
+                "WHERE hd.trangThai IN ('ChuaThanhToan', 'DaThanhToan') " +
                 "AND NOT EXISTS (SELECT 1 FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD AND cthd.maPhong = ctdp.maPhong) ";
 
         try (Connection con = ConnectDB.getConnection();
