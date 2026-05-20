@@ -45,6 +45,7 @@ import kqlhotel.gui.theme.ThemeColors;
 import kqlhotel.gui.utils.IconLoader;
 import kqlhotel.gui.model.RoomCardData;
 import kqlhotel.gui.components.RoomCard;
+import kqlhotel.gui.Session;
 import javax.swing.JDialog;
 import net.miginfocom.swing.MigLayout;
 
@@ -1033,7 +1034,12 @@ public class BookingPanel extends JPanel {
             adultsCount,
             childrenCount,
             guestInfos,
-            toSelectedRoomOptions()
+            toSelectedRoomOptions(),
+            0L,
+            CreateBookingCommand.FULL_RATIO,
+            "TienMat",
+            "",
+            currentStaffId()
         );
 
         BookingConfirmationResult result = bookingService.createBooking(command);
@@ -1054,6 +1060,10 @@ public class BookingPanel extends JPanel {
         if (win instanceof kqlhotel.gui.AppFrame) {
             ((kqlhotel.gui.AppFrame) win).refreshRoomManagementData();
         }
+    }
+
+    private String currentStaffId() {
+        return Session.currentStaff == null ? null : Session.currentStaff.getMaNV();
     }
 
     private void submitBookingWithPayment(String paymentPlanLabel, double paymentRatio) {
@@ -1148,7 +1158,8 @@ public class BookingPanel extends JPanel {
             totalAmount,
             paymentRatio,
             paymentCodes[choice],
-            referenceNumber
+            referenceNumber,
+            currentStaffId()
         );
 
         BookingConfirmationResult result = bookingService.createBooking(command);

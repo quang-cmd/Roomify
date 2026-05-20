@@ -9,6 +9,7 @@ public class Payment {
     private String ghiChu;
     private String phuongThucTT;
     private String trangThaiTT;
+    private String loaiGiaoDich = "Thu";
     private String maHD;
     private String maPC;
     private String maNV;
@@ -17,12 +18,19 @@ public class Payment {
 
     public Payment(String maTT, LocalDateTime ngayTT, double soTienTT, String ghiChu,
                    String phuongThucTT, String trangThaiTT, String maHD, String maPC, String maNV) {
+        this(maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT, "Thu", maHD, maPC, maNV);
+    }
+
+    public Payment(String maTT, LocalDateTime ngayTT, double soTienTT, String ghiChu,
+                   String phuongThucTT, String trangThaiTT, String loaiGiaoDich,
+                   String maHD, String maPC, String maNV) {
         this.maTT = maTT;
         this.ngayTT = ngayTT;
         this.soTienTT = soTienTT;
         this.ghiChu = ghiChu;
         this.phuongThucTT = phuongThucTT;
         this.trangThaiTT = trangThaiTT;
+        this.loaiGiaoDich = normalizeLoaiGiaoDich(loaiGiaoDich);
         this.maHD = maHD;
         this.maPC = maPC;
         this.maNV = maNV;
@@ -46,6 +54,11 @@ public class Payment {
     public String getTrangThaiTT() { return trangThaiTT; }
     public void setTrangThaiTT(String trangThaiTT) { this.trangThaiTT = trangThaiTT; }
 
+    public String getLoaiGiaoDich() { return loaiGiaoDich; }
+    public void setLoaiGiaoDich(String loaiGiaoDich) {
+        this.loaiGiaoDich = normalizeLoaiGiaoDich(loaiGiaoDich);
+    }
+
     public String getMaHD() { return maHD; }
     public void setMaHD(String maHD) { this.maHD = maHD; }
 
@@ -54,4 +67,8 @@ public class Payment {
 
     public String getMaNV() { return maNV; }
     public void setMaNV(String maNV) { this.maNV = maNV; }
+
+    private String normalizeLoaiGiaoDich(String loaiGiaoDich) {
+        return loaiGiaoDich == null || loaiGiaoDich.isBlank() ? "Thu" : loaiGiaoDich;
+    }
 }

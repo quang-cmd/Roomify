@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import kqlhotel.bus.payment.PaymentBUS;
+import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.dao.ConnectDB;
 import kqlhotel.dao.booking.RoomDao;
 import kqlhotel.dao.booking.RoomDaoSqlServer;
@@ -27,6 +28,7 @@ public class SqlBookingService implements BookingService {
     private static final double VAT_RATE = 0.10;
     private final RoomDao roomDao;
     private final PaymentBUS paymentBUS = new PaymentBUS();
+    private final ShiftBUS shiftBUS = new ShiftBUS();
 
     public SqlBookingService() {
         this(new RoomDaoSqlServer());
@@ -170,8 +172,11 @@ public class SqlBookingService implements BookingService {
                 }
             }
 
-            // 3. Resolve maNV (default to first active staff)
-            String maNV = resolveStaffId(con);
+            // 3. Resolve maNV from the logged-in staff, fallback only for legacy callers.
+            String maNV = command.getStaffId();
+            if (maNV == null || maNV.isBlank()) {
+                maNV = resolveStaffId(con);
+            }
             if (maNV == null) {
                 con.rollback();
                 return fail("Khong tim thay nhan vien xu ly.");
@@ -291,6 +296,12 @@ public class SqlBookingService implements BookingService {
                 note = note + " - Ref: " + command.getPaymentReference();
             }
 
+            String maPC = shiftBUS.getOpenShiftIdByStaff(maNV);
+            if (maPC == null || maPC.isBlank()) {
+                con.rollback();
+                return fail("Nhan vien chua mo ca, khong the ghi nhan thanh toan dat phong.");
+            }
+
             Payment payment = new Payment(
                 paymentBUS.getNextId(con),
                 now,
@@ -298,8 +309,9 @@ public class SqlBookingService implements BookingService {
                 note,
                 command.getPaymentMethod(),
                 "ThanhToanThanhCong",
+                "Thu",
                 maHD,
-                null,
+                maPC,
                 maNV
             );
 
@@ -433,15 +445,14 @@ public class SqlBookingService implements BookingService {
             }
         }
 
-        // Avoid SDT collision: if phone already exists for someone else, return that maKH
+        // Chi auto-fill/nhan dien khach cu theo CCCD. SDT trung nhung CCCD khac
+        // la du lieu cua khach khac, khong duoc tu dong gop nham nguoi.
         if (guest.getPhone() != null && !guest.getPhone().trim().isEmpty()) {
             try (PreparedStatement ps = con.prepareStatement("SELECT maKH FROM KhachHang WHERE sdt = ?")) {
                 ps.setString(1, guest.getPhone().trim());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        String maKH = rs.getString(1);
-                        updateCustomerContact(con, maKH, guest);
-                        return maKH;
+                        return null;
                     }
                 }
             }
