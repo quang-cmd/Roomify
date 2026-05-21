@@ -70,28 +70,29 @@ public class InvoicesBUS {
         if ("DaHuy".equals(hd.getTrangThai())) {
             return "DaHuy";
         }
-        if ("DaThanhToan".equals(hd.getTrangThai())) {
-            return "DaThanhToan";
-        }
-        
+
         List<InvoiceDetail> roomDetails = getRoomDetails(hd.getMaHD());
+
         if (roomDetails == null || roomDetails.isEmpty()) {
             return "ChuaThanhToan";
         }
 
-        int paid = 0;
+        int returned = 0;
+
         for (InvoiceDetail ct : roomDetails) {
             if (ct.getNgayTraThucTe() != null) {
-                paid++;
+                returned++;
             }
         }
 
-        if (paid == 0) {
+        if (returned == 0) {
             return "ChuaThanhToan";
         }
-        if (paid == roomDetails.size()) {
+
+        if (returned == roomDetails.size()) {
             return "DaThanhToan";
         }
+
         return "DangThanhToan";
     }
 
