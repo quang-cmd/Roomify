@@ -383,7 +383,7 @@ public class InvoicePreviewDialog extends JDialog {
         panel.add(line("Số đêm", soDemText));
         panel.add(line("Đơn giá phòng", CurrencyUtils.formatVND(donGiaPhong)));
         if (phuThuHienThi > 0) {
-            panel.add(line("Phụ thu", CurrencyUtils.formatVND(phuThuHienThi)));
+            panel.add(line("Phụ thu nhận sớm", CurrencyUtils.formatVND(phuThuHienThi)));
         }
 
         if (phiPhatHienThi > 0) {
@@ -406,7 +406,7 @@ public class InvoicePreviewDialog extends JDialog {
         }
         panel.add(sectionTitle("TỔNG TIỀN HÓA ĐƠN"));
         panel.add(line("Tiền phòng", CurrencyUtils.formatVND(tongTienPhongHienThi)));
-        panel.add(line("Phụ thu", CurrencyUtils.formatVND(phuThuHienThi)));
+        panel.add(line("Phụ thu nhận sớm", CurrencyUtils.formatVND(phuThuHienThi)));
         panel.add(line("Phí trả phòng sớm / trễ", CurrencyUtils.formatVND(phiPhatHienThi)));
         panel.add(line("Tiền dịch vụ", CurrencyUtils.formatVND(tongTienDichVuHienThi)));
         panel.add(line("Thuế VAT (10%)", CurrencyUtils.formatVND(tienThueHienThi)));

@@ -398,6 +398,10 @@ public class CheckoutBUS {
     private RoomCharge calculateRoomCharge(Invoice hd, InvoiceDetail ct, LocalDateTime actualOut) {
         double pricePerNight = getBookingRoomPrice(hd.getMaDatPhong(), ct.getMaPhong());
 
+        System.out.println("DEBUG PRICE maDP=" + hd.getMaDatPhong()
+                + ", maPhong=" + ct.getMaPhong()
+                + ", price=" + pricePerNight);
+
         if (pricePerNight <= 0) {
             Room room = roomDAO.getById(ct.getMaPhong());
             if (room == null) {
@@ -429,84 +433,12 @@ public class CheckoutBUS {
         }
 
         int actualNights = (int) ChronoUnit.DAYS.between(
-                billingIn.toLocalDate(),
-                actualOut.toLocalDate()
+                expectedIn.toLocalDate(),
+                expectedOut.toLocalDate()
         );
 
         if (actualNights < 1) {
             actualNights = 1;
-        }
-
-        /*
-         * Nhận phòng quá sớm:
-         * Nếu nhận trước ngày dự kiến thì số ngày ở thực tế đã bao gồm rồi.
-         * Nếu cùng ngày nhưng trước 5h sáng thì cộng thêm 1 đêm.
-         */
-        if (expectedIn != null && actualIn.isBefore(expectedIn)) {
-            if (actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())
-                    && actualIn.getHour() < 5) {
-                actualNights += 1;
-            }
-        }
-
-        /*
-         * Trả phòng trễ:
-         * Nếu trả trễ khác ngày thì số ngày thực tế đã bao gồm rồi.
-         * Nếu cùng ngày nhưng trễ hơn 6 tiếng thì cộng thêm 1 đêm.
-         */
-        if (expectedOut != null && actualOut.isAfter(expectedOut)
-                && actualOut.toLocalDate().isEqual(expectedOut.toLocalDate())) {
-
-            int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
-            int actualMinutesOfDay = actualOut.getHour() * 60 + actualOut.getMinute();
-
-            int lateMinutesInDay = actualMinutesOfDay - expectedMinutes;
-
-            if (lateMinutesInDay > 6 * 60) {
-                actualNights += 1;
-            }
-        }
-
-        if (expectedOut != null && actualOut != null && actualOut.isAfter(expectedOut)) {
-            long lateDays = ChronoUnit.DAYS.between(
-                    expectedOut.toLocalDate(),
-                    actualOut.toLocalDate()
-            );
-
-            if (lateDays > 0) {
-                actualNights += (int) lateDays;
-            }
-
-            int expectedMinutes = expectedOut.getHour() * 60 + expectedOut.getMinute();
-            int actualMinutesOfDay = actualOut.getHour() * 60 + actualOut.getMinute();
-
-            int lateMinutesInDay = actualMinutesOfDay - expectedMinutes;
-
-            if (lateMinutesInDay > 6 * 60) {
-                actualNights += 1;
-            }
-        }
-
-        /*
-         * Nhận phòng quá sớm:
-         * Nếu khách nhận trước ngày/giờ dự kiến, cùng ngày dự kiến và trước 5h sáng
-         * thì tính thêm 1 đêm vào tiền phòng.
-         */
-        if (expectedIn != null && actualIn.isBefore(expectedIn)) {
-            if (!actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())) {
-                long earlyDays = ChronoUnit.DAYS.between(
-                        actualIn.toLocalDate(),
-                        expectedIn.toLocalDate()
-                );
-
-                if (earlyDays < 1) {
-                    earlyDays = 1;
-                }
-
-                actualNights += (int) earlyDays;
-            } else if (actualIn.getHour() < 5) {
-                actualNights += 1;
-            }
         }
 
         double roomFee = actualNights * pricePerNight;
@@ -522,6 +454,15 @@ public class CheckoutBUS {
         double earlyCheckoutPenalty = calculateEarlyCheckoutPenalty(expectedOut, actualOut, pricePerNight);
 
         double checkoutPenalty = lateCheckoutPenalty + earlyCheckoutPenalty;
+
+        System.out.println("DEBUG expectedIn=" + expectedIn);
+        System.out.println("DEBUG actualIn=" + actualIn);
+        System.out.println("DEBUG expectedOut=" + expectedOut);
+        System.out.println("DEBUG actualOut=" + actualOut);
+        System.out.println("DEBUG actualNights=" + actualNights);
+        System.out.println("DEBUG roomFee=" + roomFee);
+        System.out.println("DEBUG surcharge=" + surcharge);
+        //System.out.println("DEBUG penalty=" + penalty);
 
         return new RoomCharge(actualNights, roomFee, surcharge, taxableRoomFee, checkoutPenalty);
     }
@@ -579,29 +520,38 @@ public class CheckoutBUS {
     private double calculateEarlyCheckinFee(LocalDateTime expectedIn,
                                             LocalDateTime actualIn,
                                             double pricePerNight) {
-        if (expectedIn == null || actualIn == null) return 0;
-
-        // Không đến sớm thì không phụ thu
-        if (!actualIn.isBefore(expectedIn)) return 0;
-
-        if (!actualIn.toLocalDate().isEqual(expectedIn.toLocalDate())) {
+        if (expectedIn == null || actualIn == null || !actualIn.isBefore(expectedIn)) {
             return 0;
+        }
+
+        // Nhận sớm trước ngày dự kiến: phụ thu 100% mỗi ngày nhận sớm
+        if (actualIn.toLocalDate().isBefore(expectedIn.toLocalDate())) {
+            long earlyDays = ChronoUnit.DAYS.between(
+                    actualIn.toLocalDate(),
+                    expectedIn.toLocalDate()
+            );
+
+            if (earlyDays < 1) {
+                earlyDays = 1;
+            }
+
+            return earlyDays * pricePerNight;
         }
 
         int hour = actualIn.getHour();
 
-        // Cùng ngày, trước 5h: đã cộng thêm 1 đêm trong calculateRoomCharge()
+        // Cùng ngày nhưng nhận trước 05:00: phụ thu 100%
         if (hour < 5) {
-            return 0;
+            return pricePerNight;
         }
 
-        // Cùng ngày, 5h-11h: phụ thu 50%
+        // 05:00 - trước 11:00: phụ thu 50%
         if (hour < 11) {
-            return pricePerNight * 0.50;
+            return pricePerNight * 0.5;
         }
 
-        // Cùng ngày, 11h-14h: phụ thu 25%
-        if (hour < 14) {
+        // 11:00 - trước giờ nhận dự kiến: phụ thu 25%
+        if (actualIn.isBefore(expectedIn)) {
             return pricePerNight * 0.25;
         }
 
@@ -1065,7 +1015,7 @@ public class CheckoutBUS {
         // Chỉ tính phí trả phòng sớm nếu khách trả trước NGÀY trả dự kiến.
         // Ví dụ dự kiến trả 09/05 nhưng thực tế trả 07/05.
         if (actualOut.toLocalDate().isBefore(expectedOut.toLocalDate())) {
-            return pricePerNight;
+            return pricePerNight * 0.5;
         }
 
         return 0;
