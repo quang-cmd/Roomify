@@ -91,7 +91,9 @@ public class PaymentDAO {
         }
 
         String sql =
-                "SELECT COALESCE(SUM(soTienTT), 0) AS totalPaid " +
+                "SELECT COALESCE(SUM(CASE " +
+                "  WHEN loaiGD = 'HoanTien' THEN -soTienTT " +
+                "  ELSE soTienTT END), 0) AS totalPaid " +
                 "FROM ThanhToan " +
                 "WHERE maHD = ? AND trangThaiTT = 'ThanhToanThanhCong'";
 

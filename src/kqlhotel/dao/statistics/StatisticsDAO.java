@@ -498,32 +498,49 @@ public class StatisticsDAO {
      */
     public List<HotelKpiPoint> getAdrTrend(LocalDate start, LocalDate end) {
         List<HotelKpiPoint> list = new ArrayList<>();
-        String sql =
-            "WITH DateSeries AS (" +
-            "    SELECT CAST(? AS DATE) AS dt " +
-            "    UNION ALL" +
-            "    SELECT DATEADD(DAY, 1, dt) FROM DateSeries WHERE dt < ?" +
-            ")," +
-            "DailyStats AS (" +
-            "    SELECT CAST(cthd.ngayNhanPhong AS DATE) AS dt, " +
-            "           SUM(cthd.thanhTien) AS roomRevenue, " +
-            "           SUM(cthd.soDem) AS totalNights, " +
-            "           COUNT(DISTINCT cthd.maPhong) AS roomsSold " +
-            "    FROM ChiTietHoaDon cthd " +
-            "    JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
-            "    JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
-            "    WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
-            "      AND dp.trangThaiDatPhong <> 'DaHuy'" +
-            "      AND hd.trangThai <> 'DaHuy'" +
-            "    GROUP BY CAST(cthd.ngayNhanPhong AS DATE)" +
-            ")" +
-            "SELECT ds.dt AS date, " +
-            "       COALESCE(ds2.roomRevenue / NULLIF(ds2.totalNights, 0), 0) AS adr, " +
-            "       0 AS revpar, 0 AS trevpar " +
-            "FROM DateSeries ds " +
-            "LEFT JOIN DailyStats ds2 ON ds.dt = ds2.dt " +
-            "ORDER BY ds.dt " +
-            "OPTION (MAXRECURSION 0)";
+        String sql = """
+            WITH DateSeries AS (
+                SELECT CAST(? AS DATE) AS dt
+                UNION ALL
+                SELECT DATEADD(DAY, 1, dt) FROM DateSeries WHERE dt < ?
+            ),
+            TotalRooms AS (
+                SELECT COUNT(*) AS cnt FROM Phong WHERE trangThaiPhong <> 'BaoTri'
+            ),
+            RoomStats AS (
+                SELECT CAST(cthd.ngayNhanPhong AS DATE) AS dt,
+                       SUM(cthd.thanhTien) AS roomRevenue,
+                       SUM(cthd.soDem) AS totalRoomNights
+                FROM ChiTietHoaDon cthd
+                JOIN HoaDon hd ON cthd.maHD = hd.maHD
+                JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong
+                WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ?
+                  AND dp.trangThaiDatPhong <> 'DaHuy'
+                  AND hd.trangThai <> 'DaHuy'
+                GROUP BY CAST(cthd.ngayNhanPhong AS DATE)
+            ),
+            PaymentStats AS (
+                SELECT CAST(ngayTT AS DATE) AS dt,
+                       SUM(CASE
+                           WHEN loaiGD = 'HoanTien' THEN -soTienTT
+                           ELSE soTienTT
+                       END) AS totalRevenue
+                FROM ThanhToan
+                WHERE ngayTT >= ? AND ngayTT < ?
+                  AND trangThaiTT = 'ThanhToanThanhCong'
+                GROUP BY CAST(ngayTT AS DATE)
+            )
+            SELECT ds.dt AS date,
+                   COALESCE(rs.roomRevenue / NULLIF(CAST(rs.totalRoomNights AS DECIMAL(18, 2)), 0), 0) AS adr,
+                   COALESCE(rs.roomRevenue / NULLIF(CAST(tr.cnt AS DECIMAL(18, 2)), 0), 0) AS revpar,
+                   COALESCE(ps.totalRevenue / NULLIF(CAST(tr.cnt AS DECIMAL(18, 2)), 0), 0) AS trevpar
+            FROM DateSeries ds
+            CROSS JOIN TotalRooms tr
+            LEFT JOIN RoomStats rs ON ds.dt = rs.dt
+            LEFT JOIN PaymentStats ps ON ds.dt = ps.dt
+            ORDER BY ds.dt
+            OPTION (MAXRECURSION 0)
+        """;
 
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -531,11 +548,15 @@ public class StatisticsDAO {
             ps.setDate(2, java.sql.Date.valueOf(end));
             ps.setTimestamp(3, Timestamp.valueOf(start.atStartOfDay()));
             ps.setTimestamp(4, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
+            ps.setTimestamp(5, Timestamp.valueOf(start.atStartOfDay()));
+            ps.setTimestamp(6, Timestamp.valueOf(end.plusDays(1).atStartOfDay()));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     LocalDate date = rs.getDate("date").toLocalDate();
                     double adr = rs.getDouble("adr");
-                    list.add(new HotelKpiPoint(date, adr, 0, 0));
+                    double revpar = rs.getDouble("revpar");
+                    double trevpar = rs.getDouble("trevpar");
+                    list.add(new HotelKpiPoint(date, adr, revpar, trevpar));
                 }
             }
         } catch (SQLException e) {
