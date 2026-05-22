@@ -6,6 +6,7 @@ public class LoaiPhong {
     private int soLuongPhong;
     private double giaPhong;
     private int sucChuaToiDa;
+    private int soTreEmTD;
     private Double dienTich;
     private String moTa;
     private String tienNghi;
@@ -14,11 +15,16 @@ public class LoaiPhong {
     }
 
     public LoaiPhong(String maLoaiPhong, String tenLoaiPhong, int soLuongPhong, double giaPhong, int sucChuaToiDa, Double dienTich, String moTa, String tienNghi) {
+        this(maLoaiPhong, tenLoaiPhong, soLuongPhong, giaPhong, sucChuaToiDa, 0, dienTich, moTa, tienNghi);
+    }
+
+    public LoaiPhong(String maLoaiPhong, String tenLoaiPhong, int soLuongPhong, double giaPhong, int sucChuaToiDa, int soTreEmTD, Double dienTich, String moTa, String tienNghi) {
         this.maLoaiPhong = maLoaiPhong;
         this.tenLoaiPhong = tenLoaiPhong;
         this.soLuongPhong = soLuongPhong;
         this.giaPhong = giaPhong;
         this.sucChuaToiDa = sucChuaToiDa;
+        this.soTreEmTD = soTreEmTD;
         this.dienTich = dienTich;
         this.moTa = moTa;
         this.tienNghi = tienNghi;
@@ -48,6 +54,11 @@ public class LoaiPhong {
     public int getMaxCapacity() { return sucChuaToiDa; }
     public void setSucChuaToiDa(int sucChuaToiDa) { this.sucChuaToiDa = sucChuaToiDa; }
     public void setMaxCapacity(int max) { this.sucChuaToiDa = max; }
+
+    public int getSoTreEmTD() { return soTreEmTD; }
+    public int getMaxChildren() { return soTreEmTD; }
+    public void setSoTreEmTD(int soTreEmTD) { this.soTreEmTD = soTreEmTD; }
+    public void setMaxChildren(int maxChildren) { this.soTreEmTD = maxChildren; }
 
     public Double getDienTich() { return dienTich; }
     public Double getArea() { return dienTich; }
