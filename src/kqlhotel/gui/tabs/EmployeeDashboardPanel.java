@@ -20,6 +20,7 @@ public class EmployeeDashboardPanel extends JPanel {
     private static final Color SURFACE = new Color(255, 255, 255, 238);
     private static final Color BORDER = new Color(222, 226, 235);
     private static final Color MUTED = new Color(100, 116, 139);
+    private static final Color LINE = new Color(203, 213, 225, 180);
 
     private Image backgroundImage;
 
@@ -171,12 +172,15 @@ public class EmployeeDashboardPanel extends JPanel {
         RoundedPanel panel = cardPanel(new MigLayout(
                 "wrap 1,insets 20,gap 12,fill",
                 "[grow,fill]",
-                "[]8[grow,fill]14[]8[grow,fill]"
+                "[]4[]8[grow,fill]14[]4[]8[grow,fill]"
         ));
 
         panel.add(sectionTitle("Lịch nhận phòng hôm nay"));
+        panel.add(divider(), "growx");
         panel.add(wrapScroll(checkInList), "grow");
+
         panel.add(sectionTitle("Lịch trả phòng hôm nay"));
+        panel.add(divider(), "growx");
         panel.add(wrapScroll(checkOutList), "grow");
 
         return panel;
@@ -197,8 +201,9 @@ public class EmployeeDashboardPanel extends JPanel {
     }
 
     private JPanel buildShiftCard() {
-        RoundedPanel panel = cardPanel(new MigLayout("wrap 2,insets 20,gap 10", "[grow,fill][grow,fill]", "[]"));
+        RoundedPanel panel = cardPanel(new MigLayout("wrap 2,insets 20,gap 10", "[grow,fill][grow,fill]", "[]4[]8[]"));
         panel.add(sectionTitle("Ca làm việc"), "span 2");
+        panel.add(divider(), "span 2,growx");
         panel.add(miniInfo("Ca hiện tại", lblShiftName));
         panel.add(miniInfo("Giờ làm việc", lblShiftTime));
         panel.add(miniInfo("Nhân viên", lblStaff));
@@ -208,8 +213,9 @@ public class EmployeeDashboardPanel extends JPanel {
     }
 
     private JPanel buildNotificationCard() {
-        RoundedPanel panel = cardPanel(new MigLayout("wrap 1,insets 20,gap 12,fill", "[grow,fill]", "[]8[grow,fill]"));
+        RoundedPanel panel = cardPanel(new MigLayout("wrap 1,insets 20,gap 12,fill", "[grow,fill]", "[]4[]8[grow,fill]"));
         panel.add(sectionTitle("Thông báo nghiệp vụ"));
+        panel.add(divider(), "growx");
         notificationList.setOpaque(false);
         panel.add(wrapScroll(notificationList), "grow");
         return panel;
@@ -426,7 +432,7 @@ public class EmployeeDashboardPanel extends JPanel {
         RoundedPanel p = new RoundedPanel(12, false);
         p.setLayout(new MigLayout("wrap 1,insets 10,gap 3", "[grow,fill]", "[]"));
         p.setBackground(new Color(248, 250, 252));
-        p.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        p.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225), 1));
 
         JLabel t = new JLabel(title);
         t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -446,6 +452,13 @@ public class EmployeeDashboardPanel extends JPanel {
         label.setFont(new Font("Segoe UI", Font.BOLD, 15));
         label.setForeground(NAVY);
         return label;
+    }
+
+    private JSeparator divider() {
+        JSeparator sep = new JSeparator();
+        sep.setForeground(LINE);
+        sep.setBackground(LINE);
+        return sep;
     }
 
     private RoundedPanel cardPanel(LayoutManager layout) {

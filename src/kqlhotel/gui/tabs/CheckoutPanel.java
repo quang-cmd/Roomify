@@ -582,7 +582,7 @@ public class CheckoutPanel extends JPanel {
         detailTotalServiceLabel.setForeground(new Color(110, 125, 145));
         costBox.add(detailTotalServiceLabel, "gapy 4 0");
 
-        JLabel surcharge = new JLabel("Phụ thu");
+        JLabel surcharge = new JLabel("Phụ thu nhận sớm");
         surcharge.setForeground(new Color(110, 125, 145));
         costBox.add(surcharge, "gapy 4 0");
 
@@ -864,7 +864,7 @@ public class CheckoutPanel extends JPanel {
         infoGrid.add(kDateIn);
         infoGrid.add(kDateOut);
 
-        infoGrid.add(makeSmallLabel("Mã khách hàng (CCCD/ID)"));
+        infoGrid.add(makeSmallLabel("Mã hóa đơn"));
         infoGrid.add(makeSmallLabel("Trạng thái"));
 
         kCID.setFont(kCID.getFont().deriveFont(Font.BOLD, 14f));

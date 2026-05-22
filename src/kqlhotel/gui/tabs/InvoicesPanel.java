@@ -728,6 +728,7 @@ public class InvoicesPanel extends JPanel {
                 "/kqlhotel/resources/icons/invoice_summary_card.png",
                 tongTienPhongThuan,
                 tongPhuThu,
+                tongPhiPhat,
                 tienDichVuHienThi,
                 tienThueHienThi,
                 tongTruocGiam,
@@ -1187,6 +1188,7 @@ public class InvoicesPanel extends JPanel {
             String imagePath,
             double tienPhong,
             double phuThu,
+            double phiPhat,
             double tienDV,
             double thue,
             double tongTruocGiam,
@@ -1201,7 +1203,7 @@ public class InvoicesPanel extends JPanel {
         pane.setLayout(new MigLayout(
                 "insets 35 35 25 15, fillx",
                 "[160::200][180!][150!,right]",
-                "[]2[]2[]2[]2[]2[]2[]2[]2[]2[]"
+                "[]2[]2[]2[]2[]2[]2[]2[]2[]2[]2[]"
         ));
 
         pane.add(new JLabel(), "cell 0 0");
@@ -1209,28 +1211,32 @@ public class InvoicesPanel extends JPanel {
         pane.add(makeSummaryText(CurrencyUtils.formatVND(tienPhong), true), "cell 2 0");
 
         pane.add(new JLabel(), "cell 0 1");
-        pane.add(makeSummaryText("Phụ thu", false), "cell 1 1");
+        pane.add(makeSummaryText("Phụ thu nhận sớm", false), "cell 1 1");
         pane.add(makeSummaryText(CurrencyUtils.formatVND(phuThu), true), "cell 2 1");
 
         pane.add(new JLabel(), "cell 0 2");
-        pane.add(makeSummaryText("Tiền dịch vụ", false), "cell 1 2");
-        pane.add(makeSummaryText(CurrencyUtils.formatVND(tienDV), true), "cell 2 2");
+        pane.add(makeSummaryText("Phí trả phòng sớm / trễ", false), "cell 1 2");
+        pane.add(makeSummaryText(CurrencyUtils.formatVND(phiPhat), true), "cell 2 2");
 
         pane.add(new JLabel(), "cell 0 3");
-        pane.add(makeSummaryText("Thuế VAT (10%)", false), "cell 1 3");
-        pane.add(makeSummaryText(CurrencyUtils.formatVND(thue), true), "cell 2 3");
+        pane.add(makeSummaryText("Tiền dịch vụ", false), "cell 1 3");
+        pane.add(makeSummaryText(CurrencyUtils.formatVND(tienDV), true), "cell 2 3");
 
         pane.add(new JLabel(), "cell 0 4");
-        pane.add(makeSummaryText("Tổng trước giảm", false), "cell 1 4");
-        pane.add(makeSummaryText(CurrencyUtils.formatVND(tongTruocGiam), true), "cell 2 4");
+        pane.add(makeSummaryText("Thuế VAT (10%)", false), "cell 1 4");
+        pane.add(makeSummaryText(CurrencyUtils.formatVND(thue), true), "cell 2 4");
 
         pane.add(new JLabel(), "cell 0 5");
-        pane.add(makeSummaryText("Khuyến mãi", false), "cell 1 5");
-        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(kmMa), true), "cell 2 5");
+        pane.add(makeSummaryText("Tổng trước giảm", false), "cell 1 5");
+        pane.add(makeSummaryText(CurrencyUtils.formatVND(tongTruocGiam), true), "cell 2 5");
 
         pane.add(new JLabel(), "cell 0 6");
-        pane.add(makeSummaryText("Khuyến mãi hạng " + tenHang, false), "cell 1 6");
-        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(kmHang), true), "cell 2 6");
+        pane.add(makeSummaryText("Khuyến mãi", false), "cell 1 6");
+        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(kmMa), true), "cell 2 6");
+
+        pane.add(new JLabel(), "cell 0 7");
+        pane.add(makeSummaryText("Khuyến mãi hạng " + tenHang, false), "cell 1 7");
+        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(kmHang), true), "cell 2 7");
 
         JLabel totalTitle = makeSummaryText("Tổng hóa đơn", false);
         totalTitle.setForeground(new Color(180, 120, 20));
@@ -1240,17 +1246,17 @@ public class InvoicesPanel extends JPanel {
         totalValue.setForeground(new Color(180, 120, 20));
         totalValue.setFont(totalValue.getFont().deriveFont(Font.BOLD, 13f));
 
-        pane.add(new JLabel(), "cell 0 7");
-        pane.add(totalTitle, "cell 1 7");
-        pane.add(totalValue, "cell 2 7");
-
         pane.add(new JLabel(), "cell 0 8");
-        pane.add(makeSummaryText("Tiền cọc đặt phòng", false), "cell 1 8");
-        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tienCoc), true), "cell 2 8");
+        pane.add(totalTitle, "cell 1 8");
+        pane.add(totalValue, "cell 2 8");
 
         pane.add(new JLabel(), "cell 0 9");
-        pane.add(makeSummaryText("Tiền đã trả", false), "cell 1 9");
-        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tongDaThanhToan), true), "cell 2 9");
+        pane.add(makeSummaryText("Tiền cọc đặt phòng", false), "cell 1 9");
+        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tienCoc), true), "cell 2 9");
+
+        pane.add(new JLabel(), "cell 0 10");
+        pane.add(makeSummaryText("Tiền đã trả", false), "cell 1 10");
+        pane.add(makeSummaryText("-" + CurrencyUtils.formatVND(tongDaThanhToan), true), "cell 2 10");
 
         return pane;
     }
