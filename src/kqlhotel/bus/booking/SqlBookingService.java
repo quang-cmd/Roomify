@@ -158,9 +158,15 @@ public class SqlBookingService implements BookingService {
                 usedRoomIds.add(roomId);
             }
 
-            // 2. Upsert KhachHang for the lead guest (and others); use lead guest as booking owner
+            // 2. Upsert KhachHang for adult guests; use lead adult guest as booking owner.
+            // Children can stay in ChiTietKhachO without CCCD/phone.
             String leadCustomerId = null;
+            int adultGuestCount = Math.max(1, command.getAdults());
             for (int i = 0; i < command.getGuestInfos().size(); i++) {
+                if (i >= adultGuestCount) {
+                    continue;
+                }
+
                 GuestInfoDto guest = command.getGuestInfos().get(i);
                 String phoneConflict = findCustomerNameByPhoneWithDifferentId(con, guest.getPhone(), guest.getIdNo());
                 if (phoneConflict != null) {
@@ -178,6 +184,10 @@ public class SqlBookingService implements BookingService {
                 if (i == 0) {
                     leadCustomerId = maKH;
                 }
+            }
+            if (leadCustomerId == null) {
+                con.rollback();
+                return fail("Khong the xac dinh khach dai dien cho dat phong.");
             }
 
             // 3. Resolve maNV from the logged-in staff, fallback only for legacy callers.
@@ -255,6 +265,7 @@ public class SqlBookingService implements BookingService {
             String insertCtko = "INSERT INTO ChiTietKhachO (maDatPhong, maPhong, hoTen, cccd, sdt, vaiTro) VALUES (?, ?, ?, ?, ?, ?)";
             for (int i = 0; i < command.getGuestInfos().size(); i++) {
                 GuestInfoDto g = command.getGuestInfos().get(i);
+                boolean childGuest = i >= adultGuestCount;
                 // Distribute guests among booked rooms
                 String roomId = allocatedRoomIds.get(i % allocatedRoomIds.size());
                 
@@ -266,7 +277,7 @@ public class SqlBookingService implements BookingService {
                     String fallbackCccd = "CCCD_" + System.currentTimeMillis() + "_" + i;
                     ps.setString(4, g.getIdNo() != null && !g.getIdNo().isEmpty() ? g.getIdNo() : fallbackCccd);
                     
-                    ps.setString(5, g.getPhone());
+                    ps.setString(5, childGuest ? null : g.getPhone());
                     ps.setString(6, i == 0 ? "Người đại diện" : "Khách lưu trú");
                     ps.executeUpdate();
                 }

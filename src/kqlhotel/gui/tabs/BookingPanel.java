@@ -1270,6 +1270,10 @@ public class BookingPanel extends JPanel {
             String email = row.emailField.getText().trim();
 
             boolean isChild = i >= adultsCount;
+            if (isChild) {
+                phone = "";
+                idNo = "";
+            }
 
             if (fullName.isEmpty()) {
                 JOptionPane.showMessageDialog(
@@ -1318,12 +1322,30 @@ public class BookingPanel extends JPanel {
             }
         }
 
+        for (int i = 0; i < guestFormRows.size(); i++) {
+            configureGuestFormRow(guestFormRows.get(i), i + 1, i >= adultsCount);
+        }
+
         guestFormsPanel.removeAll();
         for (GuestFormRow row : guestFormRows) {
             guestFormsPanel.add(row.panel, "growx");
         }
         guestFormsPanel.revalidate();
         guestFormsPanel.repaint();
+    }
+
+    private void configureGuestFormRow(GuestFormRow row, int displayIndex, boolean child) {
+        row.label.setText("Khách " + displayIndex + (child ? " (Trẻ em)" : " (Người lớn)"));
+        row.idField.setEnabled(!child);
+        row.phoneField.setEnabled(!child);
+        row.idField.putClientProperty("JTextField.placeholderText",
+            child ? "Không yêu cầu CCCD cho trẻ em" : "CCCD/Hộ chiếu (ưu tiên)");
+        row.phoneField.putClientProperty("JTextField.placeholderText",
+            child ? "Không yêu cầu SĐT cho trẻ em" : "Số điện thoại");
+        if (child) {
+            row.idField.setText("");
+            row.phoneField.setText("");
+        }
     }
 
     private GuestFormRow createGuestFormRow(int index) {
@@ -1354,7 +1376,7 @@ public class BookingPanel extends JPanel {
         rowPanel.add(phoneField, "grow,h 34");
         rowPanel.add(emailField, "grow,h 34");
 
-        return new GuestFormRow(rowPanel, nameField, phoneField, idField, emailField);
+        return new GuestFormRow(rowPanel, label, nameField, phoneField, idField, emailField);
     }
 
     private void attachAutoFillById(JTextField idField, JTextField nameField, JTextField phoneField, JTextField emailField) {
@@ -1375,6 +1397,9 @@ public class BookingPanel extends JPanel {
             }
 
             private void autoFillIfMatched() {
+                if (!idField.isEnabled()) {
+                    return;
+                }
                 String idNo = idField.getText().trim();
                 if (idNo.length() < 9) {
                     nameField.setText("");
@@ -1854,13 +1879,15 @@ public class BookingPanel extends JPanel {
 
     private static final class GuestFormRow {
         private final JPanel panel;
+        private final JLabel label;
         private final JTextField nameField;
         private final JTextField phoneField;
         private final JTextField idField;
         private final JTextField emailField;
 
-        private GuestFormRow(JPanel panel, JTextField nameField, JTextField phoneField, JTextField idField, JTextField emailField) {
+        private GuestFormRow(JPanel panel, JLabel label, JTextField nameField, JTextField phoneField, JTextField idField, JTextField emailField) {
             this.panel = panel;
+            this.label = label;
             this.nameField = nameField;
             this.phoneField = phoneField;
             this.idField = idField;
