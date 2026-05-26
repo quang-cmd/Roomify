@@ -1,7 +1,7 @@
 package kqlhotel.gui.dialog;
 
 import kqlhotel.bus.shift.ShiftBUS;
-import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
+import kqlhotel.entity.shift.ShiftInfo;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.theme.ThemeColors;
 

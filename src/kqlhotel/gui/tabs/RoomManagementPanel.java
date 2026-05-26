@@ -189,31 +189,39 @@ public class RoomManagementPanel extends JPanel {
         btn.putClientProperty("filterBadge", badgeText);
         btn.setFont(btn.getFont().deriveFont(13f));
         btn.setFocusPainted(false);
+        btn.setOpaque(true);
+        btn.setBorderPainted(true);
+        btn.setRolloverEnabled(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        String text = "<html>" + label + " <span style='color:" 
-                    + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
-                    + badgeText + "&nbsp;</span></html>";
-        btn.setText(text);
-        if (active) {
-            btn.setBackground(new Color(18, 35, 67));
-            btn.setForeground(Color.WHITE);
-            btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
-            ));
-        } else {
-            btn.setBackground(Color.WHITE);
-            btn.setForeground(new Color(100, 120, 150));
-            btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-                BorderFactory.createEmptyBorder(6, 16, 6, 16)
-            ));
-        }
+        styleFilterButton(btn, active);
         
         btn.addActionListener(e -> applyFilter(label));
         
         return btn;
+    }
+
+    private void styleFilterButton(JButton btn, boolean active) {
+        String label = String.valueOf(btn.getClientProperty("filterLabel"));
+        String badge = String.valueOf(btn.getClientProperty("filterBadge"));
+        Color bg = active ? new Color(18, 35, 67) : Color.WHITE;
+        Color fg = active ? Color.WHITE : new Color(100, 120, 150);
+        Color border = active ? new Color(18, 35, 67) : new Color(220, 230, 245);
+        String badgeColor = active ? "#A0B0E0" : "#A0B0C0";
+
+        btn.setText("<html>" + label + " <span style='color:" + badgeColor
+                + ";font-size:10px;'>&nbsp;" + badge + "&nbsp;</span></html>");
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.hoverBackground", bg);
+        btn.putClientProperty("JButton.pressedBackground", bg);
+        btn.putClientProperty("JButton.selectedBackground", bg);
+        btn.putClientProperty("JButton.hoverForeground", fg);
+        btn.putClientProperty("JButton.pressedForeground", fg);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(border, 1),
+                BorderFactory.createEmptyBorder(6, 16, 6, 16)
+        ));
     }
 
     public void reloadData() {
@@ -264,25 +272,7 @@ public class RoomManagementPanel extends JPanel {
                 String badge = (String) btn.getClientProperty("filterBadge");
                 boolean active = label.equals(filter);
                 
-                String text = "<html>" + label + " <span style='color:" 
-                            + (active ? "#A0B0E0" : "#A0B0C0") + ";font-size:10px;'>&nbsp;" 
-                            + badge + "&nbsp;</span></html>";
-                btn.setText(text);
-                if (active) {
-                    btn.setBackground(new Color(18, 35, 67));
-                    btn.setForeground(Color.WHITE);
-                    btn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(18, 35, 67), 1),
-                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
-                    ));
-                } else {
-                    btn.setBackground(Color.WHITE);
-                    btn.setForeground(new Color(100, 120, 150));
-                    btn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(220, 230, 245), 1),
-                        BorderFactory.createEmptyBorder(6, 16, 6, 16)
-                    ));
-                }
+                styleFilterButton(btn, active);
             }
         }
 
@@ -426,16 +416,14 @@ public class RoomManagementPanel extends JPanel {
         if (guiStatus.equals("Đang sử dụng") || guiStatus.equals("Đã đặt")) {
             final Invoice finalInv = activeInv;
             final Customer finalCust = activeCust;
-            JButton btnKhachHoaDon = new JButton("Khách & Hóa đơn");
+            PrimaryButton btnKhachHoaDon = new PrimaryButton("Khách & Hóa đơn");
             btnKhachHoaDon.setFont(btnKhachHoaDon.getFont().deriveFont(Font.BOLD, 13f));
             btnKhachHoaDon.setBackground(new Color(41, 121, 255)); // Bright Blue matching screenshot
             btnKhachHoaDon.setForeground(Color.WHITE);
             btnKhachHoaDon.setFocusPainted(false);
+            btnKhachHoaDon.setArc(0);
             btnKhachHoaDon.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnKhachHoaDon.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(41, 121, 255), 1, true),
-                BorderFactory.createEmptyBorder(8, 0, 8, 0)
-            ));
+            btnKhachHoaDon.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
             
             btnKhachHoaDon.addActionListener(e -> {
                 Window owner = SwingUtilities.getWindowAncestor(RoomManagementPanel.this);

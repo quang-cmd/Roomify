@@ -165,11 +165,15 @@ public class StatisticsDAO {
         return list;
     }
 
-    public boolean addExpense(String type, String name, double amount, LocalDateTime date, String note) {
+    public boolean addExpense(String type, String name, double amount, LocalDateTime date, String note,
+                              String maNV, String maPC) {
         if (!chiPhiTableExists()) {
             return false;
         }
-        String sql = "INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu) VALUES (?, ?, ?, ?, ?)";
+        if (maNV == null || maNV.isBlank()) {
+            return false;
+        }
+        String sql = "INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu, maNV, maPC) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection con = ConnectDB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, type);
@@ -177,6 +181,8 @@ public class StatisticsDAO {
             ps.setBigDecimal(3, java.math.BigDecimal.valueOf(amount));
             ps.setTimestamp(4, Timestamp.valueOf(date));
             ps.setString(5, note);
+            ps.setString(6, maNV);
+            ps.setString(7, maPC == null || maPC.isBlank() ? null : maPC);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("StatisticsDAO.addExpense: " + e.getMessage());

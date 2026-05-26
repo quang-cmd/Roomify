@@ -30,10 +30,11 @@ import javax.swing.ScrollPaneConstants;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.bus.statistics.StatisticsBUS;
-import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
-import kqlhotel.dao.shift.ShiftDAO.ShiftReconciliationRow;
 import kqlhotel.entity.statistics.KpiSummary;
 import kqlhotel.entity.statistics.RevenuePoint;
+import kqlhotel.entity.shift.ShiftInfo;
+import kqlhotel.entity.shift.ShiftReconciliationRow;
+import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.theme.ThemeColors;
 
 public class DashboardPanel extends JPanel {
@@ -108,11 +109,12 @@ public class DashboardPanel extends JPanel {
         lblTrangThai.setFont(lblTrangThai.getFont().deriveFont(12f));
         lblTrangThai.setForeground(ThemeColors.PREMIUM_TEXT_MUTED);
 
-        JButton btnRefresh = new JButton("Làm mới");
+        JButton btnRefresh = new PrimaryButton("Làm mới");
         btnRefresh.setFont(btnRefresh.getFont().deriveFont(Font.BOLD, 12f));
         btnRefresh.setBackground(ThemeColors.PREMIUM_PRIMARY);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.setFocusPainted(false);
+        btnRefresh.setOpaque(false);
         btnRefresh.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
         btnRefresh.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         btnRefresh.addActionListener(e -> refresh());

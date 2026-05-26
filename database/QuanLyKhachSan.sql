@@ -99,7 +99,11 @@ CREATE TABLE ChiPhi (
                         tenChiPhi  NVARCHAR(255)     NOT NULL,
                         soTien     DECIMAL(18,0)     NOT NULL CHECK (soTien >= 0),
                         ngayChi    DATETIME2         NOT NULL,
-                        ghiChu     NVARCHAR(500)     NULL
+                        ghiChu     NVARCHAR(500)     NULL,
+                        maNV       CHAR(5)           NOT NULL,
+                        maPC       CHAR(5)           NULL,
+                        CONSTRAINT FK_ChiPhi_NhanVien  FOREIGN KEY (maNV) REFERENCES NhanVien(maNV),
+                        CONSTRAINT FK_ChiPhi_PhanCongCa FOREIGN KEY (maPC) REFERENCES PhanCongCa(maPC)
 );
 GO
 
@@ -300,6 +304,7 @@ CREATE INDEX IX_ThanhToan_maHD       ON ThanhToan(maHD);
 CREATE INDEX IX_ThanhToan_maPC       ON ThanhToan(maPC);
 CREATE INDEX IX_ChiPhi_ngayChi       ON ChiPhi(ngayChi);
 CREATE INDEX IX_ChiPhi_loaiChiPhi    ON ChiPhi(loaiChiPhi);
+CREATE INDEX IX_ChiPhi_maPC          ON ChiPhi(maPC);
 
 -- Filtered unique index: email phai unique khi co gia tri, nhung cho phep nhieu NULL
 CREATE UNIQUE INDEX UX_KhachHang_email ON KhachHang(email) WHERE email IS NOT NULL;
@@ -552,12 +557,12 @@ INSERT INTO ThanhToan (maTT, ngayTT, soTienTT, ghiChu, phuongThucTT, trangThaiTT
 GO
 
 -- ----- ChiPhi -----
-INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu) VALUES
-(N'Dien nuoc', N'Tien dien thang 4',       3200000, '2026-04-25 09:00', N'Thanh toan hoa don dien'),
-(N'Dien nuoc', N'Tien nuoc thang 4',       1150000, '2026-04-25 09:10', N'Thanh toan hoa don nuoc'),
-(N'Vat tu',    N'Mua khan tam va ga giuong', 2800000, '2026-04-18 15:30', N'Bo sung vat tu phong'),
-(N'Vat tu',    N'Mua do dung ve sinh',      950000, '2026-04-20 10:00', N'Nuoc lau san, xa phong, tui rac'),
-(N'Khac',      N'Sua may lanh phong P104', 1800000, '2026-04-22 14:00', N'Bao tri phong dang sua chua');
+INSERT INTO ChiPhi (loaiChiPhi, tenChiPhi, soTien, ngayChi, ghiChu, maNV, maPC) VALUES
+(N'Dien nuoc', N'Tien dien thang 4',          3200000, '2026-04-25 09:00', N'Thanh toan hoa don dien',       'NV002', 'PC005'),
+(N'Dien nuoc', N'Tien nuoc thang 4',          1150000, '2026-04-25 09:10', N'Thanh toan hoa don nuoc',       'NV002', 'PC005'),
+(N'Vat tu',    N'Mua khan tam va ga giuong',  2800000, '2026-04-18 15:30', N'Bo sung vat tu phong',          'NV004', NULL),
+(N'Vat tu',    N'Mua do dung ve sinh',         950000, '2026-04-20 10:00', N'Nuoc lau san, xa phong, tui rac','NV002', NULL),
+(N'Khac',      N'Sua may lanh phong P104',    1800000, '2026-04-22 14:00', N'Bao tri phong dang sua chua',   'NV003', NULL);
 GO
 
 -- =====================================================================

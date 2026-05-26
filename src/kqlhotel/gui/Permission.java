@@ -18,27 +18,23 @@ public class Permission {
             return false;
         }
 
-        // Quản lý được dùng tất cả chức năng trong hệ thống.
+        // Quan ly tap trung vao nhom quan tri, khong thao tac nghiep vu le tan.
         if (isQuanLy()) {
             return switch (route) {
                 case "dashboard",
-                     "booking",
-                     "check-in",
-                     "checkout",
-                     "swap-room",
-                     "cancel-room",
                      "room-management",
                      "staff",
                      "customers",
                      "services",
                      "promotions",
-                     "invoices",
-                     "statistics" -> true;
+                     "statistics",
+                     "help" -> true;
                 default -> false;
             };
         }
 
-        // Nhân viên được dùng các màn hình nghiệp vụ chính
+        // Nhan vien le tan duoc dung cac man hinh nghiep vu, tru phan nhan su.
+        // Quyen them phong/them loai phong duoc chan rieng trong RoomManagementPanel.
         if (isNhanVien()) {
             return switch (route) {
                 case "dashboard",
@@ -48,9 +44,12 @@ public class Permission {
                      "swap-room",
                      "cancel-room",
                      "room-management",
+                     "customers",
+                     "services",
+                     "promotions",
                      "invoices",
                      "statistics",
-                     "customers" -> true;
+                     "help" -> true;
                 default -> false;
             };
         }

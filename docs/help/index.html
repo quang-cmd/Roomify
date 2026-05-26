@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn sử dụng KQL Hotel</title>
+    <style>
+        :root {
+            --bg: #f3f6fb;
+            --surface: #ffffff;
+            --primary: #1e3a8a;
+            --primary-soft: #e8eefc;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #d8e0ef;
+            --success: #15803d;
+            --warning: #b45309;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--primary);
+            color: #ffffff;
+            padding: 28px 40px;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 0;
+            color: #dbeafe;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 24px;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        nav {
+            position: sticky;
+            top: 16px;
+            align-self: start;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+        }
+
+        nav h2 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        nav a {
+            display: block;
+            padding: 9px 10px;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 7px;
+            font-weight: 600;
+        }
+
+        nav a:hover {
+            background: var(--primary-soft);
+        }
+
+        main {
+            display: grid;
+            gap: 18px;
+        }
+
+        section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        h3 {
+            margin: 22px 0 10px;
+            font-size: 17px;
+        }
+
+        p {
+            margin: 8px 0;
+        }
+
+        ul, ol {
+            margin: 8px 0 8px 22px;
+            padding: 0;
+        }
+
+        li {
+            margin: 6px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            background: #ffffff;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #edf3ff;
+            color: #17326f;
+        }
+
+        code {
+            background: #eef2f7;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-family: Consolas, monospace;
+        }
+
+        .note {
+            border-left: 4px solid var(--primary);
+            background: #f8fbff;
+            padding: 12px 14px;
+            margin: 14px 0;
+        }
+
+        .success {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .warning {
+            color: var(--warning);
+            font-weight: 700;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 7px;
+            vertical-align: middle;
+        }
+
+        .dot-green { background: #22c55e; }
+        .dot-red { background: #ef4444; }
+        .dot-orange { background: #f59e0b; }
+
+        .placeholder {
+            color: var(--muted);
+            background: #f8fafc;
+            border: 1px dashed #b8c4d8;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Hướng dẫn sử dụng KQL Hotel</h1>
+    <p>Tài liệu hỗ trợ nhân viên thao tác các chức năng chính trong hệ thống quản lý khách sạn.</p>
+</header>
+
+<div class="layout">
+    <nav>
+        <h2>Mục lục</h2>
+        <a href="#overview">1. Tổng quan</a>
+        <a href="#booking">2. Đặt phòng</a>
+        <a href="#checkin">3. Nhận phòng</a>
+        <a href="#statistics">4. Thống kê</a>
+        <a href="#checkout">5. Trả phòng</a>
+        <a href="#promotions">6. Khuyến mãi</a>
+        <a href="#invoices">7. Hóa đơn</a>
+        <a href="#room-management">8. Quản lý phòng</a>
+        <a href="#cancel-room">9. Hủy phòng</a>
+        <a href="#staff">10. Nhân sự</a>
+        <a href="#swap-room">11. Đổi phòng</a>
+        <a href="#customers">12. Khách hàng</a>
+        <a href="#services">13. Dịch vụ</a>
+        <a href="#notes">14. Ghi chú chung</a>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>1. Tổng quan</h2>
+            <p>
+                Tài liệu này hướng dẫn cách sử dụng các chức năng trong phần mềm KQL Hotel.
+                Các chức năng được trình bày theo từng nhóm nghiệp vụ để nhân viên có thể tra cứu nhanh khi thao tác.
+            </p>
+            <p>
+                Tài liệu hiện bao gồm các chức năng chính: <strong>Đặt phòng</strong>, <strong>Nhận phòng</strong>,
+                <strong>Trả phòng</strong>, <strong>Đổi phòng</strong>, <strong>Hủy phòng</strong>,
+                <strong>Quản lý phòng</strong>, <strong>Khách hàng</strong>, <strong>Dịch vụ</strong>,
+                <strong>Khuyến mãi</strong>, <strong>Hóa đơn</strong>, <strong>Nhân sự</strong> và
+                <strong>Thống kê</strong>.
+            </p>
+            <p>
+                Mỗi phần được trình bày theo hướng thao tác thực tế: vào màn hình nào, nhập thông tin gì,
+                bấm nút nào và cần kiểm tra kết quả gì sau khi hoàn tất.
+            </p>
+
+            <div class="note">
+                Tài liệu tập trung vào thao tác sử dụng trên giao diện. Người dùng chỉ cần thực hiện đúng các bước
+                và kiểm tra thông báo hiển thị sau mỗi thao tác.
+            </div>
+        </section>
+
+        <section id="booking">
+            <h2>2. Hướng dẫn chức năng Đặt phòng</h2>
+            <p>
+                Chức năng Đặt phòng dùng để tìm phòng trống, chọn phòng phù hợp, nhập thông tin khách hàng
+                và xác nhận khoản thanh toán ban đầu.
+            </p>
+
+            <h3>Điều kiện trước khi sử dụng</h3>
+            <ul>
+                <li>Nhân viên đã đăng nhập vào hệ thống.</li>
+                <li>Nhân viên lễ tân đang trong ca làm việc khi thực hiện giao dịch thanh toán.</li>
+                <li>Khách đã xác định ngày nhận phòng, ngày trả phòng và số lượng khách.</li>
+                <li>Khách hàng cung cấp thông tin cần thiết như họ tên, CCCD hoặc hộ chiếu, số điện thoại và email.</li>
+            </ul>
+
+            <h3>Các bước thực hiện</h3>
+            <ol>
+                <li>Chọn menu <strong>Đặt phòng</strong> ở thanh chức năng bên trái.</li>
+                <li>Chọn loại phòng mong muốn. Có thể chọn <strong>Tất cả</strong> để xem nhiều loại phòng.</li>
+                <li>Chọn ngày nhận phòng và ngày trả phòng.</li>
+                <li>Nhập số lượng người lớn và số lượng trẻ em nếu có.</li>
+                <li>Bấm <strong>Tìm phòng trống</strong>.</li>
+                <li>Hệ thống hiển thị danh sách loại phòng còn khả dụng, kèm giá, sức chứa và số lượng phòng trống.</li>
+                <li>Chọn phòng bằng nút <strong>+ Thêm phòng</strong>. Có thể chọn nhiều phòng cùng loại hoặc khác loại.</li>
+                <li>Bấm <strong>Nhập thông tin khách</strong> để chuyển sang bước nhập thông tin.</li>
+                <li>Nhập thông tin khách đại diện và khách đi kèm. Với trẻ em, hệ thống không yêu cầu CCCD và số điện thoại.</li>
+                <li>Chọn hình thức thanh toán ban đầu: <strong>Đặt cọc 30%</strong> hoặc <strong>Thanh toán 100%</strong>.</li>
+                <li>Chọn phương thức thanh toán: <strong>Tiền mặt</strong> hoặc <strong>Chuyển khoản</strong>.</li>
+                <li>Kiểm tra lại thông tin xác nhận gồm khách đại diện, số phòng, số đêm, phương thức thanh toán và số tiền cần thu.</li>
+                <li>Nếu chọn chuyển khoản, hệ thống hiển thị mã QR thanh toán. Nhân viên chỉ bấm xác nhận sau khi đã kiểm tra khách thanh toán thành công.</li>
+                <li>Khi hoàn tất, hệ thống hiển thị thông báo đặt phòng thành công.</li>
+            </ol>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Nhân viên nhận được mã đặt phòng để tra cứu về sau.</li>
+                <li>Thông tin đặt phòng có thể được tìm thấy ở màn hình Nhận phòng khi đến ngày khách nhận phòng.</li>
+                <li>Khoản tiền đã thu được thể hiện trong các màn hình liên quan đến thanh toán/báo cáo.</li>
+                <li>Khách có thể nhận thông tin xác nhận qua email nếu email được nhập đúng.</li>
+            </ul>
+
+        </section>
+
+        <section id="checkin">
+            <h2>3. Hướng dẫn chức năng Nhận phòng</h2>
+            <p>
+                Chức năng Nhận phòng dùng để xác nhận khách đã đến khách sạn và bắt đầu sử dụng phòng đã đặt.
+            </p>
+
+            <h3>Điều kiện trước khi sử dụng</h3>
+            <ul>
+                <li>Đơn đặt phòng đã tồn tại trong hệ thống.</li>
+                <li>Đơn đặt phòng xuất hiện trong danh sách chờ nhận phòng.</li>
+                <li>Thông tin khách nhận phòng khớp với thông tin đã đặt.</li>
+            </ul>
+
+            <h3>Các bước thực hiện</h3>
+            <ol>
+                <li>Chọn menu <strong>Nhận phòng</strong>.</li>
+                <li>Chọn khoảng ngày nhận phòng cần kiểm tra.</li>
+                <li>Tìm đơn đặt phòng theo mã đặt phòng, tên khách hoặc số điện thoại nếu cần.</li>
+                <li>Kiểm tra thông tin gồm mã đặt phòng, tên khách, số điện thoại, phòng, số phòng, số đêm và tiền cọc.</li>
+                <li>Đối chiếu thông tin khách thực tế với thông tin đặt phòng.</li>
+                <li>Bấm <strong>Nhận phòng</strong> để xác nhận khách đã đến.</li>
+                <li>Kiểm tra thông báo sau khi hệ thống xử lý nhận phòng.</li>
+            </ol>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Đơn đặt phòng không còn nằm trong danh sách chờ nhận phòng.</li>
+                <li>Phòng của khách có thể được tra cứu ở các màn hình nghiệp vụ liên quan.</li>
+                <li>Nhân viên có thể tiếp tục xử lý các nghiệp vụ sau nhận phòng như trả phòng hoặc xem thông tin phòng.</li>
+            </ul>
+
+        </section>
+
+        <section id="statistics">
+            <h2>4. Hướng dẫn chức năng Thống kê</h2>
+            <p>
+                Chức năng Thống kê dùng để theo dõi doanh thu, chi phí, lợi nhuận, hiệu quả sử dụng phòng
+                và xuất báo cáo theo khoảng thời gian.
+            </p>
+
+            <h3>Các bước xem thống kê</h3>
+            <ol>
+                <li>Chọn menu <strong>Thống kê</strong>.</li>
+                <li>Chọn ngày bắt đầu và ngày kết thúc trong bộ lọc báo cáo.</li>
+                <li>Bấm làm mới hoặc chờ màn hình cập nhật theo khoảng thời gian đã chọn.</li>
+                <li>Xem các chỉ số tổng quan như doanh thu, chi phí, lợi nhuận và ADR.</li>
+                <li>Chọn các tab hiển thị nhanh để xem biểu đồ doanh thu, phân bổ phòng, tỷ lệ lấp đầy, ADR Trend hoặc đặt phòng gần đây.</li>
+            </ol>
+
+            <h3>Ý nghĩa các chỉ số chính</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Chỉ số</th>
+                    <th>Ý nghĩa</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Doanh thu</td>
+                    <td>Tổng dòng tiền thu thành công trong kỳ, có trừ các khoản hoàn tiền nếu có.</td>
+                </tr>
+                <tr>
+                    <td>Chi phí</td>
+                    <td>Bao gồm chi phí nhập tay và chi phí lương nhân viên quy đổi theo số ngày trong kỳ.</td>
+                </tr>
+                <tr>
+                    <td>Lợi nhuận</td>
+                    <td>Doanh thu trừ chi phí.</td>
+                </tr>
+                <tr>
+                    <td>ADR</td>
+                    <td>Giá phòng trung bình, dùng để đánh giá mức doanh thu trung bình trên phòng đã bán.</td>
+                </tr>
+                <tr>
+                    <td>RevPAR</td>
+                    <td>Doanh thu phòng trên tổng số phòng khả dụng.</td>
+                </tr>
+                <tr>
+                    <td>TrevPAR</td>
+                    <td>Dòng tiền thực thu trên tổng số phòng khả dụng.</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>Quản lý chi phí nhập tay</h3>
+            <ol>
+                <li>Bấm nút <strong>Quản lý Chi phí</strong> trong màn hình Thống kê.</li>
+                <li>Xem danh sách các khoản chi phí đã nhập.</li>
+                <li>Chọn loại chi phí như điện nước, vật tư hoặc khác.</li>
+                <li>Nhập tên khoản chi, số tiền, ngày chi và ghi chú nếu có.</li>
+                <li>Bấm <strong>Thêm</strong> để đưa khoản chi vào danh sách.</li>
+                <li>Nếu nhập sai, chọn khoản chi trong bảng và bấm <strong>Xóa</strong>.</li>
+            </ol>
+
+            <div class="note">
+                Các khoản chi được thêm tại đây sẽ làm thay đổi chỉ số chi phí và lợi nhuận trên màn hình Thống kê.
+            </div>
+
+            <h3>Xuất báo cáo</h3>
+            <ol>
+                <li>Chọn khoảng thời gian cần xuất.</li>
+                <li>Bấm <strong>Xuất báo cáo</strong>.</li>
+                <li>Kiểm tra thông báo sau khi báo cáo được tạo thành công.</li>
+            </ol>
+        </section>
+
+        <section id="checkout">
+            <h2>5. Hướng dẫn chức năng Trả phòng</h2>
+            <p>
+                Chức năng Trả phòng dùng để thanh toán tiền phòng, dịch vụ, phụ thu hoặc phí phát sinh
+                và cập nhật tình trạng phòng sau khi khách trả phòng.
+            </p>
+
+            <h3>Các bước thực hiện</h3>
+            <ol>
+                <li>Chọn menu <strong>Trả phòng</strong> ở thanh chức năng bên trái.</li>
+                <li>Tìm phòng cần trả bằng mã phòng, mã khách hàng hoặc tên khách hàng. Danh sách bên dưới sẽ hiển thị các phòng đang lưu trú phù hợp.</li>
+                <li>Chọn phòng cần trả. Nếu hóa đơn có nhiều phòng, nhân viên có thể chọn một hoặc nhiều phòng để thanh toán.</li>
+                <li>Kiểm tra thông tin hiển thị sau khi chọn phòng, gồm khách hàng, phòng, ngày nhận dự kiến, ngày trả dự kiến, ngày nhận thực tế, ngày trả thực tế và mã hóa đơn.</li>
+                <li>Chọn khuyến mãi nếu khách có mã hợp lệ. Có thể không áp dụng khuyến mãi nếu khách không sử dụng hoặc hóa đơn không đủ điều kiện.</li>
+                <li>Kiểm tra phần tổng chi phí, gồm tiền phòng, dịch vụ phát sinh, phụ thu, thuế VAT, khuyến mãi, phí trả sớm/trễ, tiền cọc đã trả và tổng thanh toán.</li>
+                <li>Chọn trạng thái phòng sau khi trả: <strong>Trống</strong> nếu phòng có thể tiếp tục sử dụng, hoặc <strong>Bảo trì</strong> nếu phòng cần dọn dẹp, sửa chữa hay kiểm tra.</li>
+                <li>Bấm <strong>Xác nhận thanh toán & trả phòng</strong>.</li>
+                <li>Kiểm tra màn hình xem trước hóa đơn sau khi thao tác hoàn tất.</li>
+            </ol>
+
+            <h3>Cách hiểu các khoản tiền</h3>
+            <ul>
+                <li><strong>Tiền phòng:</strong> số đêm sử dụng nhân với đơn giá phòng.</li>
+                <li><strong>Phụ thu:</strong> khoản phát sinh như nhận phòng sớm.</li>
+                <li><strong>Phí trả sớm/trễ:</strong> khoản cộng thêm nếu khách trả phòng sớm hoặc trễ theo quy định.</li>
+                <li><strong>VAT:</strong> thuế được tính trên tổng tiền chịu thuế.</li>
+                <li><strong>Tổng thanh toán:</strong> số tiền cuối cùng cần đối chiếu với khách sau khi trừ tiền cọc đã trả.</li>
+            </ul>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Phòng đã trả không còn nằm trong danh sách phòng đang lưu trú.</li>
+                <li>Nhân viên có thể xem lại thông tin hóa đơn ở màn hình Hóa đơn.</li>
+                <li>Nếu cần, nhân viên có thể xuất hóa đơn PDF cho khách.</li>
+            </ul>
+        </section>
+
+        <section id="promotions">
+            <h2>6. Hướng dẫn chức năng Khuyến mãi</h2>
+            <p>
+                Chức năng Khuyến mãi dùng để tạo, chỉnh sửa và quản lý các chương trình giảm giá áp dụng cho hóa đơn.
+            </p>
+
+            <h3>Các bước quản lý khuyến mãi</h3>
+            <ol>
+                <li>Chọn menu <strong>Khuyến mãi</strong>.</li>
+                <li>Xem danh sách khuyến mãi đang có trong hệ thống.</li>
+                <li>Lọc danh sách theo trạng thái nếu cần, gồm tất cả, đang áp dụng, sắp diễn ra hoặc đã hết hạn.</li>
+                <li>Bấm <strong>Tạo khuyến mãi</strong> để thêm chương trình mới.</li>
+                <li>Nhập các thông tin cần thiết như mã khuyến mãi, tên chương trình, loại giảm, giá trị giảm, mức giảm tối đa, ngày bắt đầu, ngày kết thúc, trạng thái và điều kiện áp dụng.</li>
+                <li>Bấm <strong>Tạo khuyến mãi</strong> để lưu chương trình mới. Nếu đang chỉnh sửa chương trình đã có, bấm <strong>Lưu thay đổi</strong>.</li>
+            </ol>
+
+            <h3>Áp dụng khuyến mãi khi trả phòng</h3>
+            <ol>
+                <li>Ở màn hình <strong>Trả phòng</strong>, chọn mã khuyến mãi trong danh sách khuyến mãi.</li>
+                <li>Kiểm tra số tiền giảm được hiển thị trong phần tổng kết hóa đơn.</li>
+                <li>Nếu khuyến mãi không áp dụng được, kiểm tra lại thời hạn, điều kiện áp dụng và giá trị hóa đơn.</li>
+            </ol>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Chương trình khuyến mãi mới xuất hiện trong danh sách quản lý.</li>
+                <li>Khuyến mãi hợp lệ có thể được chọn khi xử lý hóa đơn trả phòng.</li>
+            </ul>
+        </section>
+
+        <section id="invoices">
+            <h2>7. Hướng dẫn chức năng Hóa đơn</h2>
+            <p>
+                Chức năng Hóa đơn dùng để xem danh sách hóa đơn, trạng thái thanh toán,
+                chi tiết tiền phòng, dịch vụ, khuyến mãi và xuất hóa đơn PDF.
+            </p>
+
+            <h3>Các bước xem hóa đơn</h3>
+            <ol>
+                <li>Chọn menu <strong>Hóa đơn</strong>.</li>
+                <li>Lọc danh sách hóa đơn theo trạng thái nếu cần, gồm tất cả, đã thanh toán, đã hủy, chưa thanh toán hoặc đang thanh toán.</li>
+                <li>Chọn hóa đơn cần xem ở danh sách bên trái.</li>
+                <li>Quan sát thông tin chi tiết ở khung bên phải, gồm mã hóa đơn, trạng thái, ngày tạo, khách hàng, thông tin phòng, tiền cọc, nhân viên xử lý và chi tiết hóa đơn.</li>
+                <li>Xem bảng chi tiết để kiểm tra hạng mục, số đêm, đêm thực tế, đơn giá, tình trạng, ngày trả thực tế và thành tiền.</li>
+                <li>Kiểm tra phần tổng kết hóa đơn gồm tiền phòng, phụ thu, phí trả sớm/trễ, tiền dịch vụ, thuế VAT, tổng trước giảm, khuyến mãi, tiền cọc đã trả, tiền đã trả và số tiền còn phải thanh toán.</li>
+            </ol>
+
+            <h3>Xuất hóa đơn PDF</h3>
+            <ol>
+                <li>Chọn hóa đơn cần xuất.</li>
+                <li>Bấm <strong>Xuất PDF</strong>.</li>
+                <li>Kiểm tra file hóa đơn được tạo theo thông tin đang xem.</li>
+            </ol>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Nhân viên có thể tra cứu trạng thái và chi tiết hóa đơn của khách.</li>
+                <li>Hóa đơn PDF có thể được dùng để gửi hoặc in cho khách khi cần.</li>
+            </ul>
+        </section>
+
+        <section id="room-management">
+            <h2>8. Hướng dẫn chức năng Quản lý phòng</h2>
+            <p>
+                Chức năng Quản lý phòng giúp nhân viên theo dõi sơ đồ phòng theo thời gian thực,
+                xem nhanh tình trạng phòng và truy cập chi tiết phòng khi cần.
+            </p>
+
+            <h3>Ý nghĩa màu trạng thái phòng</h3>
+            <ul>
+                <li><span class="status-dot dot-green"></span><strong>Trống:</strong> phòng sạch, sẵn sàng đón khách.</li>
+                <li><span class="status-dot dot-red"></span><strong>Đang sử dụng:</strong> phòng đang có khách lưu trú.</li>
+                <li><span class="status-dot dot-orange"></span><strong>Bảo trì:</strong> phòng đang khóa để sửa chữa, dọn dẹp hoặc kiểm tra.</li>
+            </ul>
+
+            <h3>Lọc và tra cứu phòng</h3>
+            <ol>
+                <li>Chọn menu <strong>Quản lý phòng</strong>.</li>
+                <li>Sử dụng bộ lọc trạng thái để xem tất cả phòng, phòng trống, phòng đang sử dụng hoặc phòng bảo trì.</li>
+                <li>Dùng ô tìm kiếm để tra cứu theo mã phòng, tầng, khoảng giá, sức chứa hoặc hạng phòng.</li>
+                <li>Quan sát danh sách thẻ phòng để nắm nhanh tình trạng từng phòng.</li>
+            </ol>
+
+            <h3>Xem hồ sơ khách lưu trú và hóa đơn nhanh</h3>
+            <ol>
+                <li>Chọn thẻ phòng đang sử dụng.</li>
+                <li>Xem thông tin chi tiết như khách đại diện, số điện thoại, CCCD, ngày nhận/trả dự kiến, danh sách dịch vụ đã dùng và tổng tiền tạm tính.</li>
+                <li>Có thể bấm <strong>Thanh toán & Trả phòng ngay</strong> nếu cần chuyển nhanh sang quy trình trả phòng.</li>
+            </ol>
+
+            <h3>Thêm phòng và loại phòng mới</h3>
+            <ol>
+                <li>Chức năng này dành cho tài khoản quản lý.</li>
+                <li>Bấm <strong>Thêm loại phòng</strong> để tạo hạng phòng mới, nhập tên loại phòng, đơn giá, sức chứa và các thông tin mô tả.</li>
+                <li>Bấm <strong>Thêm phòng</strong> để tạo phòng cụ thể, nhập mã phòng, chọn loại phòng, tầng và trạng thái ban đầu.</li>
+            </ol>
+
+            <h3>Cập nhật thông tin hoặc chuyển phòng sang bảo trì</h3>
+            <ol>
+                <li>Rê chuột đến phòng cần chỉnh sửa và bấm biểu tượng chỉnh sửa.</li>
+                <li>Cập nhật mã phòng, loại phòng, tầng hoặc trạng thái phòng nếu cần.</li>
+                <li>Chọn trạng thái <strong>Bảo trì</strong> khi phòng cần sửa chữa, dọn dẹp hoặc tạm ngưng sử dụng.</li>
+                <li>Bấm xác nhận để lưu thay đổi.</li>
+            </ol>
+        </section>
+
+        <section id="cancel-room">
+            <h2>9. Hướng dẫn chức năng Hủy phòng</h2>
+            <p>
+                Chức năng Hủy phòng dùng để xử lý yêu cầu hủy đặt phòng từ khách hàng,
+                đồng thời hỗ trợ nhân viên xem nhanh số tiền cọc có thể bị phạt hoặc hoàn lại.
+            </p>
+
+            <h3>Các bước thực hiện</h3>
+            <ol>
+                <li>Chọn menu <strong>Hủy phòng</strong>.</li>
+                <li>Tìm hồ sơ đặt phòng cần hủy bằng mã đặt phòng, tên khách hàng hoặc số điện thoại.</li>
+                <li>Chọn thẻ đặt phòng phù hợp trong danh sách kết quả.</li>
+                <li>Bấm <strong>Hủy phòng</strong> trên thẻ đặt phòng được chọn.</li>
+                <li>Kiểm tra thông tin hủy gồm tiền cọc đã nhận, tiền bị trừ, tiền hoàn lại và lý do hủy.</li>
+                <li>Nhập lý do hủy phòng. Đây là thông tin bắt buộc để hoàn tất thao tác.</li>
+                <li>Xác nhận hủy phòng sau khi đã kiểm tra lại toàn bộ thông tin.</li>
+            </ol>
+
+            <h3>Chính sách hoàn tiền (tham khảo)</h3>
+            <ul>
+                <li>Hủy sát ngày nhận phòng hoặc sau thời điểm nhận phòng dự kiến: có thể mất toàn bộ tiền cọc.</li>
+                <li>Hủy trong khoảng gần ngày nhận phòng: có thể bị trừ một phần tiền cọc.</li>
+                <li>Hủy sớm trước nhiều ngày: có thể được hoàn lại tiền cọc theo chính sách khách sạn.</li>
+            </ul>
+
+            <h3>Kết quả sau khi hoàn tất</h3>
+            <ul>
+                <li>Đặt phòng đã hủy không còn được xem là đặt phòng đang chờ xử lý.</li>
+                <li>Nhân viên có thể tra cứu lại thông tin hủy tại các màn hình liên quan nếu cần.</li>
+            </ul>
+        </section>
+
+        <section id="staff">
+            <h2>10. Hướng dẫn chức năng Nhân sự</h2>
+            <p>
+                Chức năng Nhân sự dành cho tài khoản quản lý, dùng để theo dõi hồ sơ nhân viên,
+                tìm kiếm, lọc trạng thái làm việc, thêm nhân viên mới và chỉnh sửa thông tin nhân viên.
+            </p>
+
+            <h3>Tìm kiếm và lọc nhân viên</h3>
+            <ol>
+                <li>Chọn menu <strong>Nhân sự</strong>.</li>
+                <li>Nhập tên nhân viên cần tìm vào ô tìm kiếm để lọc danh sách.</li>
+                <li>Sử dụng bộ lọc trạng thái để xem tất cả, nhân viên đang làm hoặc nhân viên đã nghỉ việc.</li>
+                <li>Quan sát danh sách để kiểm tra nhanh thông tin nhân viên và trạng thái tài khoản.</li>
+            </ol>
+
+            <h3>Thêm nhân viên mới</h3>
+            <ol>
+                <li>Bấm <strong>Thêm nhân viên</strong>.</li>
+                <li>Nhập hồ sơ cá nhân gồm mã nhân viên, họ tên, số điện thoại, giới tính, ngày vào làm và mức lương cơ bản.</li>
+                <li>Nhập thông tin tài khoản gồm tên đăng nhập, mật khẩu khởi tạo và vai trò phù hợp.</li>
+                <li>Bấm <strong>Lưu</strong> để hoàn tất thêm nhân viên.</li>
+            </ol>
+
+            <h3>Chỉnh sửa thông tin nhân viên</h3>
+            <ol>
+                <li>Tìm nhân viên cần chỉnh sửa trong danh sách.</li>
+                <li>Bấm biểu tượng chỉnh sửa ở cuối dòng.</li>
+                <li>Cập nhật các thông tin được phép chỉnh sửa như họ tên, số điện thoại, giới tính, lương hoặc trạng thái làm việc.</li>
+                <li>Bấm xác nhận để lưu thay đổi.</li>
+            </ol>
+        </section>
+
+        <section id="swap-room">
+            <h2>11. Hướng dẫn chức năng Đổi phòng</h2>
+            <p>
+                Chức năng Đổi phòng dùng để chuyển khách đang lưu trú sang phòng khác khi khách có nhu cầu
+                hoặc khi phòng hiện tại phát sinh vấn đề.
+            </p>
+
+            <h3>Tìm khách cần đổi phòng</h3>
+            <ol>
+                <li>Chọn menu <strong>Đổi phòng</strong>.</li>
+                <li>Tìm khách bằng mã đặt phòng, tên khách hàng, số điện thoại hoặc số phòng hiện tại.</li>
+                <li>Chọn khách phù hợp trong danh sách kết quả. Thẻ khách được chọn sẽ được đánh dấu nổi bật.</li>
+                <li>Kiểm tra thông tin chi tiết của khách ở khung bên phải trước khi tiếp tục.</li>
+            </ol>
+
+            <h3>Nhập lý do đổi phòng</h3>
+            <ol>
+                <li>Nhập lý do đổi phòng vào ô bắt buộc.</li>
+                <li>Lý do nên mô tả ngắn gọn, ví dụ phòng có sự cố, khách muốn nâng hạng hoặc đổi sang phòng yên tĩnh hơn.</li>
+            </ol>
+
+            <h3>Chọn phòng mới và xác nhận đổi</h3>
+            <ol>
+                <li>Bấm <strong>Phòng trống có sẵn</strong> để xem danh sách phòng có thể chuyển đến.</li>
+                <li>Chọn phòng mới phù hợp. Phòng cùng loại thường được đánh dấu để dễ nhận biết.</li>
+                <li>Bấm xác nhận đổi phòng và kiểm tra thông báo hoàn tất.</li>
+            </ol>
+        </section>
+
+        <section id="customers">
+            <h2>12. Hướng dẫn chức năng Khách hàng</h2>
+            <p>
+                Chức năng Khách hàng dùng để tìm kiếm, xem chi tiết và chỉnh sửa thông tin khách hàng.
+            </p>
+
+            <h3>Tìm kiếm khách hàng</h3>
+            <ol>
+                <li>Chọn menu <strong>Khách hàng</strong>.</li>
+                <li>Nhập từ khóa vào ô tìm kiếm. Có thể tìm theo tên, số điện thoại hoặc mã khách hàng.</li>
+                <li>Nếu cần, sử dụng bộ lọc hạng khách hàng để thu hẹp kết quả.</li>
+                <li>Chọn khách hàng phù hợp trong danh sách để xem thông tin chi tiết.</li>
+            </ol>
+
+            <h3>Chỉnh sửa thông tin khách hàng</h3>
+            <ol>
+                <li>Chọn đúng khách hàng cần chỉnh sửa.</li>
+                <li>Bấm <strong>Sửa thông tin</strong>.</li>
+                <li>Cập nhật các thông tin được phép chỉnh sửa như địa chỉ, email, quốc tịch, giới tính hoặc ngày sinh.</li>
+                <li>Các thông tin định danh quan trọng như họ tên, số điện thoại hoặc CCCD không nên để trống.</li>
+                <li>Bấm <strong>Cập nhật</strong> để lưu thay đổi hoặc <strong>Hủy</strong> nếu không muốn thay đổi.</li>
+            </ol>
+        </section>
+
+        <section id="services">
+            <h2>13. Hướng dẫn chức năng Dịch vụ</h2>
+            <p>
+                Chức năng Dịch vụ dùng để tìm kiếm, lọc và chỉnh sửa thông tin các dịch vụ bổ sung của khách sạn.
+            </p>
+
+            <h3>Tìm kiếm và lọc dịch vụ</h3>
+            <ol>
+                <li>Chọn menu <strong>Dịch vụ</strong>.</li>
+                <li>Dùng ô tìm kiếm để tìm dịch vụ theo tên.</li>
+                <li>Chọn danh mục dịch vụ để lọc nhanh, ví dụ vệ sinh, ẩm thực, thư giãn, vận chuyển hoặc tiện ích.</li>
+                <li>Quan sát danh sách dịch vụ được hiển thị sau khi lọc.</li>
+            </ol>
+
+            <h3>Sửa thông tin dịch vụ</h3>
+            <ol>
+                <li>Tìm dịch vụ cần chỉnh sửa trong danh sách.</li>
+                <li>Bấm biểu tượng chỉnh sửa trên thẻ dịch vụ.</li>
+                <li>Cập nhật tên dịch vụ, đơn giá, danh mục, trạng thái hoặc mô tả.</li>
+                <li>Bấm <strong>Cập nhật</strong> để lưu thay đổi.</li>
+                <li>Kiểm tra lại thẻ dịch vụ sau khi hộp thoại chỉnh sửa đóng.</li>
+            </ol>
+        </section>
+
+        <section id="notes">
+            <h2>14. Ghi chú chung</h2>
+            <ul>
+                <li>Nhân viên nên kiểm tra kỹ thông tin khách trước khi xác nhận đặt phòng hoặc nhận phòng.</li>
+                <li>Các thao tác liên quan đến tiền cần được đối chiếu với giao dịch thực tế trước khi xác nhận.</li>
+                <li>Nếu thông tin trên màn hình chưa cập nhật, nhân viên có thể bấm làm mới hoặc chuyển sang màn hình khác rồi quay lại.</li>
+                <li>Khi phát sinh lỗi không rõ nguyên nhân, ghi lại mã đặt phòng, mã hóa đơn hoặc thời điểm thao tác để báo người phụ trách kiểm tra.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+</body>
+</html>

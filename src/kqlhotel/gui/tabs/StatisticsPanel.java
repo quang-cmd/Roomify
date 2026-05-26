@@ -50,6 +50,7 @@ import kqlhotel.entity.statistics.RoomTypeShare;
 import kqlhotel.gui.components.PrimaryButton;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.components.DatePicker;
+import kqlhotel.gui.Session;
 import kqlhotel.gui.theme.ThemeColors;
 import net.miginfocom.swing.MigLayout;
 
@@ -381,7 +382,12 @@ public class StatisticsPanel extends JPanel {
                 JOptionPane.showMessageDialog(dlg, "Vui lòng nhập tên, số tiền > 0 và ngày chi.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            boolean ok = bus.addExpense((String) typeCombo.getSelectedItem(), name, amount, datePicker.getSelectedDate(), noteField.getText().trim());
+            String maNV = Session.currentStaff == null ? null : Session.currentStaff.getMaNV();
+            if (maNV == null || maNV.isBlank()) {
+                JOptionPane.showMessageDialog(dlg, "Kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c nh\u00e2n vi\u00ean \u0111ang nh\u1eadp chi ph\u00ed.", "L\u1ed7i", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            boolean ok = bus.addExpense((String) typeCombo.getSelectedItem(), name, amount, datePicker.getSelectedDate(), noteField.getText().trim(), maNV);
             if (!ok) {
                 JOptionPane.showMessageDialog(dlg, "Không thêm được chi phí. Kiểm tra bảng ChiPhi trong CSDL.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;

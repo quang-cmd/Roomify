@@ -9,60 +9,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.entity.shift.ShiftInfo;
+import kqlhotel.entity.shift.ShiftReconciliationRow;
 
 public class ShiftDAO {
-
-    public static class ShiftInfo {
-        public final String maPC;
-        public final String loaiCa;
-        public final String gioBatDau;
-        public final String gioKetThuc;
-        public final String hoTenNV;
-        public final double tienMoCa;
-        public final double doanhThu;
-        public final int soGiaoDich;
-
-        public ShiftInfo(String maPC, String loaiCa, String gioBatDau, String gioKetThuc,
-                         String hoTenNV, double tienMoCa, double doanhThu, int soGiaoDich) {
-            this.maPC = maPC;
-            this.loaiCa = loaiCa;
-            this.gioBatDau = gioBatDau;
-            this.gioKetThuc = gioKetThuc;
-            this.hoTenNV = hoTenNV;
-            this.tienMoCa = tienMoCa;
-            this.doanhThu = doanhThu;
-            this.soGiaoDich = soGiaoDich;
-        }
-    }
-
-    public static class ShiftReconciliationRow {
-        public final String maPC;
-        public final String hoTenNV;
-        public final String loaiCa;
-        public final LocalDateTime thoiGianMoCa;
-        public final LocalDateTime thoiGianKetCa;
-        public final double tienMoCa;
-        public final double tienKetCa;
-        public final double doanhThuHeThong;
-        public final double doanhThuTienMat;
-        public final String trangThai;
-
-        public ShiftReconciliationRow(String maPC, String hoTenNV, String loaiCa,
-                                      LocalDateTime thoiGianMoCa, LocalDateTime thoiGianKetCa,
-                                      double tienMoCa, double tienKetCa,
-                                      double doanhThuHeThong, double doanhThuTienMat, String trangThai) {
-            this.maPC = maPC;
-            this.hoTenNV = hoTenNV;
-            this.loaiCa = loaiCa;
-            this.thoiGianMoCa = thoiGianMoCa;
-            this.thoiGianKetCa = thoiGianKetCa;
-            this.tienMoCa = tienMoCa;
-            this.tienKetCa = tienKetCa;
-            this.doanhThuHeThong = doanhThuHeThong;
-            this.doanhThuTienMat = doanhThuTienMat;
-            this.trangThai = trangThai;
-        }
-    }
 
     private static final String SQL_CURRENT_SHIFT =
         "SELECT TOP 1 pc.maPC, cl.loaiCa, " +

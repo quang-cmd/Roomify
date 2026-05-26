@@ -10,7 +10,7 @@ import net.miginfocom.swing.MigLayout;
 
 import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.bus.dashboard.EmployeeDashboardBUS;
-import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
+import kqlhotel.entity.shift.ShiftInfo;
 import kqlhotel.dto.dashboard.RoomScheduleDTO;
 
 public class EmployeeDashboardPanel extends JPanel {

@@ -1122,16 +1122,6 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        String referenceNumber = "";
-        if (choice == 1) {
-            // Show VietQR dialog for bank transfer
-            String bookingRef = "DP-" + System.currentTimeMillis() % 100000;
-            referenceNumber = showQrPaymentDialog(paymentAmount, bookingRef);
-            if (referenceNumber == null) {
-                return; // User cancelled
-            }
-        }
-
         // Final confirmation
         int confirm = JOptionPane.showConfirmDialog(
             this,
@@ -1146,6 +1136,15 @@ public class BookingPanel extends JPanel {
         );
         if (confirm != JOptionPane.YES_OPTION) {
             return;
+        }
+
+        String referenceNumber = "";
+        if (choice == 1) {
+            String bookingRef = "DP-" + System.currentTimeMillis() % 100000;
+            referenceNumber = showQrPaymentDialog(paymentAmount, bookingRef);
+            if (referenceNumber == null) {
+                return;
+            }
         }
 
         CreateBookingCommand command = new CreateBookingCommand(
@@ -1402,9 +1401,6 @@ public class BookingPanel extends JPanel {
                 }
                 String idNo = idField.getText().trim();
                 if (idNo.length() < 9) {
-                    nameField.setText("");
-                    phoneField.setText("");
-                    emailField.setText("");
                     return;
                 }
 
@@ -1414,10 +1410,6 @@ public class BookingPanel extends JPanel {
                     nameField.setText(customer.getHoTenNV());
                     phoneField.setText(customer.getSdt());
                     emailField.setText(customer.getEmail());
-                } else {
-                    nameField.setText("");
-                    phoneField.setText("");
-                    emailField.setText("");
                 }
             }
         });
@@ -1718,9 +1710,17 @@ public class BookingPanel extends JPanel {
             return;
         }
         updateSelectionSummary();
+        resetGuestForms();
         syncGuestForms();
         bookingCards.show(bookingContent, "customer-info");
         setStep(2);
+    }
+
+    private void resetGuestForms() {
+        guestFormRows.clear();
+        guestFormsPanel.removeAll();
+        guestFormsPanel.revalidate();
+        guestFormsPanel.repaint();
     }
 
     private boolean validateSelectedRoomCapacity() {
@@ -1806,7 +1806,7 @@ public class BookingPanel extends JPanel {
         java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog((java.awt.Frame)(owner instanceof java.awt.Frame ? owner : null),
                 "Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng", true);
-        dialog.setLayout(new MigLayout("insets 20,gap 12", "[center,grow]", "[][][][]"));
+        dialog.setLayout(new MigLayout("insets 24,gap 14", "[center,grow]", "[][][][]"));
         dialog.setResizable(false);
 
         JLabel titleLbl = new JLabel("Qu\u00e9t m\u00e3 \u0111\u1ec3 thanh to\u00e1n");
@@ -1825,7 +1825,7 @@ public class BookingPanel extends JPanel {
         dialog.add(bankInfo, "wrap,growx");
 
         JLabel qrLabel = new JLabel("\u0110ang t\u1ea3i m\u00e3 QR...", SwingConstants.CENTER);
-        qrLabel.setPreferredSize(new java.awt.Dimension(260, 260));
+        qrLabel.setPreferredSize(new java.awt.Dimension(380, 380));
         qrLabel.setBorder(BorderFactory.createLineBorder(new Color(210, 220, 240), 1));
         dialog.add(qrLabel, "wrap,align center");
 
@@ -1836,11 +1836,11 @@ public class BookingPanel extends JPanel {
 
         JPanel btnRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 16, 0));
         JButton cancelBtn  = new JButton("Hu\u1ef7");
-        JButton confirmBtn = new JButton("\u0110\u00e3 nh\u1eadn ti\u1ec1n \u2713");
+        PrimaryButton confirmBtn = new PrimaryButton("\u0110\u00e3 nh\u1eadn ti\u1ec1n \u2713");
         confirmBtn.setBackground(new Color(30, 90, 200));
         confirmBtn.setForeground(Color.WHITE);
-        confirmBtn.setOpaque(true);
-        confirmBtn.setFocusPainted(false);
+        confirmBtn.setPreferredSize(new Dimension(150, 34));
+        confirmBtn.setArc(10);
         btnRow.add(cancelBtn);
         btnRow.add(confirmBtn);
         dialog.add(btnRow, "growx");
@@ -1855,7 +1855,7 @@ public class BookingPanel extends JPanel {
                 java.net.URL url = java.net.URI.create(qrUrl).toURL();
                 java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(url);
                 if (img != null) {
-                    java.awt.Image scaled = img.getScaledInstance(250, 250, java.awt.Image.SCALE_SMOOTH);
+                    java.awt.Image scaled = img.getScaledInstance(360, 360, java.awt.Image.SCALE_SMOOTH);
                     javax.swing.SwingUtilities.invokeLater(() -> {
                         qrLabel.setIcon(new ImageIcon(scaled));
                         qrLabel.setText("");

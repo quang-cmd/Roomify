@@ -4,12 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,6 +27,7 @@ import javax.swing.SwingConstants;
 import javax.swing.Timer;
 
 import kqlhotel.bus.shift.ShiftBUS;
+import kqlhotel.entity.shift.ShiftInfo;
 import kqlhotel.gui.dialog.ShiftClosingDialog;
 import kqlhotel.gui.components.BackgroundPanel;
 import kqlhotel.gui.components.LoginBackgroundPanel;
@@ -45,6 +48,7 @@ public class AppFrame extends JFrame {
     private final JLabel transitionMessage = new JLabel();
     private JLabel userNameLabel;
     private JLabel userRoleLabel;
+    private JLabel userInitialsLabel;
     private JButton closeShiftBtn;
     private final Timer transitionTimer;
     private final Map<String, JPanel> menuItems = new LinkedHashMap<>();
@@ -226,6 +230,12 @@ public class AppFrame extends JFrame {
         sidebar.add(sidebarItem("\u2630", new Color(60, 130, 60), "H\u00f3a \u0111\u01a1n", "invoices"));
         sidebar.add(sidebarItem("\u25B2", new Color(180, 100, 40), "Th\u1ed1ng k\u00ea", "statistics"));
 
+        JLabel helpLabel = new JLabel("TR\u1ee2 GI\u00daP");
+        helpLabel.setForeground(ThemeColors.PREMIUM_SIDEBAR_TEXT_MUTED);
+        helpLabel.setFont(helpLabel.getFont().deriveFont(Font.BOLD, 11f));
+        sidebar.add(helpLabel, "gapy 10 2");
+        sidebar.add(sidebarItem("?", new Color(37, 99, 235), "Tr\u1ee3 gi\u00fap", "help"));
+
         // (Sidebar profile removed: user info + logout now live in the topbar)
 
         return sidebar;
@@ -277,6 +287,11 @@ public class AppFrame extends JFrame {
                             "Không có quyền",
                             JOptionPane.WARNING_MESSAGE
                     );
+                    return;
+                }
+
+                if ("help".equals(route)) {
+                    openHelpPage();
                     return;
                 }
 
@@ -381,7 +396,42 @@ public class AppFrame extends JFrame {
             case "invoices": return "invoices.png";
             case "statistics": return "statistics.png";
             case "dashboard": return "dashboard.png";
+            case "help": return "help.png";
             default: return null;
+        }
+    }
+
+    private void openHelpPage() {
+        try {
+            Path helpPath = Path.of("docs", "help", "index.html").toAbsolutePath();
+            if (!java.nio.file.Files.exists(helpPath)) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Kh\u00f4ng t\u00ecm th\u1ea5y file h\u01b0\u1edbng d\u1eabn: " + helpPath,
+                        "Kh\u00f4ng th\u1ec3 m\u1edf tr\u1ee3 gi\u00fap",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            if (!Desktop.isDesktopSupported()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "M\u00e1y t\u00ednh kh\u00f4ng h\u1ed7 tr\u1ee3 m\u1edf tr\u00ecnh duy\u1ec7t t\u1ef1 \u0111\u1ed9ng.",
+                        "Kh\u00f4ng th\u1ec3 m\u1edf tr\u1ee3 gi\u00fap",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            Desktop.getDesktop().browse(helpPath.toUri());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Kh\u00f4ng th\u1ec3 m\u1edf file h\u01b0\u1edbng d\u1eabn s\u1eed d\u1ee5ng.\n" + ex.getMessage(),
+                    "L\u1ed7i",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
@@ -438,7 +488,7 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createTopbarRight() {
-        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12", "[][][][][]", "[]"));
+        JPanel panel = new JPanel(new MigLayout("insets 0,gap 12,hidemode 3", "[][][]", "[]"));
         panel.setOpaque(false);
 
 
@@ -447,7 +497,8 @@ public class AppFrame extends JFrame {
         JPanel userArea = new JPanel(new MigLayout("insets 0,gap 8", "[][grow,fill]", "[]"));
         userArea.setOpaque(false);
 
-        JPanel avatar = createCircleAvatar(ThemeColors.ACCENT, "ND", 13f);
+        JPanel avatar = createCircleAvatar(ThemeColors.ACCENT, "?", 13f);
+        userInitialsLabel = (JLabel) avatar.getComponent(0);
 
         JPanel userText = new JPanel(new MigLayout("insets 0,wrap 1,gap 1", "[grow,fill]", "[]"));
         userText.setOpaque(false);
@@ -563,7 +614,7 @@ public class AppFrame extends JFrame {
         }
 
         ShiftBUS shiftBUS = new ShiftBUS();
-        kqlhotel.dao.shift.ShiftDAO.ShiftInfo shiftInfo = shiftBUS.getOpenShiftByStaff(maNV);
+        ShiftInfo shiftInfo = shiftBUS.getOpenShiftByStaff(maNV);
 
         if (shiftInfo == null) {
             JOptionPane.showMessageDialog(
@@ -846,6 +897,10 @@ public class AppFrame extends JFrame {
 
         if (userRoleLabel != null) {
             userRoleLabel.setText(roleText);
+        }
+
+        if (userInitialsLabel != null) {
+            userInitialsLabel.setText(getInitials(fullName));
         }
 
         if (closeShiftBtn != null) {

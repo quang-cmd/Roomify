@@ -1,8 +1,8 @@
 package kqlhotel.bus.shift;
 
 import kqlhotel.dao.shift.ShiftDAO;
-import kqlhotel.dao.shift.ShiftDAO.ShiftInfo;
-import kqlhotel.dao.shift.ShiftDAO.ShiftReconciliationRow;
+import kqlhotel.entity.shift.ShiftInfo;
+import kqlhotel.entity.shift.ShiftReconciliationRow;
 
 import java.util.List;
 

@@ -3,6 +3,7 @@ package kqlhotel.bus.statistics;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.dao.statistics.StatisticsDAO;
 import kqlhotel.entity.statistics.ExpenseRecord;
 import kqlhotel.entity.statistics.HotelKpiPoint;
@@ -18,6 +19,7 @@ import kqlhotel.entity.statistics.RoomTypeShare;
  */
 public class StatisticsBUS {
     private final StatisticsDAO dao = new StatisticsDAO();
+    private final ShiftBUS shiftBUS = new ShiftBUS();
 
     /** Số tháng hiển thị mặc định trên biểu đồ doanh thu. */
     private static final int MONTHLY_CHART_MONTHS = 6;
@@ -168,7 +170,12 @@ public class StatisticsBUS {
     }
 
     public boolean addExpense(String type, String name, double amount, LocalDate date, String note) {
-        return dao.addExpense(type, name, amount, date.atStartOfDay(), note);
+        return addExpense(type, name, amount, date, note, null);
+    }
+
+    public boolean addExpense(String type, String name, double amount, LocalDate date, String note, String maNV) {
+        String maPC = maNV == null || maNV.isBlank() ? null : shiftBUS.getOpenShiftIdByStaff(maNV);
+        return dao.addExpense(type, name, amount, date.atStartOfDay(), note, maNV, maPC);
     }
 
     public boolean deleteExpense(int id) {
