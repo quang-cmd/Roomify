@@ -70,7 +70,7 @@ public class DashboardPanel extends JPanel {
     private final RevenueChartPanel revenueChartPanel = new RevenueChartPanel();
     private final RoomStatusChartPanel roomStatusChartPanel = new RoomStatusChartPanel();
     private final DefaultTableModel shiftTableModel = new DefaultTableModel(
-        new Object[] {"Mã ca", "Nhân viên", "Ca", "Mở ca", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
+        new Object[] {"Mã ca", "Nhân viên", "Ca", "Dự kiến mở", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
         0
     ) {
         @Override
@@ -640,7 +640,7 @@ public class DashboardPanel extends JPanel {
         dialog.setLocationRelativeTo(this);
 
         DefaultTableModel model = new DefaultTableModel(
-            new Object[] {"Mã ca", "Nhân viên", "Ca", "Mở ca", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
+            new Object[] {"Mã ca", "Nhân viên", "Ca", "Dự kiến mở", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
             0
         ) {
             @Override
@@ -700,7 +700,7 @@ public class DashboardPanel extends JPanel {
                 row.maPC,
                 row.hoTenNV,
                 displayShiftName(row.loaiCa),
-                formatDateTime(row.thoiGianMoCa),
+                formatShiftStartTime(row),
                 formatVND(row.tienMoCa),
                 formatVND(row.doanhThuHeThong),
                 closed ? formatVND(row.tienKetCa) : "--",
@@ -719,11 +719,13 @@ public class DashboardPanel extends JPanel {
 
     private static String formatProfitDelta(double current, double previous) {
         double delta = current - previous;
-        if (previous == 0) {
-            return (delta >= 0 ? "+" : "-") + formatVND(Math.abs(delta));
+        if (delta > 0) {
+            return "Tăng " + formatCompactVND(delta) + " so với tháng trước";
         }
-        double percent = (delta / Math.abs(previous)) * 100.0;
-        return String.format("%s%.1f%%", percent >= 0 ? "+" : "", percent);
+        if (delta < 0) {
+            return "Giảm " + formatCompactVND(Math.abs(delta)) + " so với tháng trước";
+        }
+        return "Không đổi so với tháng trước";
     }
 
     private static String formatVND(double amount) {
@@ -741,6 +743,16 @@ public class DashboardPanel extends JPanel {
             return "--";
         }
         return value.format(DateTimeFormatter.ofPattern("dd/MM HH:mm"));
+    }
+
+    private static String formatShiftStartTime(ShiftReconciliationRow row) {
+        if (row == null) {
+            return "--";
+        }
+        if (row.thoiGianDuKienMoCa != null) {
+            return formatDateTime(row.thoiGianDuKienMoCa);
+        }
+        return "--";
     }
 
     private static String displayShiftName(String loaiCa) {

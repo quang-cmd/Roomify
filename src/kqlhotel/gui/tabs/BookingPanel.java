@@ -55,6 +55,7 @@ public class BookingPanel extends JPanel {
     private static final int ROOMS_PER_SLIDE = 4;
 
     private final JComboBox<String> roomTypeCombo = new JComboBox<>();
+    private final JComboBox<String> priceRangeCombo = new JComboBox<>();
     private final JTextField checkInField = new JTextField("dd/mm/yyyy");
     private final JTextField checkOutField = new JTextField("dd/mm/yyyy");
     private LocalDate selectedCheckInDate;
@@ -135,6 +136,7 @@ public class BookingPanel extends JPanel {
     private void loadRoomTypes() {
         roomTypeCombo.removeAllItems();
         roomTypeCombo.addItem("Tất cả");
+        loadPriceRanges();
         try {
             List<String> types = bookingService.getRoomTypes();
             if (types != null) {
@@ -147,8 +149,17 @@ public class BookingPanel extends JPanel {
         }
     }
 
+    private void loadPriceRanges() {
+        priceRangeCombo.removeAllItems();
+        priceRangeCombo.addItem("Tất cả mức giá");
+        priceRangeCombo.addItem("Dưới 800.000đ");
+        priceRangeCombo.addItem("800.000đ - dưới 1.500.000đ");
+        priceRangeCombo.addItem("1.500.000đ - dưới 2.500.000đ");
+        priceRangeCombo.addItem("Từ 2.500.000đ trở lên");
+    }
+
     private void renderInitialRooms() {
-        BookingSearchRequest initialRequest = new BookingSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate, adultsCount, childrenCount);
+        BookingSearchRequest initialRequest = createSearchRequest("Tất cả", selectedCheckInDate, selectedCheckOutDate);
         lastSearchRequest = initialRequest;
         capacityHintsVisible = false;
         List<RoomOptionDto> rooms = bookingService.searchAvailableRooms(initialRequest);
@@ -190,6 +201,8 @@ public class BookingPanel extends JPanel {
         filterCard.add(titleRow, "gapy 0 8");
         filterCard.add(new JLabel("Loại phòng"));
         filterCard.add(roomTypeCombo, "h 40");
+        filterCard.add(new JLabel("Mức giá / đêm"));
+        filterCard.add(priceRangeCombo, "h 40");
 
         // Side-by-side date fields, each with label above the input
         JPanel dateRow = new JPanel(new MigLayout("insets 0,gap 10,wrap 2", "[grow,fill][grow,fill]", "[]"));
@@ -201,11 +214,6 @@ public class BookingPanel extends JPanel {
         filterCard.add(dateRow);
         filterCard.add(new JLabel("Khách"));
         filterCard.add(createGuestStepper(), "h 88");
-
-        JLabel note = new JLabel("Tối đa 2 trẻ < 12 tuổi/phòng");
-        note.setForeground(new Color(150, 165, 190));
-        note.setFont(note.getFont().deriveFont(11f));
-        filterCard.add(note, "gapy 0 4");
 
         String searchText = "Tìm phòng trống";
         searchButton = new PrimaryButton(searchText);
@@ -985,7 +993,7 @@ public class BookingPanel extends JPanel {
             return;
         }
 
-        BookingSearchRequest request = new BookingSearchRequest(selectedType, checkInDate, checkOutDate, adultsCount, childrenCount);
+        BookingSearchRequest request = createSearchRequest(selectedType, checkInDate, checkOutDate);
         lastSearchRequest = request;
         capacityHintsVisible = true;
         currentSlideIndex = 0;
@@ -995,6 +1003,36 @@ public class BookingPanel extends JPanel {
         renderRooms(mapToCardData(filtered));
         bookingCards.show(bookingContent, "select-room");
         setStep(1);
+    }
+
+    private BookingSearchRequest createSearchRequest(String roomType, LocalDate checkInDate, LocalDate checkOutDate) {
+        PriceRange range = selectedPriceRange();
+        return new BookingSearchRequest(
+            roomType,
+            checkInDate,
+            checkOutDate,
+            adultsCount,
+            childrenCount,
+            range.minPrice,
+            range.maxPrice
+        );
+    }
+
+    private PriceRange selectedPriceRange() {
+        String selected = (String) priceRangeCombo.getSelectedItem();
+        if ("Dưới 800.000đ".equals(selected)) {
+            return new PriceRange(null, 800_000L);
+        }
+        if ("800.000đ - dưới 1.500.000đ".equals(selected)) {
+            return new PriceRange(800_000L, 1_500_000L);
+        }
+        if ("1.500.000đ - dưới 2.500.000đ".equals(selected)) {
+            return new PriceRange(1_500_000L, 2_500_000L);
+        }
+        if ("Từ 2.500.000đ trở lên".equals(selected)) {
+            return new PriceRange(2_500_000L, null);
+        }
+        return new PriceRange(null, null);
     }
 
 
@@ -1577,7 +1615,7 @@ public class BookingPanel extends JPanel {
             checkOutDate = checkInDate.plusDays(1);
         }
 
-        return new BookingSearchRequest((String) roomTypeCombo.getSelectedItem(), checkInDate, checkOutDate, adultsCount, childrenCount);
+        return createSearchRequest((String) roomTypeCombo.getSelectedItem(), checkInDate, checkOutDate);
     }
 
     private List<RoomOptionDto> toSelectedRoomOptions() {
@@ -1757,6 +1795,7 @@ public class BookingPanel extends JPanel {
     private void setFilterLocked(boolean locked) {
         filterLocked = locked;
         roomTypeCombo.setEnabled(!locked);
+        priceRangeCombo.setEnabled(!locked);
         if (searchButton != null) {
             searchButton.setEnabled(!locked);
         }
@@ -1877,6 +1916,16 @@ public class BookingPanel extends JPanel {
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true); // blocks until disposed
         return resultRef[0];
+    }
+
+    private static final class PriceRange {
+        private final Long minPrice;
+        private final Long maxPrice;
+
+        private PriceRange(Long minPrice, Long maxPrice) {
+            this.minPrice = minPrice;
+            this.maxPrice = maxPrice;
+        }
     }
 
     private static final class GuestFormRow {

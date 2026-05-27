@@ -74,6 +74,8 @@ public final class IconLoader {
             case "Ban công": return loadIcon("balcony.png", 20, 20);
             case "Phòng khách": return loadIcon("room.png", 20, 20);
             case "Máy lạnh": return loadIcon("ac.png", 20, 20);
+            case "May lanh": return loadIcon("ac.png", 20, 20);
+            case "TV": return loadIcon("tivi.png", 20, 20);
             default: return null;
         }
     }

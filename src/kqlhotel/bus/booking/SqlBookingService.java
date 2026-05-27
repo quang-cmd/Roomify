@@ -1,10 +1,7 @@
 package kqlhotel.bus.booking;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -16,8 +13,15 @@ import java.util.Set;
 import kqlhotel.bus.payment.PaymentBUS;
 import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.dao.ConnectDB;
+import kqlhotel.dao.booking.BookingDao;
+import kqlhotel.dao.booking.BookingDaoSqlServer;
 import kqlhotel.dao.booking.RoomDao;
 import kqlhotel.dao.booking.RoomDaoSqlServer;
+import kqlhotel.entity.BookingEntity;
+import kqlhotel.entity.BookingRoomEntity;
+import kqlhotel.entity.Customer;
+import kqlhotel.entity.GuestStayDetail;
+import kqlhotel.entity.Invoice;
 import kqlhotel.entity.Payment;
 import kqlhotel.entity.RoomEntity;
 import kqlhotel.service.EmailService;
@@ -27,15 +31,21 @@ public class SqlBookingService implements BookingService {
     private static final int CHECK_OUT_HOUR = 12;
     private static final double VAT_RATE = 0.10;
     private final RoomDao roomDao;
+    private final BookingDao bookingDao;
     private final PaymentBUS paymentBUS = new PaymentBUS();
     private final ShiftBUS shiftBUS = new ShiftBUS();
 
     public SqlBookingService() {
-        this(new RoomDaoSqlServer());
+        this(new RoomDaoSqlServer(), new BookingDaoSqlServer());
     }
 
     public SqlBookingService(RoomDao roomDao) {
+        this(roomDao, new BookingDaoSqlServer());
+    }
+
+    public SqlBookingService(RoomDao roomDao, BookingDao bookingDao) {
         this.roomDao = roomDao;
+        this.bookingDao = bookingDao;
     }
 
     @Override
@@ -61,10 +71,14 @@ public class SqlBookingService implements BookingService {
 
         List<RoomOptionDto> roomOptions = new java.util.ArrayList<>();
         for (RoomEntity row : rows) {
+            long nightlyPrice = row.getNightlyPrice();
+            if (!matchesPriceRange(nightlyPrice, request.getMinPrice(), request.getMaxPrice())) {
+                continue;
+            }
             String status = row.getAvailableRooms() + "/" + row.getTotalRooms();
             roomOptions.add(new RoomOptionDto(
                 row.getRoomType(),
-                row.getNightlyPrice(),
+                nightlyPrice,
                 row.getMaxGuests(),
                 row.getMaxChildren(),
                 status,
@@ -73,6 +87,13 @@ public class SqlBookingService implements BookingService {
             ));
         }
         return roomOptions;
+    }
+
+    private boolean matchesPriceRange(long nightlyPrice, Long minPrice, Long maxPrice) {
+        if (minPrice != null && nightlyPrice < minPrice) {
+            return false;
+        }
+        return maxPrice == null || nightlyPrice < maxPrice;
     }
 
     @Override
@@ -150,7 +171,7 @@ public class SqlBookingService implements BookingService {
             List<String> allocatedRoomIds = new ArrayList<>();
             Set<String> usedRoomIds = new HashSet<>();
             for (RoomOptionDto option : command.getSelectedRooms()) {
-                String roomId = pickAvailableRoomId(con, option.getRoomType(),
+                String roomId = bookingDao.pickAvailableRoomId(con, option.getRoomType(),
                     command.getCheckInDate(), command.getCheckOutDate(), usedRoomIds);
                 if (roomId == null) {
                     con.rollback();
@@ -170,7 +191,7 @@ public class SqlBookingService implements BookingService {
                 }
 
                 GuestInfoDto guest = command.getGuestInfos().get(i);
-                String phoneConflict = findCustomerNameByPhoneWithDifferentId(con, guest.getPhone(), guest.getIdNo());
+                String phoneConflict = bookingDao.findCustomerNameByPhoneWithDifferentId(con, guest.getPhone(), guest.getIdNo());
                 if (phoneConflict != null) {
                     con.rollback();
                     return fail("Số điện thoại " + guest.getPhone().trim()
@@ -178,7 +199,7 @@ public class SqlBookingService implements BookingService {
                         + "). Vui lòng kiểm tra lại CCCD hoặc dùng số điện thoại khác.");
                 }
 
-                String maKH = upsertCustomer(con, guest);
+                String maKH = bookingDao.upsertCustomer(con, toCustomer(guest));
                 if (maKH == null) {
                     con.rollback();
                     return fail("Không thể lưu thông tin khách hàng: " + guest.getFullName());
@@ -195,7 +216,7 @@ public class SqlBookingService implements BookingService {
             // 3. Resolve maNV from the logged-in staff, fallback only for legacy callers.
             String maNV = command.getStaffId();
             if (maNV == null || maNV.isBlank()) {
-                maNV = resolveStaffId(con);
+                maNV = bookingDao.resolveStaffId(con);
             }
             if (maNV == null) {
                 con.rollback();
@@ -204,7 +225,7 @@ public class SqlBookingService implements BookingService {
 
             // 4. Insert DatPhong
             LocalDateTime now = LocalDateTime.now();
-            // Policy khách sạn: nhận phòng 14:00, trả phòng 12:00 ngày tra.
+            // Policy khách sạn: nhận phòng 14:00, trả phòng 12:00 ngày trả.
             LocalDateTime checkInTs = command.getCheckInDate().atTime(CHECK_IN_HOUR, 0);
             LocalDateTime checkOutTs = command.getCheckOutDate().atTime(CHECK_OUT_HOUR, 0);
             LocalDateTime ngayDat = now;
@@ -229,87 +250,70 @@ public class SqlBookingService implements BookingService {
             long tienCocBooking = paidAmount;
             String trangThaiHD = command.isFullyPaid() ? "DaThanhToan" : "ChuaThanhToan";
 
-            String maDatPhong = nextId(con, "DatPhong", "maDatPhong", "DP", 5);
-            String insertDatPhong = "INSERT INTO DatPhong (maDatPhong, ngayDat, tienCoc, trangThaiDatPhong, ghiChu, maKH, maNV) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(insertDatPhong)) {
-                ps.setString(1, maDatPhong);
-                ps.setTimestamp(2, Timestamp.valueOf(ngayDat));
-                ps.setBigDecimal(3, java.math.BigDecimal.valueOf(tienCocBooking));
-                ps.setString(4, "DaDat");
-                ps.setString(5, command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
-                ps.setString(6, leadCustomerId);
-                ps.setString(7, maNV);
-                ps.executeUpdate();
-            }
+            BookingEntity booking = new BookingEntity();
+            booking.setNgayDat(ngayDat);
+            booking.setTienCoc(tienCocBooking);
+            booking.setTrangThaiDatPhong("DaDat");
+            booking.setGhiChu(command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%");
+            booking.setMaKH(leadCustomerId);
+            booking.setMaNV(maNV);
+            String maDatPhong = bookingDao.createBooking(con, booking);
 
             // 5. Insert ChiTietDatPhong for each allocated room (composite PK, no maCTDP column)
             int numRooms = allocatedRoomIds.size();
             int totalPeople = command.getAdults() + command.getChildren();
             int guestsPerRoom = Math.max(1, (int) Math.ceil((double) totalPeople / numRooms));
 
-            String insertCtdp = "INSERT INTO ChiTietDatPhong (maDatPhong, maPhong, ngayNhanDuKien, ngayTraDuKien, donGiaDat, soLuongNguoiO, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            List<BookingRoomEntity> bookingRooms = new ArrayList<>();
             for (int i = 0; i < allocatedRoomIds.size(); i++) {
-                String roomId = allocatedRoomIds.get(i);
-                long unitPrice = command.getSelectedRooms().get(i).getNightlyPrice();
-                try (PreparedStatement ps = con.prepareStatement(insertCtdp)) {
-                    ps.setString(1, maDatPhong);
-                    ps.setString(2, roomId);
-                    ps.setTimestamp(3, Timestamp.valueOf(checkInTs));
-                    ps.setTimestamp(4, Timestamp.valueOf(checkOutTs));
-                    ps.setBigDecimal(5, java.math.BigDecimal.valueOf(unitPrice));
-                    ps.setInt(6, Math.min(guestsPerRoom, Math.max(1, totalPeople)));
-                    ps.setString(7, "");
-                    ps.executeUpdate();
-                }
+                BookingRoomEntity room = new BookingRoomEntity();
+                room.setMaDatPhong(maDatPhong);
+                room.setMaPhong(allocatedRoomIds.get(i));
+                room.setNgayNhanDuKien(checkInTs);
+                room.setNgayTraDuKien(checkOutTs);
+                room.setDonGiaDat(command.getSelectedRooms().get(i).getNightlyPrice());
+                room.setSoLuongNguoiO(Math.min(guestsPerRoom, Math.max(1, totalPeople)));
+                room.setGhiChu("");
+                bookingRooms.add(room);
             }
+            bookingDao.createBookingRooms(con, bookingRooms);
 
             // 5.5. Insert guests to ChiTietKhachO
-            String insertCtko = "INSERT INTO ChiTietKhachO (maDatPhong, maPhong, hoTen, cccd, sdt, vaiTro) VALUES (?, ?, ?, ?, ?, ?)";
+            List<GuestStayDetail> guestStayDetails = new ArrayList<>();
             for (int i = 0; i < command.getGuestInfos().size(); i++) {
                 GuestInfoDto g = command.getGuestInfos().get(i);
                 boolean childGuest = i >= adultGuestCount;
                 // Distribute guests among booked rooms
                 String roomId = allocatedRoomIds.get(i % allocatedRoomIds.size());
                 
-                try (PreparedStatement ps = con.prepareStatement(insertCtko)) {
-                    ps.setString(1, maDatPhong);
-                    ps.setString(2, roomId);
-                    ps.setString(3, g.getFullName() != null && !g.getFullName().isEmpty() ? g.getFullName() : "Khách phụ " + i);
-                    
-                    String fallbackCccd = "CCCD_" + System.currentTimeMillis() + "_" + i;
-                    ps.setString(4, g.getIdNo() != null && !g.getIdNo().isEmpty() ? g.getIdNo() : fallbackCccd);
-                    
-                    ps.setString(5, childGuest ? null : g.getPhone());
-                    ps.setString(6, i == 0 ? "Người đại diện" : "Khách lưu trú");
-                    ps.executeUpdate();
-                }
+                String fallbackCccd = "CCCD_" + System.currentTimeMillis() + "_" + i;
+                guestStayDetails.add(new GuestStayDetail(
+                    maDatPhong,
+                    roomId,
+                    safeGuestName(g.getFullName(), i),
+                    g.getIdNo() != null && !g.getIdNo().isEmpty() ? g.getIdNo() : fallbackCccd,
+                    childGuest ? null : g.getPhone(),
+                    i == 0 ? "Nguoi dai dien" : "Khach luu tru"
+                ));
             }
+            bookingDao.createGuestStayDetails(con, guestStayDetails);
 
 
             // 6. Insert HoaDon
-            String maHD = nextId(con, "HoaDon", "maHD", "HD", 5);
-            String insertHoaDon = "INSERT INTO HoaDon (maHD, ngayLapHD, ngayThanhToan, ghiChu, soLuongNguoiO, tienPhong, tienDichVu, tienKhuyenMai, tienThue, tongTienThanhToan, phiDoiPhong, maKM, maKH, maNV, phuongThucTT, trangThai, maDatPhong) " +
-                "VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 0, NULL, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(insertHoaDon)) {
-                ps.setString(1, maHD);
-                ps.setTimestamp(2, Timestamp.valueOf(now));
-                if (command.isFullyPaid()) {
-                    ps.setTimestamp(3, Timestamp.valueOf(now));
-                } else {
-                    ps.setNull(3, java.sql.Types.TIMESTAMP);
-                }
-                ps.setString(4, command.isFullyPaid() ? "Thanh toan 100% khi dat phong" : "Dat coc 30% khi dat phong");
-                ps.setInt(5, Math.max(1, totalPeople));
-                ps.setBigDecimal(6, java.math.BigDecimal.valueOf(tienPhong));
-                ps.setBigDecimal(7, java.math.BigDecimal.valueOf(tienThue));
-                ps.setBigDecimal(8, java.math.BigDecimal.valueOf(tongTien));
-                ps.setString(9, leadCustomerId);
-                ps.setString(10, maNV);
-                ps.setString(11, command.getPaymentMethod());
-                ps.setString(12, trangThaiHD);
-                ps.setString(13, maDatPhong);
-                ps.executeUpdate();
-            }
+            Invoice invoice = new Invoice();
+            invoice.setNgayLapHD(now);
+            invoice.setNgayThanhToan(command.isFullyPaid() ? now : null);
+            invoice.setGhiChu(command.isFullyPaid() ? "Thanh toan 100% khi dat phong" : "Dat coc 30% khi dat phong");
+            invoice.setSoLuongNguoi(Math.max(1, totalPeople));
+            invoice.setTienPhong(tienPhong);
+            invoice.setTienThue(tienThue);
+            invoice.setTongTienThanhToan(tongTien);
+            invoice.setMaKhachHang(leadCustomerId);
+            invoice.setMaNhanVien(maNV);
+            invoice.setPhuongThucTT(command.getPaymentMethod());
+            invoice.setTrangThai(trangThaiHD);
+            invoice.setMaDatPhong(maDatPhong);
+            String maHD = bookingDao.createInvoice(con, invoice);
 
             // 7. Record payment collected at booking time.
             String note = command.isFullyPaid() ? "Thanh toan 100%" : "Dat coc 30%";
@@ -421,170 +425,32 @@ public class SqlBookingService implements BookingService {
         return builder.toString();
     }
 
-    private String pickAvailableRoomId(Connection con, String roomTypeName, LocalDate checkIn, LocalDate checkOut, Set<String> excludeRoomIds) throws SQLException {
-        String sql = "SELECT p.maPhong FROM Phong p " +
-            "JOIN LoaiPhong lp ON p.maLoaiPhong = lp.maLoaiPhong " +
-            "WHERE lp.tenLoaiPhong = ? " +
-            "AND p.trangThaiPhong <> 'BaoTri' " +
-            "AND NOT EXISTS (" +
-            "  SELECT 1 FROM ChiTietDatPhong ctdp " +
-            "  JOIN DatPhong dp ON dp.maDatPhong = ctdp.maDatPhong " +
-            "  WHERE ctdp.maPhong = p.maPhong " +
-            "  AND dp.trangThaiDatPhong IN ('DaDat', 'DangO') " +
-            "  AND ? < ctdp.ngayTraDuKien AND ? > ctdp.ngayNhanDuKien" +
-            ") " +
-            "ORDER BY NEWID()";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, roomTypeName);
-            ps.setTimestamp(2, Timestamp.valueOf(checkIn.atTime(CHECK_IN_HOUR, 0)));
-            ps.setTimestamp(3, Timestamp.valueOf(checkOut.atTime(CHECK_OUT_HOUR, 0)));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String roomId = rs.getString(1);
-                    if (!excludeRoomIds.contains(roomId)) {
-                        return roomId;
-                    }
-                }
-            }
-        }
-        return null;
+    private Customer toCustomer(GuestInfoDto guest) {
+        Customer customer = new Customer();
+        customer.setHoTenKH(guest.getFullName());
+        customer.setGioiTinh(true);
+        customer.setNgaySinh(LocalDate.of(2000, 1, 1).atStartOfDay());
+        customer.setEmail(trimToNull(guest.getEmail()));
+        customer.setSdt(trimOrEmpty(guest.getPhone()));
+        customer.setCCCD(trimOrEmpty(guest.getIdNo()));
+        customer.setQuocTich("Viet Nam");
+        customer.setHangKH("Dong");
+        customer.setDiemTichLuy(0);
+        return customer;
     }
 
-    private String upsertCustomer(Connection con, GuestInfoDto guest) throws SQLException {
-        if (guest == null || guest.getIdNo() == null || guest.getIdNo().trim().isEmpty()) {
-            return null;
-        }
-        String cccd = guest.getIdNo().trim();
-        try (PreparedStatement ps = con.prepareStatement("SELECT maKH FROM KhachHang WHERE CCCD = ?")) {
-            ps.setString(1, cccd);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String maKH = rs.getString(1);
-                    updateCustomerContact(con, maKH, guest);
-                    return maKH;
-                }
-            }
-        }
-
-        // Chi auto-fill/nhan dien khach cu theo CCCD. SDT trung nhung CCCD khac
-        // la du lieu cua khach khac, khong duoc tu dong gop nham nguoi.
-        if (guest.getPhone() != null && !guest.getPhone().trim().isEmpty()) {
-            try (PreparedStatement ps = con.prepareStatement("SELECT maKH FROM KhachHang WHERE sdt = ?")) {
-                ps.setString(1, guest.getPhone().trim());
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return null;
-                    }
-                }
-            }
-        }
-
-        String maKH = nextId(con, "KhachHang", "maKH", "KH", 5);
-        String sql = "INSERT INTO KhachHang (maKH, hoTenKH, gioiTinh, ngaySinh, email, sdt, CCCD, quocTich, diaChi, hangKH, diemTichLuy) " +
-            "VALUES (?, ?, 1, ?, ?, ?, ?, N'Viet Nam', NULL, 'Dong', 0)";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, maKH);
-            ps.setString(2, guest.getFullName());
-            ps.setTimestamp(3, Timestamp.valueOf(LocalDate.of(2000, 1, 1).atStartOfDay()));
-            ps.setString(4, normalizeNullable(guest.getEmail()));
-            ps.setString(5, guest.getPhone() == null ? "" : guest.getPhone().trim());
-            ps.setString(6, cccd);
-            ps.executeUpdate();
-        }
-        return maKH;
+    private String safeGuestName(String value, int index) {
+        return value != null && !value.isBlank() ? value.trim() : "Khach phu " + index;
     }
 
-    private String findCustomerNameByPhoneWithDifferentId(Connection con, String phone, String idNo) throws SQLException {
-        String normalizedPhone = normalizeNullable(phone);
-        if (normalizedPhone == null) {
-            return null;
-        }
-
-        String normalizedId = normalizeNullable(idNo);
-        String sql = """
-            SELECT TOP 1 hoTenKH
-            FROM KhachHang
-            WHERE sdt = ?
-              AND (? IS NULL OR CCCD <> ?)
-        """;
-
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, normalizedPhone);
-            ps.setString(2, normalizedId);
-            ps.setString(3, normalizedId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("hoTenKH");
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private void updateCustomerContact(Connection con, String maKH, GuestInfoDto guest) throws SQLException {
-        String email = normalizeNullable(guest.getEmail());
-        String phone = normalizeNullable(guest.getPhone());
-        if (email == null && phone == null) {
-            return;
-        }
-
-        String sql = "UPDATE KhachHang SET " +
-            "email = CASE WHEN ? IS NULL OR ? = '' THEN email ELSE ? END, " +
-            "sdt = CASE WHEN ? IS NULL OR ? = '' THEN sdt ELSE ? END " +
-            "WHERE maKH = ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, email);
-            ps.setString(2, email);
-            ps.setString(3, email);
-            ps.setString(4, phone);
-            ps.setString(5, phone);
-            ps.setString(6, phone);
-            ps.setString(7, maKH);
-            ps.executeUpdate();
-        }
-    }
-
-    private String normalizeNullable(String value) {
+    private String trimToNull(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;
         }
         return value.trim();
     }
 
-    private String resolveStaffId(Connection con) throws SQLException {
-        try (PreparedStatement ps = con.prepareStatement(
-                "SELECT TOP 1 nv.maNV FROM NhanVien nv JOIN TaiKhoan tk ON nv.tenDangNhap = tk.tenDangNhap " +
-                "WHERE tk.trangThaiTK = 'DangHoatDong' ORDER BY nv.maNV")) {
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString(1);
-                }
-            }
-        }
-        return null;
-    }
-
-    private String nextId(Connection con, String table, String column, String prefix, int totalLength) throws SQLException {
-        int nextSeq = nextSequence(con, table, column, prefix);
-        int digits = totalLength - prefix.length();
-        return prefix + String.format("%0" + digits + "d", nextSeq);
-    }
-
-    private int nextSequence(Connection con, String table, String column, String prefix) throws SQLException {
-        String sql = "SELECT TOP 1 " + column + " FROM " + table + " WHERE " + column + " LIKE ? ORDER BY " + column + " DESC";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, prefix + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String last = rs.getString(1);
-                    String numPart = last.substring(prefix.length()).replaceAll("[^0-9]", "");
-                    if (!numPart.isEmpty()) {
-                        return Integer.parseInt(numPart) + 1;
-                    }
-                }
-            }
-        }
-        return 1;
+    private String trimOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 }

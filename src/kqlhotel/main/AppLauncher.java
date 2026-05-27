@@ -14,9 +14,9 @@ public final class AppLauncher {
             ConnectDB.getInstance().connect();
             System.out.println("Kết nối database thành công!");
         } catch (Exception e) {
-            String message = "Khong the ket noi database.\nVui long kiem tra cau hinh SQL Server.\n\nChi tiet: " + e.getMessage();
+            String message = "Không thể kết nối database.\nVui lòng kiểm tra cấu hình SQL Server.\n\nChi tiet: " + e.getMessage();
             System.err.println(message);
-            JOptionPane.showMessageDialog(null, message, "Loi ket noi Database", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, message, "Lỗi kết nối database", JOptionPane.ERROR_MESSAGE);
             return;
         }
 

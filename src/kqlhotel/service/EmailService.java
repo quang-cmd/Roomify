@@ -30,8 +30,8 @@ public class EmailService {
     public static void sendPasswordResetRequest(String usernameOrEmail) throws Exception {
         Session session = createMailSession();
 
-        Message message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(resolveSmtpUser()));
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(resolveSmtpUser(), "KQL HOTEL", "UTF-8"));
         message.setRecipients(
                 Message.RecipientType.TO,
                 InternetAddress.parse(MANAGER_EMAIL)
@@ -41,14 +41,16 @@ public class EmailService {
                 DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
         );
 
-        message.setSubject("Yeu cau cap lai mat khau - KQL HOTEL");
-        message.setText(
-                "Xin chao quan ly,\n\n"
-                        + "Co mot nhan vien vua gui yeu cau cap lai mat khau.\n\n"
-                        + "Thong tin tai khoan/email: " + usernameOrEmail + "\n"
-                        + "Thoi gian gui yeu cau: " + time + "\n\n"
-                        + "Vui long kiem tra va cap lai mat khau moi cho nhan vien.\n\n"
-                        + "KQL HOTEL"
+        message.setSubject("Yêu cầu cấp lại mật khẩu - KQL HOTEL", "UTF-8");
+        message.setContent(
+                buildPasswordResetHtml(
+                        "--",
+                        "--",
+                        "--",
+                        usernameOrEmail,
+                        time
+                ),
+                "text/html; charset=UTF-8"
         );
 
         Transport.send(message);
@@ -291,6 +293,82 @@ public class EmailService {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
+
+    private static String buildPasswordResetHtml(
+            String maNV,
+            String hoTenNV,
+            String sdt,
+            String tenDangNhap,
+            String requestTime
+    ) {
+        return """
+                <!doctype html>
+                <html lang="vi">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Yêu cầu cấp lại mật khẩu</title>
+                </head>
+                <body style="margin:0;padding:0;background:#eef3f8;font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;">
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#eef3f8;padding:28px 12px;">
+                        <tr>
+                            <td align="center">
+                                <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%%;background:#ffffff;border:1px solid #dbe5f1;border-radius:18px;overflow:hidden;box-shadow:0 18px 42px rgba(15,23,42,0.12);">
+                                    <tr>
+                                        <td style="background:#172554;padding:28px 32px;color:#ffffff;">
+                                            <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#bfdbfe;font-weight:700;">KQL HOTEL</div>
+                                            <h1 style="margin:8px 0 6px;font-size:26px;line-height:1.25;color:#ffffff;">Yêu cầu cấp lại mật khẩu</h1>
+                                            <div style="font-size:15px;color:#dbeafe;">Hệ thống vừa ghi nhận một yêu cầu hỗ trợ tài khoản từ nhân viên.</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:28px 32px 8px;">
+                                            <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">Xin chào <strong>Quản lý</strong>,</p>
+                                            <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">Vui lòng kiểm tra thông tin bên dưới, xác minh đúng nhân viên và thực hiện cấp lại mật khẩu mới nếu yêu cầu hợp lệ.</p>
+                                            <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+                                                <tr>
+                                                    <td style="padding:14px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;">
+                                                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Thời gian gửi yêu cầu</div>
+                                                        <div style="font-size:20px;font-weight:800;color:#1d4ed8;">%s</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <h2 style="margin:20px 0 10px;font-size:17px;color:#0f172a;">Thông tin nhân viên</h2>
+                                            <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                                                %s
+                                                %s
+                                                %s
+                                                %s
+                                            </table>
+                                            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:20px 0 4px;color:#7c2d12;font-size:14px;line-height:1.6;">
+                                                <strong>Lưu ý:</strong> Sau khi đổi mật khẩu, vui lòng thông báo trực tiếp cho nhân viên qua kênh nội bộ hoặc số điện thoại đã đăng ký. Không gửi mật khẩu qua email nếu không cần thiết.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:18px 32px 28px;">
+                                            <div style="height:1px;background:#e2e8f0;margin-bottom:18px;"></div>
+                                            <div style="font-size:14px;line-height:1.7;color:#475569;">
+                                                Trân trọng,<br>
+                                                <strong style="color:#0f172a;">KQL HOTEL</strong>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """.formatted(
+                escapeHtml(safe(requestTime)),
+                infoRow("Mã nhân viên", safe(maNV), false),
+                infoRow("Tên nhân viên", safe(hoTenNV), true),
+                infoRow("Số điện thoại", safe(sdt), false),
+                infoRow("Tên đăng nhập", safe(tenDangNhap), true)
+        );
+    }
+
     public static void sendPasswordResetRequestToManager(
             String maNV,
             String hoTenNV,
@@ -301,23 +379,27 @@ public class EmailService {
 
         Session session = createMailSession();
 
-        Message message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(resolveSmtpUser()));
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(resolveSmtpUser(), "KQL HOTEL", "UTF-8"));
         message.setRecipients(
                 Message.RecipientType.TO,
                 InternetAddress.parse(managerEmail)
         );
 
-        message.setSubject("Yeu cau cap lai mat khau - KQL HOTEL");
-        message.setText(
-                "Xin chao quan ly,\n\n"
-                        + "Co mot nhan vien vua gui yeu cau cap lai mat khau.\n\n"
-                        + "Ma nhan vien: " + maNV + "\n"
-                        + "Ten nhan vien: " + hoTenNV + "\n"
-                        + "So dien thoai: " + sdt + "\n"
-                        + "Ten dang nhap: " + tenDangNhap + "\n\n"
-                        + "Vui long doi lai mat khau moi va thong bao cho nhan vien.\n\n"
-                        + "KQL HOTEL"
+        String time = LocalDateTime.now().format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+        );
+
+        message.setSubject("Yêu cầu cấp lại mật khẩu - KQL HOTEL", "UTF-8");
+        message.setContent(
+                buildPasswordResetHtml(
+                        maNV,
+                        hoTenNV,
+                        sdt,
+                        tenDangNhap,
+                        time
+                ),
+                "text/html; charset=UTF-8"
         );
 
         Transport.send(message);
