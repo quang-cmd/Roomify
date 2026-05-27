@@ -515,11 +515,12 @@ public class StatisticsDAO {
             ),
             RoomStats AS (
                 SELECT CAST(cthd.ngayNhanPhong AS DATE) AS dt,
-                       SUM(cthd.thanhTien) AS roomRevenue,
+                       SUM(ctdp.donGiaDat * cthd.soDem) AS roomRevenue,
                        SUM(cthd.soDem) AS totalRoomNights
                 FROM ChiTietHoaDon cthd
                 JOIN HoaDon hd ON cthd.maHD = hd.maHD
                 JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong
+                JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong AND ctdp.maPhong = cthd.maPhong
                 WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ?
                   AND dp.trangThaiDatPhong <> 'DaHuy'
                   AND hd.trangThai <> 'DaHuy'
@@ -581,10 +582,11 @@ public class StatisticsDAO {
         if (totalRooms == 0 || days == 0) return 0.0;
 
         String sql =
-            "SELECT SUM(cthd.thanhTien) AS roomRevenue " +
+            "SELECT SUM(ctdp.donGiaDat * cthd.soDem) AS roomRevenue " +
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
+            "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong AND ctdp.maPhong = cthd.maPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND dp.trangThaiDatPhong <> 'DaHuy' " +
             "  AND hd.trangThai <> 'DaHuy'";
@@ -624,10 +626,11 @@ public class StatisticsDAO {
      */
     public double getAdr(LocalDate start, LocalDate end) {
         String sql =
-            "SELECT SUM(cthd.thanhTien) AS roomRevenue, SUM(cthd.soDem) AS totalNights " +
+            "SELECT SUM(ctdp.donGiaDat * cthd.soDem) AS roomRevenue, SUM(cthd.soDem) AS totalNights " +
             "FROM ChiTietHoaDon cthd " +
             "JOIN HoaDon hd ON cthd.maHD = hd.maHD " +
             "JOIN DatPhong dp ON dp.maDatPhong = hd.maDatPhong " +
+            "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong AND ctdp.maPhong = cthd.maPhong " +
             "WHERE cthd.ngayNhanPhong >= ? AND cthd.ngayNhanPhong < ? " +
             "  AND dp.trangThaiDatPhong <> 'DaHuy' " +
             "  AND hd.trangThai <> 'DaHuy'";
