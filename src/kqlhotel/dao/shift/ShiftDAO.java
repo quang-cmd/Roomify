@@ -39,7 +39,7 @@ public class ShiftDAO {
         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
         "WHERE pc.trangThai = N'DangMo' " +
         "  AND " + SQL_SHIFT_IS_ACTIVE_NOW + " " +
-        "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
+        "GROUP BY pc.maPC, pc.ngay, pc.thoiGianMoCa, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
         "ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC";
 
     private static final String SQL_FIND_CALAM_BY_TIME =
@@ -226,7 +226,7 @@ public class ShiftDAO {
                         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
                         "WHERE pc.trangThai = N'DangMo' AND pc.maNV = ? " +
                         "  AND " + SQL_SHIFT_IS_ACTIVE_NOW + " " +
-                        "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
+                        "GROUP BY pc.maPC, pc.ngay, pc.thoiGianMoCa, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
                         "ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC";
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
