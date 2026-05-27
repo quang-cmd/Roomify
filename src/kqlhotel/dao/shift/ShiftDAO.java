@@ -141,7 +141,7 @@ public class ShiftDAO {
             JOIN CaLam cl ON pc.maCa = cl.maCa
             WHERE pc.trangThai = N'DaPhanCong'
               AND pc.maCa = ?
-              AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+              AND """ + " " + SQL_SHIFT_IS_ACTIVE_NOW + """
             ORDER BY pc.maPC ASC
         """;
 
@@ -169,7 +169,7 @@ public class ShiftDAO {
             WHERE pc.maNV = ?
               AND pc.maCa = ?
               AND pc.trangThai = N'DangMo'
-              AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+              AND """ + " " + SQL_SHIFT_IS_ACTIVE_NOW + """
         """;
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maNV);
@@ -392,7 +392,7 @@ public class ShiftDAO {
             LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC
             WHERE (
                     pc.trangThai = N'DangMo'
-                    AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+                    AND """ + " " + SQL_SHIFT_IS_ACTIVE_NOW + """
                   )
                OR (
                     pc.trangThai = N'DaPhanCong'
@@ -481,7 +481,7 @@ public class ShiftDAO {
         FROM PhanCongCa pc
         JOIN CaLam cl ON pc.maCa = cl.maCa
         WHERE pc.trangThai = N'DangMo'
-          AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+          AND """ + " " + SQL_SHIFT_IS_ACTIVE_NOW + """
         ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC
     """;
 
@@ -515,7 +515,7 @@ public class ShiftDAO {
         JOIN CaLam cl ON pc.maCa = cl.maCa
         WHERE pc.maNV = ?
           AND pc.trangThai = N'DangMo'
-          AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+          AND """ + " " + SQL_SHIFT_IS_ACTIVE_NOW + """
         ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC
     """;
 
