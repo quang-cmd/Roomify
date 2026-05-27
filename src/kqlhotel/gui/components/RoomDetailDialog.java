@@ -448,10 +448,8 @@ public class RoomDetailDialog extends JDialog {
             }
         }
         
-        int totalGuests = (invoice != null) ? invoice.getSoLuongNguoi() : 1;
-        for (int i = fetchedCount; i < totalGuests; i++) {
-            listPanel.add(createGuestCard("Khách phụ " + i, "Chưa cập nhật", "Chưa cập nhật", "Khách lưu trú"));
-        }
+        // Đã bỏ tự động thêm "Khách phụ" dựa trên tổng số người của cả hóa đơn.
+        // Chỉ hiển thị đúng danh sách khách lưu trú trong phòng này.
         
         JScrollPane scroll = new JScrollPane(listPanel);
         scroll.setBorder(BorderFactory.createEmptyBorder());
