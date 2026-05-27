@@ -58,6 +58,7 @@ public class CheckInPanel extends BackgroundPanel {
     private final JLabel summaryLabel = new JLabel();
     private final JLabel totalMetric = new JLabel("0");
     private final JLabel pendingMetric = new JLabel("0");
+    private final JLabel checkedMetric = new JLabel("0");
     private final JLabel dueMetric = new JLabel("0");
     private final JLabel overdueMetric = new JLabel("0");
 
@@ -200,10 +201,11 @@ public class CheckInPanel extends BackgroundPanel {
         summaryLabel.setForeground(ThemeColors.TEXT_MUTED);
         summaryLabel.setFont(summaryLabel.getFont().deriveFont(12f));
 
-        JPanel metrics = new JPanel(new MigLayout("insets 0,gap 10", "[fill][fill][fill][fill]", "[]"));
+        JPanel metrics = new JPanel(new MigLayout("insets 0,gap 10", "[fill][fill][fill][fill][fill]", "[]"));
         metrics.setOpaque(false);
         metrics.add(metricCard("Tổng booking", totalMetric, new Color(235, 248, 255), new Color(49, 130, 206)));
         metrics.add(metricCard("Chưa nhận", pendingMetric, new Color(238, 246, 255), new Color(30, 64, 175)));
+        metrics.add(metricCard("Đã nhận", checkedMetric, ThemeColors.SUCCESS_SOFT, ThemeColors.SUCCESS));
         metrics.add(metricCard("Đến hạn", dueMetric, new Color(255, 247, 237), new Color(217, 119, 6)));
         metrics.add(metricCard("Quá hạn", overdueMetric, new Color(254, 242, 242), new Color(220, 38, 38)));
 
@@ -288,18 +290,21 @@ public class CheckInPanel extends BackgroundPanel {
         List<ArrivalDto> arrivals = checkInService.findArrivals(from, to, keywordField.getText());
         tableModel.setData(arrivals);
         long pending = arrivals.stream().filter(a -> !a.isCheckedIn()).count();
+        long checked = arrivals.stream().filter(ArrivalDto::isCheckedIn).count();
         long due = arrivals.stream().filter(a -> "Đến hạn".equals(resolveStatus(a))).count();
         long overdue = arrivals.stream().filter(a -> "Quá hạn".equals(resolveStatus(a))).count();
         totalMetric.setText(String.valueOf(arrivals.size()));
         pendingMetric.setText(String.valueOf(pending));
+        checkedMetric.setText(String.valueOf(checked));
         dueMetric.setText(String.valueOf(due));
         overdueMetric.setText(String.valueOf(overdue));
         summaryLabel.setText(String.format(
-            "Tìm thấy %d booking trong khoảng %s — %s · %d chưa nhận phòng",
+            "Tìm thấy %d booking trong khoảng %s — %s · %d chưa nhận phòng · %d đã nhận",
             arrivals.size(),
             from.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
             to.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-            pending));
+            pending,
+            checked));
     }
 
     private void confirm(ArrivalDto arrival) {

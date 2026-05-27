@@ -33,7 +33,7 @@ public class SqlCheckInDAO implements CheckInDAO {
         if (con == null) return Collections.emptyList();
 
         String sql =
-                "SELECT dp.maDatPhong, dp.ngayDat, dp.tienCoc, " +
+                "SELECT dp.maDatPhong, dp.ngayDat, dp.tienCoc, dp.trangThaiDatPhong, " +
                         "       MIN(ctdp.ngayNhanDuKien) AS ngayNhanDuKien, MAX(ctdp.ngayTraDuKien) AS ngayTraDuKien, " +
                         "       kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD, " +
                         "       (SELECT COUNT(*) FROM ChiTietHoaDon cthd WHERE cthd.maHD = hd.maHD) AS soCTHD " +
@@ -42,11 +42,11 @@ public class SqlCheckInDAO implements CheckInDAO {
                         "JOIN ChiTietDatPhong ctdp ON ctdp.maDatPhong = dp.maDatPhong " +
                         "LEFT JOIN HoaDon hd ON hd.maDatPhong = dp.maDatPhong " +
                         "WHERE ctdp.ngayNhanDuKien >= ? AND ctdp.ngayNhanDuKien < ? " +
-                        "  AND dp.trangThaiDatPhong = 'DaDat' " +
+                        "  AND dp.trangThaiDatPhong IN ('DaDat', 'DangO', 'DaTra') " +
                         "  AND (hd.trangThai IS NULL OR hd.trangThai <> 'DaHuy') " +
                         (isBlank(keyword) ? "" :
                                 "AND (dp.maDatPhong LIKE ? OR hd.maHD LIKE ? OR kh.hoTenKH LIKE ? OR kh.sdt LIKE ? OR kh.CCCD LIKE ?) ") +
-                        "GROUP BY dp.maDatPhong, dp.ngayDat, dp.tienCoc, kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD " +
+                        "GROUP BY dp.maDatPhong, dp.ngayDat, dp.tienCoc, dp.trangThaiDatPhong, kh.hoTenKH, kh.sdt, kh.CCCD, hd.maHD " +
                         "ORDER BY MIN(ctdp.ngayNhanDuKien) ASC, dp.maDatPhong ASC";
 
         List<ArrivalDto> arrivals = new ArrayList<>();
@@ -78,7 +78,8 @@ public class SqlCheckInDAO implements CheckInDAO {
                             rs.getString("hoTenKH"),
                             rs.getString("sdt"),
                             rs.getString("CCCD"),
-                            rs.getInt("soCTHD")
+                            rs.getInt("soCTHD"),
+                            rs.getString("trangThaiDatPhong")
                     });
                 }
             }
@@ -106,6 +107,12 @@ public class SqlCheckInDAO implements CheckInDAO {
                     paidAmount = Math.round(paymentTotal);
                 }
 
+                int invoiceDetailCount = (Integer) r[8];
+                String bookingStatus = (String) r[9];
+                boolean checkedIn = invoiceDetailCount > 0
+                        || "DangO".equals(bookingStatus)
+                        || "DaTra".equals(bookingStatus);
+
                 arrivals.add(new ArrivalDto(
                         maDP,
                         maHD,
@@ -118,7 +125,7 @@ public class SqlCheckInDAO implements CheckInDAO {
                         (String) r[7],
                         roomMap.getOrDefault(maDP, Collections.emptyList()),
                         nights,
-                        false
+                        checkedIn
                 ));
             }
 

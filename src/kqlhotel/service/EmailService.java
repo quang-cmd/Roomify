@@ -73,33 +73,176 @@ public class EmailService {
         }
 
         Session session = createMailSession();
-        Message message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(resolveSmtpUser()));
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(resolveSmtpUser(), "Roomify Hotel", "UTF-8"));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail.trim()));
-        message.setSubject("Xac nhan dat phong Roomify - " + bookingCode);
+        message.setSubject("Xác nhận đặt phòng Roomify - " + safe(bookingCode), "UTF-8");
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String body =
-                "Xin chao " + safe(customerName) + ",\n\n"
-                        + "Cam on quy khach da dat phong tai Roomify.\n\n"
-                        + "THONG TIN DAT PHONG\n"
-                        + "- Ma dat phong: " + safe(bookingCode) + "\n"
-                        + "- Ma hoa don: " + safe(invoiceCode) + "\n"
-                        + "- Ho ten khach chinh: " + safe(customerName) + "\n"
-                        + "- So dien thoai: " + safe(phone) + "\n"
-                        + "- CCCD/Passport: " + safe(idNo) + "\n"
-                        + "- Ngay nhan phong: " + formatDate(checkInDate, dateFormatter) + "\n"
-                        + "- Ngay tra phong: " + formatDate(checkOutDate, dateFormatter) + "\n"
-                        + "- Phong da dat: " + safe(roomSummary) + "\n\n"
-                        + "THANH TOAN\n"
-                        + "- Tong hoa don: " + formatVND(totalAmount) + "\n"
-                        + "- Da thanh toan/coc: " + formatVND(paidAmount) + "\n"
-                        + "- Con lai: " + formatVND(remainingAmount) + "\n\n"
-                        + "Khi nhan phong, vui long cung cap ma dat phong va CCCD/Passport de le tan xac nhan.\n\n"
-                        + "Roomify Hotel";
+        String html = buildBookingConfirmationHtml(
+                customerName,
+                phone,
+                idNo,
+                bookingCode,
+                invoiceCode,
+                formatDate(checkInDate, dateFormatter),
+                formatDate(checkOutDate, dateFormatter),
+                roomSummary,
+                totalAmount,
+                paidAmount,
+                remainingAmount
+        );
 
-        message.setText(body);
+        message.setContent(html, "text/html; charset=UTF-8");
         Transport.send(message);
+    }
+
+    private static String buildBookingConfirmationHtml(
+            String customerName,
+            String phone,
+            String idNo,
+            String bookingCode,
+            String invoiceCode,
+            String checkInDate,
+            String checkOutDate,
+            String roomSummary,
+            long totalAmount,
+            long paidAmount,
+            long remainingAmount
+    ) {
+        String safeCustomerName = escapeHtml(safe(customerName));
+        String safeBookingCode = escapeHtml(safe(bookingCode));
+        String safeInvoiceCode = escapeHtml(safe(invoiceCode));
+
+        return """
+                <!doctype html>
+                <html lang="vi">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Xác nhận đặt phòng Roomify</title>
+                </head>
+                <body style="margin:0;padding:0;background:#eef3f8;font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;">
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#eef3f8;padding:28px 12px;">
+                        <tr>
+                            <td align="center">
+                                <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%%;background:#ffffff;border:1px solid #dbe5f1;border-radius:18px;overflow:hidden;box-shadow:0 18px 42px rgba(15,23,42,0.12);">
+                                    <tr>
+                                        <td style="background:#172554;padding:28px 32px;color:#ffffff;">
+                                            <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#bfdbfe;font-weight:700;">Roomify Hotel</div>
+                                            <h1 style="margin:8px 0 6px;font-size:26px;line-height:1.25;color:#ffffff;">Đặt phòng thành công</h1>
+                                            <div style="font-size:15px;color:#dbeafe;">Cảm ơn quý khách đã tin tưởng và đặt phòng tại Roomify.</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:28px 32px 8px;">
+                                            <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">Xin chào <strong>%s</strong>,</p>
+                                            <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">Roomify gửi quý khách thông tin xác nhận đặt phòng. Khi đến nhận phòng, vui lòng cung cấp <strong>mã đặt phòng</strong> và <strong>CCCD/Hộ chiếu</strong> để lễ tân kiểm tra.</p>
+                                            <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+                                                <tr>
+                                                    <td style="width:50%%;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;">
+                                                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Mã đặt phòng</div>
+                                                        <div style="font-size:22px;font-weight:800;color:#1d4ed8;">%s</div>
+                                                    </td>
+                                                    <td style="width:14px;"></td>
+                                                    <td style="width:50%%;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                                                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Mã hóa đơn</div>
+                                                        <div style="font-size:22px;font-weight:800;color:#0f172a;">%s</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            %s
+                                            %s
+                                            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:20px 0 4px;color:#7c2d12;font-size:14px;line-height:1.6;">
+                                                <strong>Lưu ý:</strong> Quý khách vui lòng kiểm tra kỹ ngày nhận phòng, ngày trả phòng và thông tin liên hệ. Nếu cần điều chỉnh, hãy liên hệ khách sạn trước thời gian nhận phòng.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:18px 32px 28px;">
+                                            <div style="height:1px;background:#e2e8f0;margin-bottom:18px;"></div>
+                                            <div style="font-size:14px;line-height:1.7;color:#475569;">
+                                                Trân trọng,<br>
+                                                <strong style="color:#0f172a;">Roomify Hotel</strong>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """.formatted(
+                safeCustomerName,
+                safeBookingCode,
+                safeInvoiceCode,
+                bookingInfoTable(customerName, phone, idNo, checkInDate, checkOutDate, roomSummary),
+                paymentInfoTable(totalAmount, paidAmount, remainingAmount)
+        );
+    }
+
+    private static String bookingInfoTable(
+            String customerName,
+            String phone,
+            String idNo,
+            String checkInDate,
+            String checkOutDate,
+            String roomSummary
+    ) {
+        return """
+                <h2 style="margin:20px 0 10px;font-size:17px;color:#0f172a;">Thông tin đặt phòng</h2>
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                    %s
+                    %s
+                    %s
+                    %s
+                    %s
+                    %s
+                </table>
+                """.formatted(
+                infoRow("Khách đại diện", safe(customerName), false),
+                infoRow("Số điện thoại", safe(phone), true),
+                infoRow("CCCD/Hộ chiếu", safe(idNo), false),
+                infoRow("Ngày nhận phòng", safe(checkInDate), true),
+                infoRow("Ngày trả phòng", safe(checkOutDate), false),
+                infoRow("Phòng đã đặt", safe(roomSummary), true)
+        );
+    }
+
+    private static String paymentInfoTable(long totalAmount, long paidAmount, long remainingAmount) {
+        return """
+                <h2 style="margin:22px 0 10px;font-size:17px;color:#0f172a;">Thông tin thanh toán</h2>
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                    %s
+                    %s
+                    %s
+                </table>
+                """.formatted(
+                moneyRow("Tổng hóa đơn (tại thời điểm đặt cọc)", totalAmount, false, "#0f172a"),
+                moneyRow("Đã thanh toán/đặt cọc", paidAmount, true, "#15803d"),
+                moneyRow("Còn lại", remainingAmount, false, "#b45309")
+        );
+    }
+
+    private static String infoRow(String label, String value, boolean shaded) {
+        String background = shaded ? "#f8fafc" : "#ffffff";
+        return """
+                <tr>
+                    <td style="padding:11px 14px;background:%s;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:38%%;">%s</td>
+                    <td style="padding:11px 14px;background:%s;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:14px;font-weight:600;">%s</td>
+                </tr>
+                """.formatted(background, escapeHtml(label), background, escapeHtml(value));
+    }
+
+    private static String moneyRow(String label, long amount, boolean shaded, String color) {
+        String background = shaded ? "#f8fafc" : "#ffffff";
+        return """
+                <tr>
+                    <td style="padding:12px 14px;background:%s;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:48%%;">%s</td>
+                    <td style="padding:12px 14px;background:%s;border-bottom:1px solid #e2e8f0;color:%s;font-size:16px;font-weight:800;text-align:right;">%s</td>
+                </tr>
+                """.formatted(background, escapeHtml(label), background, color, escapeHtml(formatVND(amount)));
     }
 
     private static Session createMailSession() {
@@ -133,11 +276,20 @@ public class EmailService {
     }
 
     private static String formatVND(long amount) {
-        return String.format("%,d", Math.max(0L, amount)).replace(',', '.') + " d";
+        return String.format("%,d", Math.max(0L, amount)).replace(',', '.') + " đ";
     }
 
     private static String safe(String value) {
         return value == null || value.trim().isEmpty() ? "--" : value.trim();
+    }
+
+    private static String escapeHtml(String value) {
+        return safe(value)
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
     public static void sendPasswordResetRequestToManager(
             String maNV,

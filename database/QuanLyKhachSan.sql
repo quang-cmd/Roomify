@@ -306,8 +306,9 @@ CREATE INDEX IX_ChiPhi_ngayChi       ON ChiPhi(ngayChi);
 CREATE INDEX IX_ChiPhi_loaiChiPhi    ON ChiPhi(loaiChiPhi);
 CREATE INDEX IX_ChiPhi_maPC          ON ChiPhi(maPC);
 
--- Filtered unique index: email phai unique khi co gia tri, nhung cho phep nhieu NULL
-CREATE UNIQUE INDEX UX_KhachHang_email ON KhachHang(email) WHERE email IS NOT NULL;
+-- Email khong dung lam dinh danh duy nhat vi khach co the dat ho nguoi than.
+-- Chi tao index thuong de ho tro tim kiem/tra cuu khi can.
+CREATE INDEX IX_KhachHang_email ON KhachHang(email) WHERE email IS NOT NULL;
 GO
 
 -- =====================================================================

@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.awt.BasicStroke;
+import java.awt.FontMetrics;
 import java.util.Collections;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -30,6 +32,8 @@ import javax.swing.ScrollPaneConstants;
 import net.miginfocom.swing.MigLayout;
 import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.bus.statistics.StatisticsBUS;
+import kqlhotel.bus.room.RoomBUS;
+import kqlhotel.entity.Phong;
 import kqlhotel.entity.statistics.KpiSummary;
 import kqlhotel.entity.statistics.RevenuePoint;
 import kqlhotel.entity.shift.ShiftInfo;
@@ -41,6 +45,7 @@ public class DashboardPanel extends JPanel {
 
     private final ShiftBUS shiftBUS = new ShiftBUS();
     private final StatisticsBUS statisticsBUS = new StatisticsBUS();
+    private final RoomBUS roomBUS = new RoomBUS();
 
     private final JLabel lblCaHienTai   = kpiValue("--");
     private final JLabel lblGioCa       = kpiValue("--");
@@ -55,14 +60,15 @@ public class DashboardPanel extends JPanel {
     private final JLabel lblSoSanhLoiNhuan = kpiValue("--");
     private final JLabel lblDoanhThuThang = kpiValue("--");
     private final JLabel lblChiPhiThang = kpiValue("--");
-    private final JProgressBar barPhongSapNhan = progressBar(new Color(0x0EA5E9));
-    private final JProgressBar barDoanhThu = progressBar(new Color(0x2563EB));
-    private final JProgressBar barChiPhi = progressBar(new Color(0xDC2626));
-    private final JProgressBar barLoiNhuan = progressBar(new Color(0x0F766E));
+    private final RoundedProgressBar barPhongSapNhan = new RoundedProgressBar(new Color(0x0EA5E9));
+    private final RoundedProgressBar barDoanhThu = new RoundedProgressBar(new Color(0x2563EB));
+    private final RoundedProgressBar barChiPhi = new RoundedProgressBar(new Color(0xDC2626));
+    private final RoundedProgressBar barLoiNhuan = new RoundedProgressBar(new Color(0x0F766E));
     private final JComboBox<String> revenueRangeCombo = new JComboBox<>(new String[] {
         "7 ngày", "1 tháng", "Quý 1", "Quý 2", "Quý 3", "Quý 4"
     });
     private final RevenueChartPanel revenueChartPanel = new RevenueChartPanel();
+    private final RoomStatusChartPanel roomStatusChartPanel = new RoomStatusChartPanel();
     private final DefaultTableModel shiftTableModel = new DefaultTableModel(
         new Object[] {"Mã ca", "Nhân viên", "Ca", "Mở ca", "Tiền đầu ca", "Doanh thu", "Tiền kết ca", "Chênh lệch", "Trạng thái"},
         0
@@ -84,7 +90,8 @@ public class DashboardPanel extends JPanel {
         add(buildHeader(), "span 2,growx,wrap");
         add(buildShiftReconciliationSection(), "grow");
         add(buildVisualOverviewSection(), "grow,wrap");
-        add(buildRevenueChartSection(), "span 2,grow");
+        add(buildRevenueChartSection(), "grow");
+        add(buildRoomStatusSection(), "grow");
 
     }
 
@@ -271,7 +278,7 @@ public class DashboardPanel extends JPanel {
     }
 
     private JPanel buildVisualOverviewSection() {
-        JPanel section = new JPanel(new MigLayout("insets 14, gap 10, fill", "[grow,fill]", "[]8[]8[]"));
+        JPanel section = new JPanel(new MigLayout("insets 14, gap 12, fill", "[grow 38,fill][grow 62,fill]", "[]8[grow,fill]"));
         section.setBackground(ThemeColors.PREMIUM_SURFACE);
         section.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(ThemeColors.PREMIUM_BORDER, 1, true),
@@ -281,7 +288,7 @@ public class DashboardPanel extends JPanel {
         JLabel sectionTitle = new JLabel("Tổng quan vận hành");
         sectionTitle.setFont(sectionTitle.getFont().deriveFont(Font.BOLD, 15f));
         sectionTitle.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
-        section.add(sectionTitle, "wrap");
+        section.add(sectionTitle, "span 2, wrap");
 
         JPanel arrivalPanel = visualPanel(new Color(0xF0F9FF), new Color(0x0EA5E9));
         arrivalPanel.setLayout(new MigLayout("insets 12, gap 5, wrap 1", "[grow,fill]", "[]4[]1[]8[]"));
@@ -304,8 +311,8 @@ public class DashboardPanel extends JPanel {
         financePanel.add(barRow("Chi phí", lblChiPhiThang, barChiPhi));
         financePanel.add(barRow("Lợi nhuận", lblLoiNhuanBar, barLoiNhuan));
 
-        section.add(arrivalPanel, "growx");
-        section.add(financePanel, "growx");
+        section.add(arrivalPanel, "grow");
+        section.add(financePanel, "grow");
         return section;
     }
 
@@ -317,7 +324,7 @@ public class DashboardPanel extends JPanel {
             BorderFactory.createEmptyBorder(4, 4, 4, 4)
         ));
 
-        JLabel title = new JLabel("Doanh thu theo thời gian thực");
+        JLabel title = new JLabel("Biến động Doanh thu & Lợi nhuận");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
         title.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
 
@@ -330,11 +337,29 @@ public class DashboardPanel extends JPanel {
         return section;
     }
 
+    private JPanel buildRoomStatusSection() {
+        JPanel section = new JPanel(new MigLayout("insets 20, gap 12, fill", "[grow,fill]", "[]14[grow,fill]"));
+        section.setBackground(ThemeColors.PREMIUM_SURFACE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(ThemeColors.PREMIUM_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+
+        JLabel title = new JLabel("Tình trạng phòng");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
+        title.setForeground(ThemeColors.PREMIUM_TEXT_PRIMARY);
+
+        section.add(title, "wrap");
+        section.add(roomStatusChartPanel, "grow");
+        return section;
+    }
+
     private JPanel visualPanel(Color bg, Color accent) {
         JPanel panel = new JPanel();
         panel.setBackground(bg);
+        Color softBorder = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 80);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(accent, 1, true),
+            BorderFactory.createLineBorder(softBorder, 1, true),
             BorderFactory.createEmptyBorder(2, 2, 2, 2)
         ));
         return panel;
@@ -354,7 +379,7 @@ public class DashboardPanel extends JPanel {
         return label;
     }
 
-    private JPanel barRow(String title, JLabel valueLabel, JProgressBar bar) {
+    private JPanel barRow(String title, JLabel valueLabel, RoundedProgressBar bar) {
         JPanel row = new JPanel(new MigLayout("insets 0, gap 8", "[90!][grow,fill][120!]", "[]"));
         row.setOpaque(false);
         JLabel titleLabel = new JLabel(title);
@@ -393,14 +418,57 @@ public class DashboardPanel extends JPanel {
         return lbl;
     }
 
-    private static JProgressBar progressBar(Color color) {
-        JProgressBar bar = new JProgressBar(0, 100);
-        bar.setValue(0);
-        bar.setStringPainted(false);
-        bar.setBorderPainted(false);
-        bar.setForeground(color);
-        bar.setBackground(new Color(226, 232, 240));
-        return bar;
+    private static class RoundedProgressBar extends JPanel {
+        private int value = 0;
+        private int maximum = 100;
+        private Color trackColor = new Color(226, 232, 240);
+        private Color fillColor;
+
+        public RoundedProgressBar(Color fillColor) {
+            this.fillColor = fillColor;
+            setOpaque(false);
+        }
+
+        public void setMaximum(int max) {
+            this.maximum = Math.max(1, max);
+            repaint();
+        }
+
+        public void setValue(int val) {
+            this.value = Math.max(0, val);
+            repaint();
+        }
+        
+        @Override
+        public void setForeground(Color c) {
+            super.setForeground(c);
+            this.fillColor = c;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            int w = getWidth();
+            int h = getHeight();
+            int arc = h;
+            
+            g2.setColor(trackColor);
+            g2.fillRoundRect(0, 0, w, h, arc, arc);
+            
+            if (maximum > 0 && value > 0) {
+                int fillW = (int) Math.round((double) value / maximum * w);
+                fillW = Math.max(h, fillW); // at least a circle
+                fillW = Math.min(w, fillW); // at most full width
+                g2.setColor(fillColor);
+                g2.fillRoundRect(0, 0, fillW, h, arc, arc);
+            }
+            
+            g2.dispose();
+        }
     }
 
     public void refresh() {
@@ -445,6 +513,12 @@ public class DashboardPanel extends JPanel {
         KpiSummary previous = statisticsBUS.loadKpis(lastMonth.atDay(1), lastMonth.atEndOfMonth());
         List<RevenuePoint> revenuePoints = statisticsBUS.loadRevenueByRange(revenueRange[0], revenueRange[1]);
 
+        List<Phong> allRooms = roomBUS.getAllRooms();
+        int rTrong = (int) roomBUS.countByStatus(allRooms, "Trong");
+        int rDangSuDung = (int) roomBUS.countByStatus(allRooms, "DangSuDung");
+        int rBaoTri = (int) roomBUS.countByStatus(allRooms, "BaoTri");
+        int rKhac = allRooms.size() - rTrong - rDangSuDung - rBaoTri;
+
         return new DashboardMetrics(
             statisticsBUS.loadUpcomingCheckInRooms(today),
             statisticsBUS.loadUpcomingCheckInBookings(today),
@@ -453,6 +527,7 @@ public class DashboardPanel extends JPanel {
             current.getExpenses(),
             current.getProfit(),
             previous.getProfit(),
+            rTrong, rDangSuDung, rBaoTri, rKhac,
             revenuePoints,
             shiftBUS.getActiveAndAssignedShiftReconciliations(5)
         );
@@ -514,7 +589,7 @@ public class DashboardPanel extends JPanel {
     }
 
     private void applyDashboardMetrics(DashboardMetrics metrics) {
-        lblPhongSapNhan.setText(metrics.upcomingRooms + " phòng");
+        lblPhongSapNhan.setText(metrics.upcomingRooms + " / " + Math.max(0, metrics.totalRooms) + " phòng");
         lblBookingSapNhan.setText(metrics.upcomingBookings + " booking");
         lblLoiNhuanThang.setText(formatVND(metrics.currentProfit));
         lblLoiNhuanBar.setText(formatVND(metrics.currentProfit));
@@ -550,6 +625,7 @@ public class DashboardPanel extends JPanel {
         }
 
         revenueChartPanel.setData(metrics.revenuePoints);
+        roomStatusChartPanel.setData(metrics.roomsTrong, metrics.roomsDangSuDung, metrics.roomsBaoTri, metrics.roomsKhac);
         applyShiftReconciliationRows(metrics.shiftRows);
     }
 
@@ -634,7 +710,7 @@ public class DashboardPanel extends JPanel {
         }
     }
 
-    private static void setProgress(JProgressBar bar, double value, double max) {
+    private static void setProgress(RoundedProgressBar bar, double value, double max) {
         int maxValue = (int) Math.max(1, Math.round(max));
         int barValue = (int) Math.max(0, Math.min(maxValue, Math.round(value)));
         bar.setMaximum(maxValue);
@@ -714,6 +790,7 @@ public class DashboardPanel extends JPanel {
                 c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
                 c.setForeground(new Color(15, 23, 42));
             }
+            c.setFont(table.getFont()); // reset font
 
             String text = value == null ? "" : value.toString();
             if (column == 7 && !"--".equals(text)) {
@@ -727,9 +804,10 @@ public class DashboardPanel extends JPanel {
             }
             if (column == 8) {
                 if (text.contains("Đang")) {
-                    c.setForeground(new Color(37, 99, 235));
+                    c.setForeground(new Color(22, 163, 74)); // Green
+                    c.setFont(c.getFont().deriveFont(Font.BOLD));
                 } else if (text.contains("kết")) {
-                    c.setForeground(new Color(22, 163, 74));
+                    c.setForeground(new Color(100, 116, 139)); // Standard gray for closed
                 } else {
                     c.setForeground(new Color(100, 116, 139));
                 }
@@ -762,17 +840,34 @@ public class DashboardPanel extends JPanel {
             int chartW = Math.max(1, w - left - right);
             int chartH = Math.max(1, h - top - bottom);
 
-            double max = 0;
-            double min = 0;
+            double rawMax = 0;
+            double rawMin = 0;
             for (RevenuePoint point : data) {
-                max = Math.max(max, Math.max(point.getRevenue(), point.getProfit()));
-                min = Math.min(min, point.getProfit());
+                rawMax = Math.max(rawMax, Math.max(point.getRevenue(), point.getProfit()));
+                rawMin = Math.min(rawMin, point.getProfit());
             }
-            max = (max <= 0 && min >= 0) ? 1_000_000 : max * 1.15;
-            min = min < 0 ? min * 1.15 : 0;
+            rawMax = (rawMax <= 0 && rawMin >= 0) ? 1_000_000 : rawMax * 1.15;
+            rawMin = rawMin < 0 ? rawMin * 1.15 : 0;
 
+            double initialRange = rawMax - rawMin;
+            if (initialRange == 0) initialRange = 1_000_000;
+            
+            double rawStep = initialRange / 4.0;
+            double mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            double normStep = rawStep / mag;
+            double niceStep;
+            if (normStep < 1.5) niceStep = 1;
+            else if (normStep < 3) niceStep = 2;
+            else if (normStep < 7) niceStep = 5;
+            else niceStep = 10;
+            niceStep *= mag;
+
+            double max = Math.ceil(rawMax / niceStep) * niceStep;
+            double min = Math.floor(rawMin / niceStep) * niceStep;
             double range = max - min;
-            if (range == 0) range = 1_000_000;
+            if (range == 0) range = niceStep; // Fallback
+            
+            int numSteps = (int) Math.round(range / niceStep);
 
             // Draw Legend
             int legendX = w - right - 240;
@@ -797,9 +892,9 @@ public class DashboardPanel extends JPanel {
             g2.drawString("Lỗ", legendX + 18, legendY + 11);
 
             g2.setFont(g2.getFont().deriveFont(11f));
-            for (int i = 0; i <= 4; i++) {
-                int y = top + chartH * i / 4;
-                double value = max - range * i / 4.0;
+            for (int i = 0; i <= numSteps; i++) {
+                double value = max - niceStep * i;
+                int y = top + (int) Math.round(chartH * ((max - value) / range));
                 
                 g2.setColor(new Color(226, 232, 240));
                 g2.drawLine(left, y, left + chartW, y);
@@ -807,13 +902,6 @@ public class DashboardPanel extends JPanel {
                 g2.setColor(new Color(100, 116, 139));
                 g2.drawString(formatCompactVND(value), 8, y + 4);
             }
-
-            int zeroY = top + (int) Math.round(chartH * (max / range));
-            if (zeroY >= top && zeroY <= top + chartH) {
-                g2.setColor(new Color(148, 163, 184));
-                g2.drawLine(left, zeroY, left + chartW, zeroY);
-            }
-
             if (data.isEmpty()) {
                 g2.setColor(new Color(100, 116, 139));
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
@@ -824,7 +912,19 @@ public class DashboardPanel extends JPanel {
 
             int n = data.size();
             int step = Math.max(1, chartW / n);
-            int barW = Math.max(8, Math.min(28, step / 2));
+            for (int i = 0; i < n; i++) {
+                int px = left + i * step + step / 2;
+                g2.setColor(new Color(241, 245, 249));
+                g2.drawLine(px, top, px, top + chartH);
+            }
+
+            int zeroY = top + (int) Math.round(chartH * (max / range));
+            if (zeroY >= top && zeroY <= top + chartH) {
+                g2.setColor(new Color(148, 163, 184));
+                g2.drawLine(left, zeroY, left + chartW, zeroY);
+            }
+
+            int barW = Math.max(12, Math.min(42, (int)(step * 0.45)));
             for (int i = 0; i < n; i++) {
                 RevenuePoint point = data.get(i);
                 int x = left + i * step + (step - barW) / 2;
@@ -853,7 +953,7 @@ public class DashboardPanel extends JPanel {
                     }
                 }
 
-                if (i == 0 || i == n - 1 || (n <= 12 && i % 2 == 0) || (n <= 31 && i % 5 == 0)) {
+                if (n <= 8 || i == 0 || i == n - 1 || (n <= 15 && i % 2 == 0) || (n <= 31 && i % 5 == 0)) {
                     g2.setColor(new Color(100, 116, 139));
                     String label = point.getLabel();
                     int labelW = g2.getFontMetrics().stringWidth(label);
@@ -872,11 +972,16 @@ public class DashboardPanel extends JPanel {
         private final double currentExpenses;
         private final double currentProfit;
         private final double previousProfit;
+        private final int roomsTrong;
+        private final int roomsDangSuDung;
+        private final int roomsBaoTri;
+        private final int roomsKhac;
         private final List<RevenuePoint> revenuePoints;
         private final List<ShiftReconciliationRow> shiftRows;
 
         private DashboardMetrics(int upcomingRooms, int upcomingBookings, int totalRooms, double currentRevenue,
                                  double currentExpenses, double currentProfit, double previousProfit,
+                                 int roomsTrong, int roomsDangSuDung, int roomsBaoTri, int roomsKhac,
                                  List<RevenuePoint> revenuePoints,
                                  List<ShiftReconciliationRow> shiftRows) {
             this.upcomingRooms = upcomingRooms;
@@ -886,8 +991,128 @@ public class DashboardPanel extends JPanel {
             this.currentExpenses = currentExpenses;
             this.currentProfit = currentProfit;
             this.previousProfit = previousProfit;
+            this.roomsTrong = roomsTrong;
+            this.roomsDangSuDung = roomsDangSuDung;
+            this.roomsBaoTri = roomsBaoTri;
+            this.roomsKhac = roomsKhac;
             this.revenuePoints = revenuePoints == null ? Collections.emptyList() : revenuePoints;
             this.shiftRows = shiftRows == null ? Collections.emptyList() : shiftRows;
+        }
+    }
+
+    private static final class RoomStatusChartPanel extends JPanel {
+        private int trong, dangSuDung, baoTri, khac;
+
+        public RoomStatusChartPanel() {
+            setOpaque(false);
+        }
+
+        public void setData(int trong, int dangSuDung, int baoTri, int khac) {
+            this.trong = trong;
+            this.dangSuDung = dangSuDung;
+            this.baoTri = baoTri;
+            this.khac = khac;
+            repaint();
+        }
+
+        private void drawLegendItem(Graphics2D g2, int x, int y, String label, int count, Color color) {
+            g2.setColor(color);
+            g2.fillOval(x, y - 10, 12, 12);
+            g2.setColor(new Color(71, 85, 105));
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 13f));
+            g2.drawString(String.valueOf(count), x + 20, y);
+            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 12f));
+            g2.setColor(new Color(100, 116, 139));
+            g2.drawString(label, x + 40, y);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            int total = trong + dangSuDung + baoTri + khac;
+            if (total == 0) {
+                g2.setColor(new Color(100, 116, 139));
+                g2.drawString("Chưa có dữ liệu phòng", getWidth() / 2 - 60, getHeight() / 2);
+                g2.dispose();
+                return;
+            }
+            
+            int size = Math.min(getWidth() - 160, getHeight() - 60); 
+            size = Math.max(160, Math.min(size, 280));
+            
+            int gap = 40;
+            int legendW = 120;
+            int blockW = size + gap + legendW;
+            
+            int x = (getWidth() - blockW) / 2;
+            int y = (getHeight() - size) / 2;
+            
+            int startAngle = 90;
+            
+            int strokeWidth = Math.max(20, size / 8);
+            g2.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+            
+            g2.setColor(new Color(241, 245, 249));
+            g2.drawArc(x, y, size, size, 0, 360);
+            
+            int arcDSD = (int) Math.round(360.0 * dangSuDung / total);
+            if (arcDSD > 0) {
+                g2.setColor(new Color(220, 38, 38)); // Red
+                g2.drawArc(x, y, size, size, startAngle, -arcDSD);
+                startAngle -= arcDSD;
+            }
+            
+            int arcTrong = (int) Math.round(360.0 * trong / total);
+            if (arcTrong > 0) {
+                g2.setColor(new Color(22, 163, 74)); // Green
+                g2.drawArc(x, y, size, size, startAngle, -arcTrong);
+                startAngle -= arcTrong;
+            }
+            
+            int arcBT = (int) Math.round(360.0 * baoTri / total);
+            if (arcBT > 0) {
+                g2.setColor(new Color(245, 158, 11)); // Orange
+                g2.drawArc(x, y, size, size, startAngle, -arcBT);
+                startAngle -= arcBT;
+            }
+            
+            int arcKhac = 360 - arcDSD - arcTrong - arcBT;
+            if (arcKhac > 0 && khac > 0) {
+                g2.setColor(new Color(148, 163, 184)); // Slate
+                g2.drawArc(x, y, size, size, startAngle, -arcKhac);
+            }
+            
+            float fontSize = size / 5f;
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, fontSize));
+            g2.setColor(new Color(15, 23, 42));
+            String totalStr = String.valueOf(total);
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(totalStr, x + size/2 - fm.stringWidth(totalStr)/2, y + size/2 + fm.getAscent()/3 - 4);
+            
+            float lblSize = size / 12f;
+            g2.setFont(g2.getFont().deriveFont(Font.PLAIN, lblSize));
+            g2.setColor(new Color(100, 116, 139));
+            String lbl = "phòng";
+            fm = g2.getFontMetrics();
+            g2.drawString(lbl, x + size/2 - fm.stringWidth(lbl)/2, y + size/2 + fm.getAscent() + 8);
+
+            int lx = x + size + gap;
+            int ly = y + size / 2 - 40;
+            
+            drawLegendItem(g2, lx, ly, "Đang sử dụng", dangSuDung, new Color(220, 38, 38));
+            ly += 32;
+            drawLegendItem(g2, lx, ly, "Trống", trong, new Color(22, 163, 74));
+            ly += 32;
+            drawLegendItem(g2, lx, ly, "Bảo trì", baoTri, new Color(245, 158, 11));
+            if (khac > 0) {
+                ly += 32;
+                drawLegendItem(g2, lx, ly, "Đã đặt / Khác", khac, new Color(148, 163, 184));
+            }
+            
+            g2.dispose();
         }
     }
 }

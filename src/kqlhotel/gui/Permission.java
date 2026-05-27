@@ -27,6 +27,7 @@ public class Permission {
                      "customers",
                      "services",
                      "promotions",
+                     "invoices",
                      "statistics",
                      "help" -> true;
                 default -> false;

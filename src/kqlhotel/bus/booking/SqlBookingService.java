@@ -98,45 +98,47 @@ public class SqlBookingService implements BookingService {
     @Override
     public BookingConfirmationResult createBooking(CreateBookingCommand command) {
         if (command == null) {
-            return fail("Du lieu dat phong khong hop le.");
+            return fail("Dữ liệu đặt phòng không hợp lệ.");
         }
         if (command.getSelectedRooms() == null || command.getSelectedRooms().isEmpty()) {
-            return fail("Vui long chon it nhat 1 phong.");
+            return fail("Vui lòng chọn ít nhất 1 phòng.");
         }
         if (command.getGuestInfos() == null || command.getGuestInfos().isEmpty()) {
-            return fail("Vui long nhap thong tin khach hang.");
+            return fail("Vui lòng nhập thông tin khách hàng.");
         }
         if (command.getCheckInDate() == null || command.getCheckOutDate() == null
             || !command.getCheckOutDate().isAfter(command.getCheckInDate())) {
-            return fail("Ngay nhan/tra phong khong hop le.");
+            return fail("Ngày nhận/trả phòng không hợp lệ.");
         }
 
         int adults = command.getAdults();
         int children = command.getChildren();
         int sumAdultCapacity = 0;
-        int sumChildrenCapacity = 0;
-        int numberOfRooms = command.getSelectedRooms().size();
+        int sumTotalCapacity = 0;
         for (RoomOptionDto option : command.getSelectedRooms()) {
-             sumAdultCapacity += option.getMaxGuests();
-             sumChildrenCapacity += option.getMaxChildren();
+            int adultCapacity = Math.max(0, option.getMaxGuests());
+            int childExtraCapacity = Math.max(0, option.getMaxChildren());
+            sumAdultCapacity += adultCapacity;
+            sumTotalCapacity += adultCapacity + childExtraCapacity;
         }
-        
-        if (children > sumChildrenCapacity) {
-             return fail("Số lượng trẻ em (" + children + ") vượt quá quy định tối đa (" + sumChildrenCapacity + " bé/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
-        }
-        
+
         if (adults > sumAdultCapacity) {
-             return fail("Số lượng người lớn (" + adults + ") vượt quá quy định tối đa (" + sumAdultCapacity + " người/" + numberOfRooms + " phòng). Vui lòng chọn thêm phòng.");
+            return fail("Số lượng người lớn (" + adults + ") vượt quá sức chứa người lớn tối đa (" + sumAdultCapacity + "). Vui lòng chọn thêm phòng.");
+        }
+
+        int totalGuests = adults + children;
+        if (totalGuests > sumTotalCapacity) {
+            return fail("Tổng số khách (" + totalGuests + ") vượt quá sức chứa tổng (" + sumTotalCapacity + "). Vui lòng chọn thêm phòng.");
         }
 
         double ratio = command.getPaymentRatio();
         if (Double.isNaN(ratio) || Double.isInfinite(ratio) || ratio <= 0 || ratio > 1.0) {
-            return fail("Ti le thanh toan khong hop le (phai trong khoang 0 < ratio <= 1).");
+            return fail("Tỉ lệ thanh toán không hợp lệ (phải trong khoảng 0 < tỉ lệ <= 1).");
         }
 
         Connection con = ConnectDB.getInstance().getConnection();
         if (con == null) {
-            return fail("Khong the ket noi den CSDL.");
+            return fail("Không thể kết nối đến cơ sở dữ liệu.");
         }
 
         boolean originalAutoCommit = true;
@@ -152,7 +154,7 @@ public class SqlBookingService implements BookingService {
                     command.getCheckInDate(), command.getCheckOutDate(), usedRoomIds);
                 if (roomId == null) {
                     con.rollback();
-                    return fail("Khong con phong trong cho loai: " + option.getRoomType());
+                    return fail("Không còn phòng trống cho loại: " + option.getRoomType());
                 }
                 allocatedRoomIds.add(roomId);
                 usedRoomIds.add(roomId);
@@ -171,15 +173,15 @@ public class SqlBookingService implements BookingService {
                 String phoneConflict = findCustomerNameByPhoneWithDifferentId(con, guest.getPhone(), guest.getIdNo());
                 if (phoneConflict != null) {
                     con.rollback();
-                    return fail("So dien thoai " + guest.getPhone().trim()
-                        + " da thuoc khach hang khac (" + phoneConflict
-                        + "). Vui long kiem tra lai CCCD hoac dung so dien thoai khac.");
+                    return fail("Số điện thoại " + guest.getPhone().trim()
+                        + " đã thuộc khách hàng khác (" + phoneConflict
+                        + "). Vui lòng kiểm tra lại CCCD hoặc dùng số điện thoại khác.");
                 }
 
                 String maKH = upsertCustomer(con, guest);
                 if (maKH == null) {
                     con.rollback();
-                    return fail("Khong the luu thong tin khach hang: " + guest.getFullName());
+                    return fail("Không thể lưu thông tin khách hàng: " + guest.getFullName());
                 }
                 if (i == 0) {
                     leadCustomerId = maKH;
@@ -187,7 +189,7 @@ public class SqlBookingService implements BookingService {
             }
             if (leadCustomerId == null) {
                 con.rollback();
-                return fail("Khong the xac dinh khach dai dien cho dat phong.");
+                return fail("Không thể xác định khách đại diện cho đặt phòng.");
             }
 
             // 3. Resolve maNV from the logged-in staff, fallback only for legacy callers.
@@ -197,7 +199,7 @@ public class SqlBookingService implements BookingService {
             }
             if (maNV == null) {
                 con.rollback();
-                return fail("Khong tim thay nhan vien xu ly.");
+                return fail("Không tìm thấy nhân viên xử lý.");
             }
 
             // 4. Insert DatPhong
@@ -318,7 +320,7 @@ public class SqlBookingService implements BookingService {
             String maPC = shiftBUS.getOpenShiftIdByStaff(maNV);
             if (maPC == null || maPC.isBlank()) {
                 con.rollback();
-                return fail("Nhan vien chua mo ca, khong the ghi nhan thanh toan dat phong.");
+                return fail("Nhân viên chưa mở ca, không thể ghi nhận thanh toán đặt phòng.");
             }
 
             Payment payment = new Payment(
@@ -336,17 +338,17 @@ public class SqlBookingService implements BookingService {
 
             if (!paymentBUS.recordPayment(con, payment)) {
                 con.rollback();
-                return fail("Khong the luu thong tin thanh toan.");
+                return fail("Không thể lưu thông tin thanh toán.");
             }
 
             con.commit();
             String emailNote = sendBookingEmailIfPossible(command, maDatPhong, maHD, tongTien, paidAmount);
             return new BookingConfirmationResult(true, maDatPhong,
-                "Dat phong thanh cong. Ma DP: " + maDatPhong + ", Ma HD: " + maHD + emailNote);
+                "Đặt phòng thành công. Mã đặt phòng: " + maDatPhong + ", mã hóa đơn: " + maHD + emailNote);
         } catch (SQLException ex) {
             ex.printStackTrace();
             try { con.rollback(); } catch (SQLException ignored) {}
-            return fail("Loi CSDL: " + ex.getMessage());
+            return fail("Lỗi cơ sở dữ liệu: " + ex.getMessage());
         } finally {
             try { con.setAutoCommit(originalAutoCommit); } catch (SQLException ignored) {}
         }
@@ -373,7 +375,7 @@ public class SqlBookingService implements BookingService {
         GuestInfoDto leadGuest = command.getGuestInfos().get(0);
         String email = leadGuest.getEmail();
         if (email == null || email.trim().isEmpty()) {
-            return "\nChua gui email xac nhan: khach chinh chua co email.";
+            return "\nChưa gửi email xác nhận: khách đại diện chưa có email.";
         }
 
         try {
@@ -391,10 +393,10 @@ public class SqlBookingService implements BookingService {
                 paidAmount,
                 Math.max(0L, totalAmount - paidAmount)
             );
-            return "\nDa gui email xac nhan den: " + email.trim();
+            return "\nĐã gửi email xác nhận đến: " + email.trim();
         } catch (Exception ex) {
             ex.printStackTrace();
-            return "\nDat phong thanh cong nhung chua gui duoc email xac nhan: " + ex.getMessage();
+            return "\nĐặt phòng thành công nhưng chưa gửi được email xác nhận: " + ex.getMessage();
         }
     }
 

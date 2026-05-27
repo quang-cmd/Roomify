@@ -30,6 +30,7 @@ import kqlhotel.bus.shift.ShiftBUS;
 import kqlhotel.entity.shift.ShiftInfo;
 import kqlhotel.gui.dialog.ShiftClosingDialog;
 import kqlhotel.gui.components.BackgroundPanel;
+import kqlhotel.gui.components.GlobalSearchBar;
 import kqlhotel.gui.components.LoginBackgroundPanel;
 import kqlhotel.gui.components.RoundedPanel;
 import kqlhotel.gui.tabs.*;
@@ -457,7 +458,7 @@ public class AppFrame extends JFrame {
     }
 
     private JPanel createTopbar() {
-        JPanel topbar = new JPanel(new MigLayout("insets 12 18", "[grow,fill][]", "[]"));
+        JPanel topbar = new JPanel(new MigLayout("insets 12 18,gap 18", "[280:340:420][320:520,grow,fill][]", "[]"));
         topbar.setOpaque(false);
         topbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, ThemeColors.BORDER_SOFT));
 
@@ -482,7 +483,10 @@ public class AppFrame extends JFrame {
         titleWrap.add(pageTitleLabel);
         titleWrap.add(dateLbl);
 
-        topbar.add(titleWrap);
+        GlobalSearchBar globalSearchBar = new GlobalSearchBar(result -> navigateTo(result.getRoute()));
+
+        topbar.add(titleWrap, "aligny center");
+        topbar.add(globalSearchBar, "aligny center,growx");
         topbar.add(createTopbarRight(), "aligny center");
         return topbar;
     }

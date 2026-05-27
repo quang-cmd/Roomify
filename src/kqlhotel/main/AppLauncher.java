@@ -12,7 +12,7 @@ public final class AppLauncher {
     public static void main(String[] args) {
         try {
             ConnectDB.getInstance().connect();
-            System.out.println("Ket noi Database thanh cong!");
+            System.out.println("Kết nối database thành công!");
         } catch (Exception e) {
             String message = "Khong the ket noi database.\nVui long kiem tra cau hinh SQL Server.\n\nChi tiet: " + e.getMessage();
             System.err.println(message);

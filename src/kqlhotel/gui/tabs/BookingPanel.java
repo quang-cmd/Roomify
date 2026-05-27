@@ -1053,7 +1053,7 @@ public class BookingPanel extends JPanel {
         if (result.getBookingCode() != null && !result.getBookingCode().trim().isEmpty()) {
             successMessage = successMessage + "\nMã đặt phòng: " + result.getBookingCode();
         }
-        JOptionPane.showMessageDialog(this, successMessage, "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, successMessage, "Thành công", JOptionPane.INFORMATION_MESSAGE);
         
         // Refresh RoomManagementPanel data
         java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
@@ -1618,7 +1618,7 @@ public class BookingPanel extends JPanel {
     private String buildCapacityHint(RoomOptionDto room) {
         int requiredRooms = calculateRequiredRoomsForSearch(room);
         if (requiredRooms == Integer.MAX_VALUE) {
-            return "Loại phòng này không phù hợp với số trẻ em đã nhập";
+            return "Loại phòng này không phù hợp với số khách đã nhập";
         }
         if (requiredRooms <= 1) {
             return "1 phòng đủ cho nhóm khách này";
@@ -1634,14 +1634,15 @@ public class BookingPanel extends JPanel {
     }
 
     private int calculateRequiredRoomsForSearch(RoomOptionDto room) {
-        int adultRooms = ceilDiv(Math.max(1, adultsCount), Math.max(1, room.getMaxGuests()));
-        if (childrenCount > 0 && room.getMaxChildren() <= 0) {
+        int adultCapacity = Math.max(0, room.getMaxGuests());
+        int totalCapacity = adultCapacity + Math.max(0, room.getMaxChildren());
+        if (adultCapacity <= 0 || totalCapacity <= 0) {
             return Integer.MAX_VALUE;
         }
-        int childRooms = childrenCount <= 0
-            ? 0
-            : ceilDiv(childrenCount, room.getMaxChildren());
-        return Math.max(1, Math.max(adultRooms, childRooms));
+
+        int adultRooms = ceilDiv(Math.max(1, adultsCount), adultCapacity);
+        int totalRooms = ceilDiv(Math.max(1, adultsCount + childrenCount), totalCapacity);
+        return Math.max(1, Math.max(adultRooms, totalRooms));
     }
 
     private int ceilDiv(int value, int divisor) {
@@ -1733,10 +1734,11 @@ public class BookingPanel extends JPanel {
             return false;
         }
 
-        int totalChildCapacity = selectedRooms.stream().mapToInt(r -> r.childCapacity).sum();
-        if (childrenCount > totalChildCapacity) {
+        int totalCapacity = selectedRooms.stream().mapToInt(r -> Math.max(0, r.capacity) + Math.max(0, r.childCapacity)).sum();
+        int totalGuests = adultsCount + childrenCount;
+        if (totalGuests > totalCapacity) {
             JOptionPane.showMessageDialog(this,
-                "Tổng sức chứa trẻ em của các phòng đã chọn (" + totalChildCapacity + ") không đủ cho " + childrenCount + " trẻ em.\n"
+                "Tổng sức chứa của các phòng đã chọn (" + totalCapacity + ") không đủ cho " + totalGuests + " khách.\n"
                 + "Vui lòng chọn thêm phòng hoặc chọn loại phòng lớn hơn.",
                 "Sức chứa không đủ", JOptionPane.WARNING_MESSAGE);
             return false;
