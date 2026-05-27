@@ -13,6 +13,16 @@ import kqlhotel.entity.shift.ShiftReconciliationRow;
 
 public class ShiftDAO {
 
+    private static final String SQL_SHIFT_START =
+        "DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS TIME), cl.gioBatDau), CAST(CAST(pc.ngay AS DATE) AS DATETIME2))";
+
+    private static final String SQL_SHIFT_END =
+        "DATEADD(DAY, CASE WHEN cl.gioKetThuc <= cl.gioBatDau THEN 1 ELSE 0 END, " +
+        "DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS TIME), cl.gioKetThuc), CAST(CAST(pc.ngay AS DATE) AS DATETIME2)))";
+
+    private static final String SQL_SHIFT_IS_ACTIVE_NOW =
+        "GETDATE() >= " + SQL_SHIFT_START + " AND GETDATE() < " + SQL_SHIFT_END;
+
     private static final String SQL_CURRENT_SHIFT =
         "SELECT TOP 1 pc.maPC, cl.loaiCa, " +
         "  CONVERT(VARCHAR(5), cl.gioBatDau, 108) AS gioBatDau, " +
@@ -28,9 +38,9 @@ public class ShiftDAO {
         "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
         "WHERE pc.trangThai = N'DangMo' " +
-        "  AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE) " +
+        "  AND " + SQL_SHIFT_IS_ACTIVE_NOW + " " +
         "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
-        "ORDER BY pc.ngay DESC";
+        "ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC";
 
     private static final String SQL_FIND_CALAM_BY_TIME =
         "SELECT TOP 1 maCa FROM CaLam " +
@@ -115,7 +125,6 @@ public class ShiftDAO {
                 trangThai = N'DangMo'
             WHERE maPC = ?
               AND trangThai = N'DaPhanCong'
-              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
         """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -129,9 +138,10 @@ public class ShiftDAO {
         String sql = """
             SELECT TOP 1 pc.maPC, pc.maNV, pc.maCa
             FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
             WHERE pc.trangThai = N'DaPhanCong'
               AND pc.maCa = ?
-              AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE)
+              AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
             ORDER BY pc.maPC ASC
         """;
 
@@ -154,11 +164,12 @@ public class ShiftDAO {
     private boolean hasOpenShift(Connection con, String maNV, String maCa) throws SQLException {
         String sql = """
             SELECT COUNT(*)
-            FROM PhanCongCa
-            WHERE maNV = ?
-              AND maCa = ?
-              AND trangThai = N'DangMo'
-              AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
+            FROM PhanCongCa pc
+            JOIN CaLam cl ON pc.maCa = cl.maCa
+            WHERE pc.maNV = ?
+              AND pc.maCa = ?
+              AND pc.trangThai = N'DangMo'
+              AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
         """;
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maNV);
@@ -214,9 +225,9 @@ public class ShiftDAO {
                         "JOIN NhanVien nv ON pc.maNV = nv.maNV " +
                         "LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC " +
                         "WHERE pc.trangThai = N'DangMo' AND pc.maNV = ? " +
-                        "  AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE) " +
+                        "  AND " + SQL_SHIFT_IS_ACTIVE_NOW + " " +
                         "GROUP BY pc.maPC, pc.ngay, cl.loaiCa, cl.gioBatDau, cl.gioKetThuc, nv.hoTenNV, pc.tienMoCa " +
-                        "ORDER BY pc.ngay DESC";
+                        "ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC";
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maNV);
@@ -381,7 +392,7 @@ public class ShiftDAO {
             LEFT JOIN ThanhToan tt ON tt.maPC = pc.maPC
             WHERE (
                     pc.trangThai = N'DangMo'
-                    AND CAST(pc.ngay AS DATE) = CAST(GETDATE() AS DATE)
+                    AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
                   )
                OR (
                     pc.trangThai = N'DaPhanCong'
@@ -466,11 +477,12 @@ public class ShiftDAO {
         }
 
         String sql = """
-        SELECT TOP 1 maNV
-        FROM PhanCongCa
-        WHERE trangThai = N'DangMo'
-          AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
-        ORDER BY ngay DESC
+        SELECT TOP 1 pc.maNV
+        FROM PhanCongCa pc
+        JOIN CaLam cl ON pc.maCa = cl.maCa
+        WHERE pc.trangThai = N'DangMo'
+          AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+        ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC
     """;
 
         try (PreparedStatement ps = con.prepareStatement(sql);
@@ -498,12 +510,13 @@ public class ShiftDAO {
         }
 
         String sql = """
-        SELECT TOP 1 maPC
-        FROM PhanCongCa
-        WHERE maNV = ?
-          AND trangThai = N'DangMo'
-          AND CAST(ngay AS DATE) = CAST(GETDATE() AS DATE)
-        ORDER BY ngay DESC
+        SELECT TOP 1 pc.maPC
+        FROM PhanCongCa pc
+        JOIN CaLam cl ON pc.maCa = cl.maCa
+        WHERE pc.maNV = ?
+          AND pc.trangThai = N'DangMo'
+          AND """ + SQL_SHIFT_IS_ACTIVE_NOW + """
+        ORDER BY pc.thoiGianMoCa DESC, pc.ngay DESC
     """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
